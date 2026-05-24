@@ -17,19 +17,6 @@ const [detayHesap, setDetayHesap] = useState(null)
 const [hesapYatirimlari, setHesapYatirimlari] = useState([])
 
   const hesapTurleri = ['Banka', 'Nakit', 'Kredi Kartı', 'Yatırım', 'Borç', 'Diğer']
-  {yeniHesap.tur === 'Kredi Kartı' && (
-  <>
-    <label style={styles.label}>Hesap Kesim Günü</label>
-    <input
-      style={styles.input}
-      type="number"
-      placeholder="örn. 15 (ayın 15'i)"
-      min="1" max="31"
-      value={yeniHesap.kesim_gunu}
-      onChange={e => setYeniHesap({ ...yeniHesap, kesim_gunu: e.target.value })}
-    />
-  </>
-)}  
   const paraBirimleri = ['TRY', 'USD', 'EUR', 'GBP', 'ALTIN']
 
 
@@ -92,7 +79,7 @@ const handleDrop = (e, hedefId) => {
 
   useEffect(() => {
     hesaplariGetir()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 
 const hesaplariGetir = async () => {
@@ -367,18 +354,10 @@ const toplamTRY = hesaplar
 
       <div style={styles.toggleSatir}>
         <span style={styles.toggleLabel}>Yatırım Hesabı mı?</span>
-               <div style={{ ...styles.toggle, background: yeniHesap.yatirim_hesabi ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
-               onClick={() => setYeniHesap({ ...yeniHesap, yatirim_hesabi: !yeniHesap.yatirim_hesabi })}>
-                     <div style={{ ...styles.toggleTop, transform: yeniHesap.yatirim_hesabi ? 'translateX(20px)' : 'translateX(0)' }} />
-                   </div>
+        <div style={{ ...styles.toggle, background: duzenleHesap.yatirim_hesabi ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+          onClick={() => setDuzenleHesap({ ...duzenleHesap, yatirim_hesabi: !duzenleHesap.yatirim_hesabi })}>
+          <div style={{ ...styles.toggleTop, transform: duzenleHesap.yatirim_hesabi ? 'translateX(20px)' : 'translateX(0)' }} />
         </div>
-
-        <div style={styles.toggleSatir}>
-           <span style={styles.toggleLabel}>Yatırım Hesabı mı?</span>
-          <div style={{ ...styles.toggle, background: duzenleHesap.yatirim_hesabi ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
-         onClick={() => setDuzenleHesap({ ...duzenleHesap, yatirim_hesabi: !duzenleHesap.yatirim_hesabi })}>
-         <div style={{ ...styles.toggleTop, transform: duzenleHesap.yatirim_hesabi ? 'translateX(20px)' : 'translateX(0)' }} />
-       </div>
       </div>
 
       <label style={styles.label}>Para Birimi</label>
@@ -448,6 +427,31 @@ const toplamTRY = hesaplar
             >
               {paraBirimleri.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
+
+            {yeniHesap.tur === 'Kredi Kartı' && (
+              <>
+                <label style={styles.label}>Hesap Kesim Günü</label>
+                <input
+                  style={styles.input}
+                  type="number"
+                  placeholder="örn. 15 (ayın 15'i)"
+                  min="1"
+                  max="31"
+                  value={yeniHesap.kesim_gunu}
+                  onChange={e => setYeniHesap({ ...yeniHesap, kesim_gunu: e.target.value })}
+                />
+              </>
+            )}
+
+            <div style={styles.toggleSatir}>
+              <span style={styles.toggleLabel}>Yatırım Hesabı mı?</span>
+              <div
+                style={{ ...styles.toggle, background: yeniHesap.yatirim_hesabi ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+                onClick={() => setYeniHesap({ ...yeniHesap, yatirim_hesabi: !yeniHesap.yatirim_hesabi })}
+              >
+                <div style={{ ...styles.toggleTop, transform: yeniHesap.yatirim_hesabi ? 'translateX(20px)' : 'translateX(0)' }} />
+              </div>
+            </div>
 
             <div style={styles.modalBtnler}>
               <button style={styles.iptalBtn} onClick={() => setFormAcik(false)}>İptal</button>

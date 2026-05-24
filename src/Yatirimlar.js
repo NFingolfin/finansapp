@@ -33,7 +33,7 @@ const [yeni, setYeni] = useState({
   useEffect(() => {
     yatirimlariGetir()
     hesaplariGetir()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const yatirimlariGetir = async () => {
     setYukleniyor(true)

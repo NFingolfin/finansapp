@@ -16,7 +16,7 @@ function Raporlar({ session }) {
 
   useEffect(() => {
     verileriGetir()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const verileriGetir = async () => {
     setYukleniyor(true)

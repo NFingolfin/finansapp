@@ -41,7 +41,7 @@
     useEffect(() => {
         islemleriGetir()
         hesaplariGetir()
-    }, [])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const islemleriGetir = async () => {
         setYukleniyor(true)

@@ -7,14 +7,40 @@ import Yatirimlar from './Yatirimlar'
 import Borclar from './Borclar'
 import Hedefler from './Hedefler'
 import Raporlar from './Raporlar'
+import Hesabim from './Hesabim'
+import FinkodLogo from './Logo'
 
 
 function Dashboard({ session }) {
   const [aktifSayfa, setAktifSayfa] = useState('ozet')
+  const [profil, setProfil] = useState(null)
+
+  useEffect(() => { profilGetir() }, [])
+
+  const profilGetir = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('ad, soyad')
+      .eq('id', session.user.id)
+      .single()
+    if (data) {
+      setProfil(data)
+    } else if (error?.code === 'PGRST116') {
+      // Satır yok — upsert ile oluştur
+      await supabase.from('profiles').upsert(
+        { id: session.user.id, ad: '', soyad: '' },
+        { onConflict: 'id' }
+      )
+    }
+  }
 
   const handleCikis = async () => {
     await supabase.auth.signOut()
   }
+
+  const displayName = profil?.ad
+    ? `${profil.ad} ${profil.soyad || ''}`.trim()
+    : session.user.email.split('@')[0]
 
   const menuItems = [
     { id: 'ozet', label: 'Genel Özet', icon: '📊' },
@@ -24,16 +50,24 @@ function Dashboard({ session }) {
     { id: 'hedefler', label: 'Hedefler', icon: '🎯' },
     { id: 'borclar', label: 'Borçlar', icon: '💳' },
     { id: 'raporlar', label: 'Raporlar', icon: '📋' },
-
-    
+    { id: 'hesabim', label: 'Hesabım', icon: '👤' },
   ]
 
   return (
     <div style={styles.wrapper}>
       {/* Sol Menü */}
       <div style={styles.sidebar}>
-        <div style={styles.logo}>💰 FinansApp</div>
-        <div style={styles.userInfo}>{session.user.email.split('@')[0]}</div>
+        <div style={styles.logoWrap}>
+          <FinkodLogo size={32} uid="s" />
+          <div>
+            <div style={styles.logo}>Finkod Cüzdan</div>
+            <div style={styles.logoAlt}>by NKode Solutions</div>
+          </div>
+        </div>
+        <div style={styles.userInfo}>
+          <div style={styles.kullaniciAd}>{displayName}</div>
+          <div style={styles.kullaniciEmail}>{session.user.email}</div>
+        </div>
 
         <nav style={styles.nav}>
           {menuItems.map(item => (
@@ -51,6 +85,10 @@ function Dashboard({ session }) {
         <button style={styles.cikisBtn} onClick={handleCikis}>
           🚪 Çıkış Yap
         </button>
+        <div style={styles.nkodeBranding}>
+          <div style={styles.nkodeDot} />
+          NKode Solutions
+        </div>
       </div>
 
       {/* Ana İçerik */}
@@ -73,6 +111,7 @@ function Dashboard({ session }) {
           {aktifSayfa === 'borclar' && <Borclar session={session} />}
           {aktifSayfa === 'hedefler' && <Hedefler session={session} />}
           {aktifSayfa === 'raporlar' && <Raporlar session={session} />}
+          {aktifSayfa === 'hesabim' && <Hesabim session={session} onProfilGuncellendi={profilGetir} />}
         </div>
       </div>
     </div>
@@ -217,18 +256,70 @@ const styles = {
     height: '100vh',
     boxSizing: 'border-box',
   },
+  logoWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '4px',
+  },
+  logoIcon: {
+    width: 32, height: 32,
+    borderRadius: '9px',
+    background: 'rgba(78,204,163,0.1)',
+    border: '1px solid rgba(78,204,163,0.2)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
   logo: {
     color: '#4ecca3',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    marginBottom: '4px',
-    textAlign: 'center',
+    fontSize: '14px',
+    fontWeight: '700',
+    lineHeight: 1.2,
+  },
+  logoAlt: {
+    color: 'rgba(78,204,163,0.45)',
+    fontSize: '9px',
+    letterSpacing: '0.5px',
+    fontWeight: 500,
   },
   userInfo: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: '12px',
     textAlign: 'center',
-    marginBottom: '32px',
+    marginBottom: '24px',
+    marginTop: '8px',
+    padding: '10px 8px',
+    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.06)',
+  },
+  kullaniciAd: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: '13px',
+    fontWeight: '600',
+    marginBottom: '2px',
+  },
+  kullaniciEmail: {
+    color: 'rgba(255,255,255,0.28)',
+    fontSize: '10px',
+    letterSpacing: '0.2px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '180px',
+    margin: '0 auto',
+  },
+  nkodeBranding: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: '10px',
+    letterSpacing: '0.4px',
+    marginTop: '12px',
+    justifyContent: 'center',
+  },
+  nkodeDot: {
+    width: 5, height: 5, borderRadius: '50%',
+    background: '#4ecca3', opacity: 0.5,
   },
   nav: {
     display: 'flex',
