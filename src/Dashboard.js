@@ -10,10 +10,22 @@ import Raporlar from './Raporlar'
 import Hesabim from './Hesabim'
 import FinkodLogo from './Logo'
 
+const useWindowSize = () => {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const handle = () => setWidth(window.innerWidth)
+    window.addEventListener('resize', handle)
+    return () => window.removeEventListener('resize', handle)
+  }, [])
+  return width
+}
 
 function Dashboard({ session }) {
   const [aktifSayfa, setAktifSayfa] = useState('ozet')
   const [profil, setProfil] = useState(null)
+  const windowWidth = useWindowSize()
+const mobil = windowWidth < 768
+const [menuAcik, setMenuAcik] = useState(false)
 
   useEffect(() => { profilGetir() }, [])
 
@@ -55,8 +67,20 @@ function Dashboard({ session }) {
 
   return (
     <div style={styles.wrapper}>
+  {/* Mobil overlay */}
+  {mobil && menuAcik && (
+    <div
+      style={styles.overlay}
+      onClick={() => setMenuAcik(false)}
+    />
+  )}
       {/* Sol Menü */}
-      <div style={styles.sidebar}>
+      <div style={{
+  ...styles.sidebar,
+  transform: mobil ? (menuAcik ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
+  transition: 'transform 0.3s ease',
+  zIndex: mobil ? 1000 : 1,
+}}>
         <div style={styles.logoWrap}>
           <FinkodLogo size={32} uid="s" />
           <div>
@@ -92,8 +116,19 @@ function Dashboard({ session }) {
       </div>
 
       {/* Ana İçerik */}
-      <div style={styles.content}>
+      <div style={{
+  ...styles.content,
+  marginLeft: mobil ? '0' : '240px',
+  width: mobil ? '100%' : 'calc(100% - 240px)',
+}}>
         <div style={styles.header}>
+          {mobil && (
+  <button
+    style={styles.hamburger}
+    onClick={() => setMenuAcik(!menuAcik)}>
+    {menuAcik ? '✕' : '☰'}
+  </button>
+)}
           <h1 style={styles.pageTitle}>
             {menuItems.find(m => m.id === aktifSayfa)?.icon}{' '}
             {menuItems.find(m => m.id === aktifSayfa)?.label}
@@ -436,6 +471,21 @@ content: {
   yakindaIcon: { fontSize: '48px', marginBottom: '16px' },
   yakindaBaslik: { color: '#fff', fontSize: '22px', margin: '0 0 8px 0' },
   yakindaMetin: { color: 'rgba(255,255,255,0.4)', fontSize: '15px' },
+  overlay: {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.5)',
+  zIndex: 999,
+},
+hamburger: {
+  background: 'none',
+  border: 'none',
+  color: '#fff',
+  fontSize: '24px',
+  cursor: 'pointer',
+  marginRight: '16px',
+  padding: '4px 8px',
+},
 
   islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
   badge: { padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' },
