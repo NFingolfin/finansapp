@@ -1,7 +1,7 @@
     import { useState, useEffect } from 'react'
     import { supabase } from './supabase'
 
-    function Islemler({ session }) {
+    function Islemler({ session, mobil }) {
     const [islemler, setIslemler] = useState([])
     const [hesaplar, setHesaplar] = useState([])
     const [yukleniyor, setYukleniyor] = useState(true)
@@ -222,7 +222,7 @@ if (yeni.tur === 'gider') {
     return (
         <div>
         {/* Üst Özet */}
-        <div style={styles.ozetGrid}>
+        <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
             <div style={styles.ozetKart}>
             <div style={styles.ozetLabel}>Toplam Gelir</div>
             <div style={{ ...styles.ozetDeger, color: '#4ecca3' }}>₺{toplamGelir.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
@@ -242,7 +242,7 @@ if (yeni.tur === 'gider') {
 
         {/* Toolbar */}
         <div style={styles.toolbar}>
-            <div style={styles.filtreler}>
+            <div style={{ ...styles.filtreler, overflowX: mobil ? 'auto' : 'visible', flexWrap: mobil ? 'nowrap' : 'wrap', paddingBottom: mobil ? '4px' : '0' }}>
             {['hepsi', 'gelir', 'gider', 'transfer'].map(f => (
                 <button
                 key={f}
@@ -259,11 +259,11 @@ if (yeni.tur === 'gider') {
         {/* Form Modal */}
         {formAcik && (
             <div style={styles.modalOverlay}>
-            <div style={styles.modal}>
+            <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
                 <h3 style={styles.modalBaslik}>Yeni İşlem Ekle</h3>
 
                 <label style={styles.label}>İşlem Türü</label>
-                <div style={styles.turSecici}>
+                <div style={{ ...styles.turSecici, display: 'grid', gridTemplateColumns: mobil ? '1fr 1fr' : 'repeat(3,1fr)' }}>
                 {['gelir', 'gider', 'transfer'].map(t => (
                     <button
                     key={t}

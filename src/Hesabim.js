@@ -41,7 +41,7 @@ function Mesaj({ tip, metin }) {
 }
 
 /* ── Ana bileşen ── */
-function Hesabim({ session, onProfilGuncellendi }) {
+function Hesabim({ session, onProfilGuncellendi, mobil }) {
   const [ad, setAd] = useState('')
   const [soyad, setSoyad] = useState('')
   const [mevcutSifre, setMevcutSifre] = useState('')
@@ -136,10 +136,10 @@ function Hesabim({ session, onProfilGuncellendi }) {
   if (profilYukleniyor) return <div style={s.yukleniyor}>Yükleniyor...</div>
 
   return (
-    <div style={s.sayfa}>
+    <div style={{ ...s.sayfa, padding: mobil ? '0 2px' : undefined }}>
 
       {/* ── Kullanıcı bilgi kartı ── */}
-      <div style={s.kullaniciBanner}>
+      <div style={{ ...s.kullaniciBanner, padding: mobil ? '16px' : '24px 28px' }}>
         <div style={s.avatarDaire}>
           {ad ? ad.charAt(0).toUpperCase() : session.user.email.charAt(0).toUpperCase()}
         </div>
@@ -153,7 +153,7 @@ function Hesabim({ session, onProfilGuncellendi }) {
       </div>
 
       {/* ── Profil Bilgileri ── */}
-      <div style={s.panel}>
+      <div style={{ ...s.panel, padding: mobil ? '18px 16px' : '28px' }}>
         <div style={s.panelHeader}>
           <div style={s.panelIkon}>👤</div>
           <div>
@@ -169,7 +169,7 @@ function Hesabim({ session, onProfilGuncellendi }) {
           <span style={s.epostaBadge}>Değiştirilemez</span>
         </div>
 
-        <div style={s.ikiliGrid}>
+        <div style={{ ...s.ikiliGrid, gridTemplateColumns: mobil ? '1fr' : '1fr 1fr' }}>
           <div>
             <label style={s.label}>Ad</label>
             <input style={s.input} type="text" placeholder="Adınız"
@@ -194,7 +194,7 @@ function Hesabim({ session, onProfilGuncellendi }) {
       </div>
 
       {/* ── Şifre Değiştir ── */}
-      <div style={s.panel}>
+      <div style={{ ...s.panel, padding: mobil ? '18px 16px' : '28px' }}>
         <div style={s.panelHeader}>
           <div style={s.panelIkon}>🔐</div>
           <div>
@@ -212,7 +212,7 @@ function Hesabim({ session, onProfilGuncellendi }) {
           autoComplete="current-password"
         />
 
-        <div style={s.ikiliGrid}>
+        <div style={{ ...s.ikiliGrid, gridTemplateColumns: mobil ? '1fr' : '1fr 1fr' }}>
           <div>
             <label style={s.label}>Yeni Şifre</label>
             <input style={s.input} type="password" placeholder="En az 6 karakter"

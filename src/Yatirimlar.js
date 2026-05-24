@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Yatirimlar({ session }) {
+function Yatirimlar({ session, mobil }) {
   const [yatirimlar, setYatirimlar] = useState([])
   const [hesaplar, setHesaplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -248,7 +248,7 @@ const satisYap = async () => {
 
   return (
     <div>
-      <div style={styles.ozetGrid}>
+      <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Maliyet</div>
           <div style={{ ...styles.ozetDeger, color: '#45b7d1' }}>₺{toplamMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
@@ -271,7 +271,7 @@ const satisYap = async () => {
         </div>
       </div>
 
-      <div style={styles.toolbar}>
+      <div style={{ ...styles.toolbar, flexWrap: mobil ? 'wrap' : 'nowrap', gap: '10px' }}>
         <button style={styles.guncelleBtn} onClick={fiyatlariGuncelle} disabled={guncelleniyor}>
           {guncelleniyor ? '⏳ Güncelleniyor...' : '🔄 Fiyatları Güncelle'}
         </button>
@@ -279,7 +279,7 @@ const satisYap = async () => {
       </div>
 {duzenleModal && duzenleYatirim && (
   <div style={styles.modalOverlay}>
-    <div style={{ ...styles.modal, width: '420px' }}>
+    <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
       <h3 style={styles.modalBaslik}>✏️ Yatırımı Düzenle</h3>
 
       <label style={styles.label}>Yatırım Adı</label>
@@ -342,7 +342,7 @@ const satisYap = async () => {
 )}
       {satisFormAcik && satisYatirim && (
   <div style={styles.modalOverlay}>
-    <div style={{ ...styles.modal, width: '400px' }}>
+    <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
       <h3 style={styles.modalBaslik}>📤 Satış Yap</h3>
       <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>
         {satisYatirim.ad} — Güncel Değer: ₺{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
@@ -404,7 +404,7 @@ const satisYap = async () => {
 
       {formAcik && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+          <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
             <h3 style={styles.modalBaslik}>Yeni Yatırım Ekle</h3>
 
             <label style={styles.label}>Yatırım Adı</label>
@@ -505,7 +505,7 @@ const satisYap = async () => {
             const karZarar = parseFloat(y.guncel_deger) - parseFloat(y.maliyet)
             const getiri = parseFloat(y.maliyet) > 0 ? ((karZarar / parseFloat(y.maliyet)) * 100).toFixed(2) : 0
             return (
-              <div key={y.id} style={{ ...styles.kart, borderLeft: `4px solid ${turRenk[y.tur] || '#a8a8b3'}` }}>
+              <div key={y.id} style={{ ...styles.kart, borderLeft: `4px solid ${turRenk[y.tur] || '#a8a8b3'}`, flexDirection: mobil ? 'column' : 'row', alignItems: mobil ? 'stretch' : 'center', gap: mobil ? '12px' : '20px' }}>
                 <div style={styles.kartSol}>
                   <span style={styles.ikon}>{turIkon[y.tur] || '💼'}</span>
                   <div>
@@ -518,6 +518,7 @@ const satisYap = async () => {
                     </div>
                   </div>
                 </div>
+                <div style={mobil ? { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' } : { display: 'contents' }}>
 <div style={styles.kartOrta}>
   <div style={styles.detayLabel}>Miktar</div>
   <div style={styles.detayDeger}>{parseFloat(y.miktar) > 0 ? `${y.miktar} adet` : '—'}</div>
@@ -546,24 +547,29 @@ const satisYap = async () => {
   <div style={styles.detayLabel}>Güncel Değer</div>
   <div style={styles.detayDeger}>₺{parseFloat(y.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
 </div>
-                <div style={styles.kartSag}>
-                  <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '18px', fontWeight: 'bold' }}>
-                    {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '13px' }}>
-                    {getiri >= 0 ? '+' : ''}{getiri}%
-                  </div>
                 </div>
-                <button style={styles.duzenleBtn} onClick={() => {
+                <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
+                  <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
+                    <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '18px', fontWeight: 'bold' }}>
+                      {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    </div>
+                    <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '13px' }}>
+                      {getiri >= 0 ? '+' : ''}{getiri}%
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button style={styles.duzenleBtn} onClick={() => {
   setDuzenleYatirim(y)
   setDuzenleModal(true)
 }}>✏️</button>
-                <button style={styles.satisBtn} onClick={() => {
+                    <button style={styles.satisBtn} onClick={() => {
   setSatisYatirim(y)
   setSatis({ miktar: '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
   setSatisFormAcik(true)
 }}>📤 Sat</button>
 <button style={styles.silBtn} onClick={() => yatirimSil(y.id)}>🗑️</button>
+                  </div>
+                </div>
               </div>
             )
           })}

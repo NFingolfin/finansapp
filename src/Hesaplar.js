@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Hesaplar({ session }) {
+function Hesaplar({ session, mobil }) {
   const [hesaplar, setHesaplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
   const [formAcik, setFormAcik] = useState(false)
@@ -195,7 +195,7 @@ const toplamTRY = hesaplar
   return (
     <div>
       {/* Üst Özet */}
-      <div style={styles.ozetGrid}>
+      <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Varlık (TRY)</div>
           <div style={{ ...styles.ozetDeger, color: '#4ecca3' }}>
@@ -241,7 +241,7 @@ const toplamTRY = hesaplar
 
 {detayModal && detayHesap && (
   <div style={styles.modalOverlay}>
-    <div style={{ ...styles.modal, width: '560px' }}>
+    <div style={{ ...styles.modal, width: mobil ? '95vw' : '560px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h3 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>
           📂 {detayHesap.ad}
@@ -333,7 +333,7 @@ const toplamTRY = hesaplar
 )}
 {duzenleModal && duzenleHesap && (
   <div style={styles.modalOverlay}>
-    <div style={styles.modal}>
+    <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
       <h3 style={styles.modalBaslik}>Hesabı Düzenle</h3>
 
       <label style={styles.label}>Hesap Adı</label>
@@ -390,7 +390,7 @@ const toplamTRY = hesaplar
       {/* Form Modal */}
       {formAcik && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+          <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
             <h3 style={styles.modalBaslik}>Yeni Hesap Ekle</h3>
 
             <label style={styles.label}>Hesap Adı</label>
@@ -472,7 +472,7 @@ const toplamTRY = hesaplar
           <p style={{ color: 'rgba(255,255,255,0.4)' }}>Henüz hesap eklenmemiş. İlk hesabını ekle!</p>
         </div>
       ) : (
-        <div style={styles.hesapGrid}>
+        <div style={{ ...styles.hesapGrid, gridTemplateColumns: mobil ? '1fr' : 'repeat(3,1fr)' }}>
           {hesaplar.map(hesap => (
 <div
   key={hesap.id}
@@ -540,7 +540,7 @@ const styles = {
   toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' },
   ekleBtn: { padding: '12px 24px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '400px', border: '1px solid rgba(255,255,255,0.1)' },
+  modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '400px', border: '1px solid rgba(255,255,255,0.1)', boxSizing: 'border-box' },
   modalBaslik: { color: '#fff', fontSize: '18px', margin: '0 0 24px 0' },
   label: { color: 'rgba(255,255,255,0.6)', fontSize: '13px', display: 'block', marginBottom: '6px' },
   input: { width: '100%', padding: '12px', marginBottom: '14px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' },

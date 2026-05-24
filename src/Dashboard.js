@@ -68,18 +68,27 @@ const [menuAcik, setMenuAcik] = useState(false)
   return (
     <div style={styles.wrapper}>
   {/* Mobil overlay */}
-  {mobil && menuAcik && (
-    <div
-      style={styles.overlay}
-      onClick={() => setMenuAcik(false)}
-    />
-  )}
+{mobil && menuAcik && (
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0,0,0,0.7)',
+      zIndex: 998,
+    }}
+    onClick={() => setMenuAcik(false)}
+  />
+)}
       {/* Sol Menü */}
-      <div style={{
+<div style={{
   ...styles.sidebar,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  height: '100vh',
   transform: mobil ? (menuAcik ? 'translateX(0)' : 'translateX(-100%)') : 'translateX(0)',
   transition: 'transform 0.3s ease',
-  zIndex: mobil ? 1000 : 1,
+  zIndex: 999,
 }}>
         <div style={styles.logoWrap}>
           <FinkodLogo size={32} uid="s" />
@@ -98,7 +107,7 @@ const [menuAcik, setMenuAcik] = useState(false)
             <button
               key={item.id}
               style={aktifSayfa === item.id ? styles.menuItemAktif : styles.menuItem}
-              onClick={() => setAktifSayfa(item.id)}
+              onClick={() => { setAktifSayfa(item.id); if (mobil) setMenuAcik(false) }}
             >
               <span style={styles.menuIcon}>{item.icon}</span>
               {item.label}
@@ -116,37 +125,43 @@ const [menuAcik, setMenuAcik] = useState(false)
       </div>
 
       {/* Ana İçerik */}
-      <div style={{
+<div style={{
   ...styles.content,
   marginLeft: mobil ? '0' : '240px',
   width: mobil ? '100%' : 'calc(100% - 240px)',
+  overflow: 'hidden',
+  boxSizing: 'border-box',
 }}>
-        <div style={styles.header}>
-          {mobil && (
-  <button
-    style={styles.hamburger}
-    onClick={() => setMenuAcik(!menuAcik)}>
-    {menuAcik ? '✕' : '☰'}
-  </button>
-)}
-          <h1 style={styles.pageTitle}>
-            {menuItems.find(m => m.id === aktifSayfa)?.icon}{' '}
-            {menuItems.find(m => m.id === aktifSayfa)?.label}
-          </h1>
-          <div style={styles.tarih}>
-            {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </div>
-        </div>
+<div style={styles.header}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    {mobil && (
+      <button
+        style={styles.hamburger}
+        onClick={() => setMenuAcik(!menuAcik)}>
+        {menuAcik ? '✕' : '☰'}
+      </button>
+    )}
+    <h1 style={styles.pageTitle}>
+      {menuItems.find(m => m.id === aktifSayfa)?.icon}{' '}
+      {menuItems.find(m => m.id === aktifSayfa)?.label}
+    </h1>
+  </div>
+  {!mobil && (
+    <div style={styles.tarih}>
+      {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+    </div>
+  )}
+</div>
 
         <div style={styles.pageContent}>
-          {aktifSayfa === 'ozet' && <OzetSayfasi session={session} />}
-          {aktifSayfa === 'hesaplar' && <Hesaplar session={session} />}
-          {aktifSayfa === 'islemler' && <Islemler session={session} />}
-          {aktifSayfa === 'yatirimlar' && <Yatirimlar session={session} />}
-          {aktifSayfa === 'borclar' && <Borclar session={session} />}
-          {aktifSayfa === 'hedefler' && <Hedefler session={session} />}
-          {aktifSayfa === 'raporlar' && <Raporlar session={session} />}
-          {aktifSayfa === 'hesabim' && <Hesabim session={session} onProfilGuncellendi={profilGetir} />}
+          {aktifSayfa === 'ozet' && <OzetSayfasi session={session} mobil={mobil} />}
+          {aktifSayfa === 'hesaplar' && <Hesaplar session={session} mobil={mobil} />}
+          {aktifSayfa === 'islemler' && <Islemler session={session} mobil={mobil} />}
+          {aktifSayfa === 'yatirimlar' && <Yatirimlar session={session} mobil={mobil} />}
+          {aktifSayfa === 'borclar' && <Borclar session={session} mobil={mobil} />}
+          {aktifSayfa === 'hedefler' && <Hedefler session={session} mobil={mobil} />}
+          {aktifSayfa === 'raporlar' && <Raporlar session={session} mobil={mobil} />}
+          {aktifSayfa === 'hesabim' && <Hesabim session={session} mobil={mobil} onProfilGuncellendi={profilGetir} />}
         </div>
       </div>
     </div>
@@ -213,7 +228,10 @@ function OzetSayfasi({ session }) {
 
   return (
     <div>
-      <div style={{ ...styles.kartGrid, gridTemplateColumns: 'repeat(5, 1fr)' }}>
+      <div style={{ 
+  ...styles.kartGrid, 
+  gridTemplateColumns: window.innerWidth < 480 ? '1fr 1fr' : window.innerWidth < 768 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'
+}}>
         {kartlar.map((kart, i) => (
           <div key={i} style={{ ...styles.kart, borderTop: `3px solid ${kart.renk}` }}>
             <div style={styles.kartIcon}>{kart.icon}</div>
@@ -274,15 +292,17 @@ function YakindaGelecek({ baslik }) {
 }
 
 const styles = {
-  wrapper: {
-    display: 'flex',
-    minHeight: '100vh',
-    background: '#0f172a',
-    fontFamily: "'Segoe UI', sans-serif",
-  },
+wrapper: {
+  display: 'flex',
+  minHeight: '100vh',
+  background: '#0f172a',
+  fontFamily: "'Segoe UI', sans-serif",
+  width: '100%',
+  overflowX: 'hidden',
+},
   sidebar: {
     width: '240px',
-    background: 'rgba(255,255,255,0.03)',
+    background: '#0f172a',
     borderRight: '1px solid rgba(255,255,255,0.08)',
     display: 'flex',
     flexDirection: 'column',
@@ -401,50 +421,66 @@ const styles = {
     cursor: 'pointer',
   },
 content: {
-  marginLeft: '240px',
   flex: 1,
-  padding: '32px',
+  padding: '16px',
   minHeight: '100vh',
   boxSizing: 'border-box',
-  overflow: 'hidden',
-  maxWidth: 'calc(100vw - 240px)',
+  width: '100%',
+  overflowX: 'hidden',
+  minWidth: 0,
 },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '32px',
-  },
-  pageTitle: {
-    color: '#fff',
-    fontSize: '24px',
-    margin: 0,
-  },
+header: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '24px',
+  flexWrap: 'wrap',
+  gap: '8px',
+},
+pageTitle: {
+  color: '#fff',
+  fontSize: '20px',
+  margin: 0,
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+},
   tarih: {
     color: 'rgba(255,255,255,0.4)',
     fontSize: '14px',
   },
   pageContent: {},
-  kartGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '16px',
-    marginBottom: '24px',
-  },
-  kart: {
-    background: 'rgba(255,255,255,0.05)',
-    borderRadius: '16px',
-    padding: '24px',
-    textAlign: 'center',
-  },
-  kartIcon: { fontSize: '28px', marginBottom: '12px' },
-  kartDeger: { color: '#fff', fontSize: '24px', fontWeight: 'bold', marginBottom: '4px' },
-  kartBaslik: { color: 'rgba(255,255,255,0.5)', fontSize: '13px' },
-  altGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-  },
+kartGrid: {
+  display: 'grid',
+  gridTemplateColumns: window.innerWidth < 768 ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
+  gap: '16px',
+  marginBottom: '24px',
+},
+kart: {
+  background: 'rgba(255,255,255,0.05)',
+  borderRadius: '16px',
+  padding: window.innerWidth < 768 ? '16px 12px' : '24px',
+  textAlign: 'center',
+},
+kartIcon: { 
+  fontSize: window.innerWidth < 768 ? '20px' : '28px', 
+  marginBottom: window.innerWidth < 768 ? '6px' : '12px' 
+},
+kartDeger: { 
+  color: '#fff', 
+  fontSize: window.innerWidth < 768 ? '16px' : '24px', 
+  fontWeight: 'bold', 
+  marginBottom: '4px' 
+},
+kartBaslik: { 
+  color: 'rgba(255,255,255,0.5)', 
+  fontSize: window.innerWidth < 768 ? '11px' : '13px' 
+},
+altGrid: {
+  display: 'grid',
+  gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr',
+  gap: '16px',
+},
   panel: {
     background: 'rgba(255,255,255,0.05)',
     borderRadius: '16px',

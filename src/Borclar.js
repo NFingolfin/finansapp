@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Borclar({ session }) {
+function Borclar({ session, mobil }) {
   const [borclar, setBorclar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
   const [formAcik, setFormAcik] = useState(false)
@@ -31,7 +31,7 @@ function Borclar({ session }) {
   useEffect(() => {
   borclariGetir()
   hesaplariGetir()
-}, [])
+}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const borclariGetir = async () => {
     setYukleniyor(true)
@@ -242,7 +242,7 @@ const odemeYap = async (borc) => {
   return (
     <div>
       {/* Üst Özet */}
-      <div style={styles.ozetGrid}>
+      <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={{ ...styles.ozetKart, borderTop: '3px solid #ff6b6b' }}>
           <div style={styles.ozetIcon}>💳</div>
           <div style={{ ...styles.ozetDeger, color: '#ff6b6b' }}>₺{toplamKalan.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
@@ -281,7 +281,7 @@ const odemeYap = async (borc) => {
       {/* Ödeme Formu Modal */}
       {odemeFormAcik && (
         <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modal, width: '360px' }}>
+          <div style={{ ...styles.modal, width: mobil ? '95vw' : '360px' }}>
             <h3 style={styles.modalBaslik}>💳 Ödeme Yap</h3>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>
               {odemeFormAcik.ad} — Kalan: ₺{parseFloat(odemeFormAcik.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
@@ -343,7 +343,7 @@ const odemeYap = async (borc) => {
       {/* Borç Ekle Formu */}
       {formAcik && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+          <div style={{ ...styles.modal, width: mobil ? '95vw' : '480px' }}>
             <h3 style={styles.modalBaslik}>Yeni Borç Ekle</h3>
 
             <label style={styles.label}>Borç Adı</label>
@@ -390,7 +390,7 @@ const odemeYap = async (borc) => {
               </>
             ) : (
               <>
-                <div style={styles.ikiliBolum}>
+                <div style={{ ...styles.ikiliBolum, flexDirection: mobil ? 'column' : 'row' }}>
                   <div style={{ flex: 1 }}>
                     <label style={styles.label}>Toplam Borç (₺)</label>
                     <input style={styles.input} type="number" placeholder="0.00"
@@ -402,7 +402,7 @@ const odemeYap = async (borc) => {
                       value={yeni.kalan_borc} onChange={e => setYeni({ ...yeni, kalan_borc: e.target.value })} />
                   </div>
                 </div>
-                <div style={styles.ikiliBolum}>
+                <div style={{ ...styles.ikiliBolum, flexDirection: mobil ? 'column' : 'row' }}>
                   <div style={{ flex: 1 }}>
                     <label style={styles.label}>Min. Ödeme (₺)</label>
                     <input style={styles.input} type="number" placeholder="0.00"
@@ -476,7 +476,7 @@ const odemeYap = async (borc) => {
       </div>
 
       {/* Kart Özet — her zaman görünür */}
-      <div style={styles.grupOzet}>
+      <div style={{ ...styles.grupOzet, flexWrap: mobil ? 'wrap' : 'nowrap', gap: mobil ? '12px' : '32px' }}>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Toplam Kalan Borç</div>
           <div style={{ ...styles.tutarDeger, color: '#ff6b6b' }}>
@@ -521,7 +521,7 @@ const odemeYap = async (borc) => {
       {acik && (
         <div style={styles.altBorclar}>
           {kartBorclar.map(borc => (
-            <div key={borc.id} style={styles.altBorcSatir}>
+            <div key={borc.id} style={{ ...styles.altBorcSatir, flexDirection: mobil ? 'column' : 'row', alignItems: mobil ? 'flex-start' : 'center' }}>
               <div style={styles.altBorcSol}>
                 <div style={styles.altBorcAd}>
                   {borc.ad}

@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts'
 
-function Raporlar({ session }) {
+function Raporlar({ session, mobil }) {
   const [islemler, setIslemler] = useState([])
   const [yatirimlar, setYatirimlar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -125,7 +125,7 @@ function Raporlar({ session }) {
   return (
     <div>
       {/* Ay Seçici */}
-      <div style={styles.aySecici}>
+      <div style={{ ...styles.aySecici, flexWrap: mobil ? 'wrap' : 'nowrap' }}>
         <span style={styles.aySeciciLabel}>Rapor dönemi:</span>
         <select
           style={styles.aySelect}
@@ -140,7 +140,7 @@ function Raporlar({ session }) {
       </div>
 
       {/* Üst Özet Kartları */}
-      <div style={styles.ozetGrid}>
+      <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <OzetKart baslik="Aylık Gelir" deger={formatTL(ayGelir)} renk="#4ecca3" icon="💰" />
         <OzetKart baslik="Aylık Gider" deger={formatTL(ayGider)} renk="#ff6b6b" icon="💸" />
         <OzetKart baslik="Net Akış" deger={formatTL(ayNet)} renk={ayNet >= 0 ? '#4ecca3' : '#ff6b6b'} icon="⚖️" />
@@ -153,7 +153,7 @@ function Raporlar({ session }) {
         {aylikGrafikVerisi.every(d => d.Gelir === 0 && d.Gider === 0) ? (
           <div style={styles.bosGraf}>Bu dönemde işlem bulunamadı.</div>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={mobil ? 200 : 280}>
             <BarChart data={aylikGrafikVerisi} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
               <XAxis dataKey="ay" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -169,7 +169,7 @@ function Raporlar({ session }) {
       </div>
 
       {/* Alt Grid */}
-      <div style={styles.altGrid}>
+      <div style={{ ...styles.altGrid, gridTemplateColumns: mobil ? '1fr' : '1fr 1fr' }}>
         {/* Kategori Dağılımı */}
         <div style={styles.grafPanel}>
           <h3 style={styles.panelBaslik}>

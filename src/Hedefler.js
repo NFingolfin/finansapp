@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Hedefler({ session }) {
+function Hedefler({ session, mobil }) {
   const [hedefler, setHedefler] = useState([])
   const [takip, setTakip] = useState([])
   const [hesaplar, setHesaplar] = useState([])
@@ -24,7 +24,7 @@ function Hedefler({ session }) {
     'Nakit': '#4ecca3', 'Toplam Varlık': '#4ecca3', 'Net Varlık': '#38b2ac', 'Diğer': '#a8a8b3'
   }
 
-  useEffect(() => { verileriGetir() }, [aktifYil])
+  useEffect(() => { verileriGetir() }, [aktifYil]) // eslint-disable-line react-hooks/exhaustive-deps
 
 const verileriGetir = async () => {
   setYukleniyor(true)
@@ -166,8 +166,8 @@ if (guncelDeger !== null) {
   return (
     <div>
       {/* Yıl Seçici + Ekle */}
-      <div style={styles.toolbar}>
-        <div style={styles.yilSecici}>
+      <div style={{ ...styles.toolbar, flexWrap: mobil ? 'wrap' : 'nowrap', gap: '12px' }}>
+        <div style={{ ...styles.yilSecici, flexWrap: 'wrap' }}>
           {yillar.map(y => (
             <button key={y}
               style={aktifYil === y ? { ...styles.yilBtn, ...styles.yilBtnAktif } : styles.yilBtn}
@@ -181,7 +181,7 @@ if (guncelDeger !== null) {
       {/* Form Modal */}
       {formAcik && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+          <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
             <h3 style={styles.modalBaslik}>🎯 Yeni Hedef — {aktifYil}</h3>
 
             <label style={styles.label}>Kategori</label>
@@ -222,7 +222,7 @@ if (guncelDeger !== null) {
           <p style={{ color: 'rgba(255,255,255,0.4)' }}>{aktifYil} yılı için henüz hedef eklenmemiş.</p>
         </div>
       ) : (
-        <div style={styles.tabloWrapper}>
+        <div style={{ ...styles.tabloWrapper, fontSize: mobil ? '11px' : undefined }}>
           {/* Başlık Satırı */}
           <div style={{ ...styles.satir, ...styles.baslikSatir, gridTemplateColumns: grid }}>
             <div style={styles.baslikHucre}>Kategori</div>
@@ -276,7 +276,7 @@ if (guncelDeger !== null) {
                       {gecmisAy ? (
                         <input
                           style={{
-                            width: '62px', padding: '4px 4px', textAlign: 'center',
+                            width: mobil ? '55px' : '62px', padding: '4px 4px', textAlign: 'center',
                             background: 'rgba(255,255,255,0.05)',
                             border: `1px solid ${ayOran >= 100 ? 'rgba(78,204,163,0.5)' : ayOran >= 70 ? 'rgba(255,217,61,0.4)' : 'rgba(255,255,255,0.08)'}`,
                             borderRadius: '6px',
