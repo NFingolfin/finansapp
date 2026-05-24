@@ -6,6 +6,7 @@ import Islemler from './Islemler'
 import Yatirimlar from './Yatirimlar'
 import Borclar from './Borclar'
 import Hedefler from './Hedefler'
+import Raporlar from './Raporlar'
 
 
 function Dashboard({ session }) {
@@ -71,7 +72,7 @@ function Dashboard({ session }) {
           {aktifSayfa === 'yatirimlar' && <Yatirimlar session={session} />}
           {aktifSayfa === 'borclar' && <Borclar session={session} />}
           {aktifSayfa === 'hedefler' && <Hedefler session={session} />}
-          {aktifSayfa === 'raporlar' && <YakindaGelecek baslik="Raporlar" />}
+          {aktifSayfa === 'raporlar' && <Raporlar session={session} />}
         </div>
       </div>
     </div>
