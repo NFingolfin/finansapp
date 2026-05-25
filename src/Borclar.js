@@ -20,8 +20,8 @@ function Borclar({ session, mobil }) {
 
   const turler = ['Kredi Kartı', 'İhtiyaç Kredisi', 'Konut Kredisi', 'Taşıt Kredisi', 'Diğer']
   const turRenk = {
-    'Kredi Kartı': '#ff6b6b', 'İhtiyaç Kredisi': '#ff8c42',
-    'Konut Kredisi': '#a78bfa', 'Taşıt Kredisi': '#45b7d1', 'Diğer': '#a8a8b3'
+    'Kredi Kartı': '#ef4444', 'İhtiyaç Kredisi': '#f97316',
+    'Konut Kredisi': '#a78bfa', 'Taşıt Kredisi': '#0ea5e9', 'Diğer': '#94a3b8'
   }
   const turIkon = {
     'Kredi Kartı': '💳', 'İhtiyaç Kredisi': '💰',
@@ -223,12 +223,12 @@ const odemeYap = async (borc) => {
   }
   const odemeRengi = (tarih) => {
     const f = gunFarki(tarih)
-    if (f === null) return 'rgba(255,255,255,0.4)'
-    if (f < 0) return '#ff6b6b'
-    if (f <= 3) return '#ff6b6b'
-    if (f <= 7) return '#ff8c42'
-    if (f <= 14) return '#ffd93d'
-    return '#4ecca3'
+    if (f === null) return '#94a3b8'
+    if (f < 0) return '#ef4444'
+    if (f <= 3) return '#ef4444'
+    if (f <= 7) return '#f97316'
+    if (f <= 14) return '#eab308'
+    return '#0d9488'
   }
   const odemeLabel = (tarih) => {
     const f = gunFarki(tarih)
@@ -243,24 +243,24 @@ const odemeYap = async (borc) => {
     <div>
       {/* Üst Özet */}
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
-        <div style={{ ...styles.ozetKart, borderTop: '3px solid #ff6b6b' }}>
+        <div style={{ ...styles.ozetKart, borderTop: '3px solid #ef4444' }}>
           <div style={styles.ozetIcon}>💳</div>
-          <div style={{ ...styles.ozetDeger, color: '#ff6b6b' }}>₺{toplamKalan.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{toplamKalan.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
           <div style={styles.ozetLabel}>Toplam Kalan Borç</div>
         </div>
-        <div style={{ ...styles.ozetKart, borderTop: '3px solid #ff8c42' }}>
+        <div style={{ ...styles.ozetKart, borderTop: '3px solid #f97316' }}>
           <div style={styles.ozetIcon}>📅</div>
-          <div style={{ ...styles.ozetDeger, color: '#ff8c42' }}>₺{toplamAylik.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#f97316' }}>₺{toplamAylik.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
           <div style={styles.ozetLabel}>Aylık Toplam Ödeme</div>
         </div>
-        <div style={{ ...styles.ozetKart, borderTop: '3px solid #ffd93d' }}>
+        <div style={{ ...styles.ozetKart, borderTop: '3px solid #eab308' }}>
           <div style={styles.ozetIcon}>🗓️</div>
-          <div style={{ ...styles.ozetDeger, color: '#ffd93d' }}>₺{buAyOdeme.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#eab308' }}>₺{buAyOdeme.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
           <div style={styles.ozetLabel}>Bu Ay Ödenecek</div>
         </div>
-        <div style={{ ...styles.ozetKart, borderTop: `3px solid ${kritikBorclar > 0 ? '#ff6b6b' : '#4ecca3'}` }}>
+        <div style={{ ...styles.ozetKart, borderTop: `3px solid ${kritikBorclar > 0 ? '#ef4444' : '#0d9488'}` }}>
           <div style={styles.ozetIcon}>{kritikBorclar > 0 ? '⚠️' : '✅'}</div>
-          <div style={{ ...styles.ozetDeger, color: kritikBorclar > 0 ? '#ff6b6b' : '#4ecca3' }}>{kritikBorclar}</div>
+          <div style={{ ...styles.ozetDeger, color: kritikBorclar > 0 ? '#ef4444' : '#0d9488' }}>{kritikBorclar}</div>
           <div style={styles.ozetLabel}>7 Günde Vadesi Gelen</div>
         </div>
       </div>
@@ -283,7 +283,7 @@ const odemeYap = async (borc) => {
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modal, width: mobil ? '95vw' : '360px' }}>
             <h3 style={styles.modalBaslik}>💳 Ödeme Yap</h3>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>
               {odemeFormAcik.ad} — Kalan: ₺{parseFloat(odemeFormAcik.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
             </p>
 
@@ -362,7 +362,7 @@ const odemeYap = async (borc) => {
 
             <div style={styles.toggleSatir}>
               <span style={styles.toggleLabel}>Taksitli Harcama mı?</span>
-              <div style={{ ...styles.toggle, background: yeni.taksitli ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+              <div style={{ ...styles.toggle, background: yeni.taksitli ? '#0d9488' : '#e2e8f0' }}
                 onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '' })}>
                 <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
               </div>
@@ -441,7 +441,7 @@ const odemeYap = async (borc) => {
       ) : borclar.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '16px' }}>Hiç borcun yok, harika!</p>
+          <p style={{ color: '#64748b', fontSize: '16px' }}>Hiç borcun yok, harika!</p>
         </div>
       ) : (
         <div style={styles.liste}>
@@ -479,13 +479,13 @@ const odemeYap = async (borc) => {
       <div style={{ ...styles.grupOzet, flexWrap: mobil ? 'wrap' : 'nowrap', gap: mobil ? '12px' : '32px' }}>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Toplam Kalan Borç</div>
-          <div style={{ ...styles.tutarDeger, color: '#ff6b6b' }}>
+          <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>
             ₺{toplamKalanKart.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Bu Ay Ödenecek</div>
-          <div style={{ ...styles.tutarDeger, color: '#ffd93d' }}>
+          <div style={{ ...styles.tutarDeger, color: '#eab308' }}>
             ₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </div>
         </div>
@@ -540,11 +540,11 @@ const odemeYap = async (borc) => {
                 )}
               </div>
               <div style={styles.altBorcSag}>
-                <div style={{ color: '#ff6b6b', fontWeight: 'bold', fontSize: '15px' }}>
+                <div style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '15px' }}>
                   ₺{parseFloat(borc.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </div>
                 {borc.taksitli && (
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '12px' }}>
                     aylık ₺{parseFloat(borc.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                   </div>
                 )}
@@ -595,7 +595,7 @@ const odemeYap = async (borc) => {
                 <div style={styles.tutarlar}>
                   <div style={styles.tutarKutu}>
                     <div style={styles.tutarLabel}>Kalan Borç</div>
-                    <div style={{ ...styles.tutarDeger, color: '#ff6b6b' }}>
+                    <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>
                       ₺{parseFloat(borc.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </div>
                   </div>
@@ -607,7 +607,7 @@ const odemeYap = async (borc) => {
                   )}
                   <div style={styles.tutarKutu}>
                     <div style={styles.tutarLabel}>{borc.taksitli ? 'Aylık Taksit' : 'Min. Ödeme'}</div>
-                    <div style={{ ...styles.tutarDeger, color: '#ffd93d' }}>
+                    <div style={{ ...styles.tutarDeger, color: '#eab308' }}>
                       ₺{parseFloat(borc.taksitli ? borc.aylik_taksit : borc.minimum_odeme || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </div>
                   </div>
@@ -654,75 +654,75 @@ const odemeYap = async (borc) => {
 }
 
 const styles = {
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '24px' },
-  ozetKart: { background: 'rgba(255,255,255,0.05)', borderRadius: '14px', padding: '20px', textAlign: 'center' },
-  ozetIcon: { fontSize: '24px', marginBottom: '8px' },
-  ozetDeger: { fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' },
-  ozetLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '12px' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' },
+  ozetKart: { background: '#ffffff', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
+  ozetIcon: { fontSize: '20px', marginBottom: '6px' },
+  ozetDeger: { fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' },
+  ozetLabel: { color: '#94a3b8', fontSize: '11px' },
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' },
   filtreler: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  filtreBtn: { padding: '8px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px' },
-  filtreBtnAktif: { background: 'rgba(255,107,107,0.15)', border: '1px solid #ff6b6b', color: '#ff6b6b' },
-  ekleBtn: { padding: '12px 24px', background: 'linear-gradient(135deg,#ff6b6b,#ff8c42)', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '480px', border: '1px solid rgba(255,255,255,0.1)', maxHeight: '90vh', overflowY: 'auto' },
-  modalBaslik: { color: '#fff', fontSize: '18px', margin: '0 0 16px 0' },
-  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px' },
-  toggleLabel: { color: 'rgba(255,255,255,0.7)', fontSize: '14px' },
+  filtreBtn: { padding: '7px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', fontSize: '13px' },
+  filtreBtnAktif: { background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', color: '#ef4444' },
+  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: '#ffffff', borderRadius: '20px', padding: '28px', width: '480px', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', boxSizing: 'border-box' },
+  modalBaslik: { color: '#0f172a', fontSize: '18px', margin: '0 0 16px 0' },
+  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' },
+  toggleLabel: { color: '#475569', fontSize: '14px' },
   toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
   toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
-  taksitBilgi: { background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '10px', padding: '12px', color: '#4ecca3', fontSize: '14px', marginBottom: '14px' },
+  taksitBilgi: { background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '10px', padding: '12px', color: '#0d9488', fontSize: '14px', marginBottom: '14px' },
   hizliButonlar: { display: 'flex', gap: '8px', marginBottom: '16px' },
-  hizliBtn: { flex: 1, padding: '8px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: '13px' },
+  hizliBtn: { flex: 1, padding: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', fontSize: '13px' },
   ikiliBolum: { display: 'flex', gap: '12px' },
-  label: { color: 'rgba(255,255,255,0.6)', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '12px', marginBottom: '14px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' },
+  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
+  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a', fontSize: '14px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '12px', background: 'linear-gradient(135deg,#ff6b6b,#ff8c42)', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' },
-  yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '48px' },
+  iptalBtn: { flex: 1, padding: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
   liste: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  grupKart: { background: 'rgba(255,255,255,0.04)', borderRadius: '16px', border: '1px solid rgba(255,107,107,0.2)', overflow: 'hidden' },
-  grupBaslik: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: 'rgba(255,107,107,0.08)', borderBottom: '1px solid rgba(255,107,107,0.15)' },
+  grupKart: { background: '#ffffff', borderRadius: '16px', border: '1px solid #fee2e2', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
+  grupBaslik: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'rgba(239,68,68,0.04)', borderBottom: '1px solid #fee2e2' },
   grupSol: { display: 'flex', alignItems: 'center', gap: '12px' },
-  grupAd: { color: '#fff', fontSize: '16px', fontWeight: 'bold' },
-  grupAlt: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '2px' },
+  grupAd: { color: '#0f172a', fontSize: '15px', fontWeight: 'bold' },
+  grupAlt: { color: '#94a3b8', fontSize: '12px', marginTop: '2px' },
   grupSag: { display: 'flex', gap: '8px' },
-  grupOzet: { display: 'flex', gap: '32px', padding: '16px 24px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)' },
+  grupOzet: { display: 'flex', gap: '32px', padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9' },
   grupOzetKutu: {},
-  altBorclar: { padding: '12px 24px' },
-  altBorcSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
+  altBorclar: { padding: '10px 20px' },
+  altBorcSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid #f1f5f9' },
   altBorcSol: { flex: 1 },
-  altBorcAd: { color: 'rgba(255,255,255,0.8)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' },
-  altBorcNot: { color: 'rgba(255,255,255,0.3)', fontSize: '12px', marginTop: '2px' },
+  altBorcAd: { color: '#0f172a', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' },
+  altBorcNot: { color: '#94a3b8', fontSize: '12px', marginTop: '2px' },
   altBorcSag: { textAlign: 'right', minWidth: '120px' },
   altBorcBtnler: { display: 'flex', gap: '6px' },
-  odemeBtn: { padding: '6px 12px', background: 'rgba(78,204,163,0.15)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '8px', color: '#4ecca3', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' },
-  silBtnKucuk: { padding: '6px 10px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: '8px', color: '#ff6b6b', fontSize: '12px', cursor: 'pointer' },
-  borcKart: { background: 'rgba(255,255,255,0.04)', borderRadius: '16px', padding: '24px', border: '1px solid rgba(255,255,255,0.07)' },
+  odemeBtn: { padding: '6px 12px', background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '8px', color: '#0d9488', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  silBtnKucuk: { padding: '6px 10px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '12px', cursor: 'pointer' },
+  borcKart: { background: '#ffffff', borderRadius: '16px', padding: '20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
   borcUst: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
   borcSolUst: { display: 'flex', alignItems: 'center', gap: '12px' },
-  borcAd: { color: '#fff', fontSize: '16px', fontWeight: 'bold' },
-  borcBanka: { color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' },
-  taksitTag: { background: 'rgba(78,204,163,0.15)', color: '#4ecca3', padding: '2px 8px', borderRadius: '6px', fontSize: '11px' },
+  borcAd: { color: '#0f172a', fontSize: '15px', fontWeight: 'bold' },
+  borcBanka: { color: '#94a3b8', fontSize: '13px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' },
+  taksitTag: { background: 'rgba(13,148,136,0.08)', color: '#0d9488', padding: '2px 8px', borderRadius: '6px', fontSize: '11px' },
   borcSagUst: { display: 'flex', gap: '8px', alignItems: 'center' },
-  vadeBadge: { padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold' },
-  tutarlar: { display: 'flex', gap: '24px', marginBottom: '16px', flexWrap: 'wrap' },
-  tutarKutu: { minWidth: '120px' },
-  tutarLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginBottom: '4px' },
-  tutarDeger: { color: '#fff', fontSize: '16px', fontWeight: 'bold' },
+  vadeBadge: { padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' },
+  tutarlar: { display: 'flex', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' },
+  tutarKutu: { minWidth: '100px' },
+  tutarLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '4px' },
+  tutarDeger: { color: '#0f172a', fontSize: '15px', fontWeight: 'bold' },
   ilerlemeContainer: { marginBottom: '16px' },
   ilerlemeUst: { display: 'flex', justifyContent: 'space-between', marginBottom: '6px' },
-  ilerlemeLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '12px' },
-  ilerlemeYuzde: { color: '#4ecca3', fontSize: '12px' },
-  ilerlemeBar: { height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' },
-  ilerlemeDolu: { height: '100%', background: 'linear-gradient(90deg,#4ecca3,#38b2ac)', borderRadius: '3px' },
-  notlar: { color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '16px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' },
+  ilerlemeLabel: { color: '#94a3b8', fontSize: '12px' },
+  ilerlemeYuzde: { color: '#0d9488', fontSize: '12px' },
+  ilerlemeBar: { height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' },
+  ilerlemeDolu: { height: '100%', background: 'linear-gradient(90deg,#0d9488,#0ea5e9)', borderRadius: '3px' },
+  notlar: { color: '#64748b', fontSize: '13px', marginBottom: '16px', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' },
   borcBtnler: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-  toplamOdemeBtn: { padding: '10px 18px', background: 'linear-gradient(135deg,#ff6b6b,#ff8c42)', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
-  kapatBtn: { padding: '8px 16px', background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '8px', color: '#4ecca3', fontSize: '13px', cursor: 'pointer' },
-  silBtn: { padding: '8px 16px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: '8px', color: '#ff6b6b', fontSize: '13px', cursor: 'pointer' },
+  toplamOdemeBtn: { padding: '10px 18px', background: 'linear-gradient(135deg,#ef4444,#f97316)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  kapatBtn: { padding: '8px 16px', background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '8px', color: '#0d9488', fontSize: '13px', cursor: 'pointer' },
+  silBtn: { padding: '8px 16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '13px', cursor: 'pointer' },
 }
 
 export default Borclar

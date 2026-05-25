@@ -22,8 +22,8 @@ const [yeni, setYeni] = useState({
   const paraBirimleri = ['TRY', 'USD', 'EUR', 'GBP']
 
   const turRenk = {
-    'Hisse': '#4ecca3', 'Kripto': '#ffd93d', 'Fon': '#45b7d1',
-    'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399', 'Diğer': '#a8a8b3'
+    'Hisse': '#0d9488', 'Kripto': '#eab308', 'Fon': '#0ea5e9',
+    'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399', 'Diğer': '#94a3b8'
   }
   const turIkon = {
     'Hisse': '📊', 'Kripto': '₿', 'Fon': '📁',
@@ -251,21 +251,21 @@ const satisYap = async () => {
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Maliyet</div>
-          <div style={{ ...styles.ozetDeger, color: '#45b7d1' }}>₺{toplamMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#0ea5e9' }}>₺{toplamMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Güncel Değer</div>
-          <div style={{ ...styles.ozetDeger, color: '#4ecca3' }}>₺{toplamGuncel.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>₺{toplamGuncel.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Kar / Zarar</div>
-          <div style={{ ...styles.ozetDeger, color: toplamKarZarar >= 0 ? '#4ecca3' : '#ff6b6b' }}>
+          <div style={{ ...styles.ozetDeger, color: toplamKarZarar >= 0 ? '#0d9488' : '#ef4444' }}>
             {toplamKarZarar >= 0 ? '+' : ''}₺{toplamKarZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Getiri</div>
-          <div style={{ ...styles.ozetDeger, color: toplamGetiri >= 0 ? '#4ecca3' : '#ff6b6b' }}>
+          <div style={{ ...styles.ozetDeger, color: toplamGetiri >= 0 ? '#0d9488' : '#ef4444' }}>
             {toplamGetiri >= 0 ? '+' : ''}{toplamGetiri}%
           </div>
         </div>
@@ -344,7 +344,7 @@ const satisYap = async () => {
   <div style={styles.modalOverlay}>
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
       <h3 style={styles.modalBaslik}>📤 Satış Yap</h3>
-      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>
+      <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>
         {satisYatirim.ad} — Güncel Değer: ₺{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
         {parseFloat(satisYatirim.miktar) > 0 && ` · ${satisYatirim.miktar} adet`}
       </p>
@@ -381,9 +381,9 @@ const satisYap = async () => {
       </select>
 
       {satis.tutar && satisYatirim.maliyet && (
-        <div style={{ ...styles.bilgiMesaj, color: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? '#4ecca3' : '#ff6b6b',
-          background: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(78,204,163,0.1)' : 'rgba(255,107,107,0.1)',
-          border: `1px solid ${parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(78,204,163,0.3)' : 'rgba(255,107,107,0.3)'}` }}>
+        <div style={{ ...styles.bilgiMesaj, color: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? '#0d9488' : '#ef4444',
+          background: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(13,148,136,0.06)' : 'rgba(239,68,68,0.06)',
+          border: `1px solid ${parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(13,148,136,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
           {parseFloat(satis.tutar) >= parseFloat(satisYatirim.maliyet)
             ? `🟢 Kar: +₺${(parseFloat(satis.tutar) - parseFloat(satisYatirim.maliyet)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
             : `🔴 Zarar: -₺${(parseFloat(satisYatirim.maliyet) - parseFloat(satis.tutar)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
@@ -393,7 +393,7 @@ const satisYap = async () => {
 
       <div style={styles.modalBtnler}>
         <button style={styles.iptalBtn} onClick={() => { setSatisFormAcik(false); setSatisYatirim(null) }}>İptal</button>
-        <button style={{ ...styles.kaydetBtn, background: 'linear-gradient(135deg,#ff6b6b,#ff8c42)' }}
+        <button style={{ ...styles.kaydetBtn, background: 'linear-gradient(135deg,#ef4444,#f97316)' }}
           onClick={satisYap} disabled={kaydediliyor}>
           {kaydediliyor ? 'İşleniyor...' : '📤 Satışı Onayla'}
         </button>
@@ -455,7 +455,7 @@ const satisYap = async () => {
 
 <div style={styles.toggleSatir}>
   <span style={styles.toggleLabel}>Başka hesaptan para düşsün mü?</span>
-  <div style={{ ...styles.toggle, background: yeni.hesaptan_duş ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+  <div style={{ ...styles.toggle, background: yeni.hesaptan_duş ? '#0d9488' : '#e2e8f0' }}
     onClick={() => setYeni({ ...yeni, hesaptan_duş: !yeni.hesaptan_duş, odeme_hesap_id: '' })}>
     <div style={{ ...styles.toggleTop, transform: yeni.hesaptan_duş ? 'translateX(20px)' : 'translateX(0)' }} />
   </div>
@@ -497,7 +497,7 @@ const satisYap = async () => {
       ) : yatirimlar.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📈</div>
-          <p style={{ color: 'rgba(255,255,255,0.4)' }}>Henüz yatırım eklenmemiş.</p>
+          <p style={{ color: '#94a3b8' }}>Henüz yatırım eklenmemiş.</p>
         </div>
       ) : (
         <div style={styles.liste}>
@@ -550,10 +550,10 @@ const satisYap = async () => {
                 </div>
                 <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
                   <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
-                    <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '18px', fontWeight: 'bold' }}>
+                    <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '18px', fontWeight: 'bold' }}>
                       {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </div>
-                    <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '13px' }}>
+                    <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px' }}>
                       {getiri >= 0 ? '+' : ''}{getiri}%
                     </div>
                   </div>
@@ -580,41 +580,41 @@ const satisYap = async () => {
 }
 
 const styles = {
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '24px' },
-  ozetKart: { background: 'rgba(255,255,255,0.05)', borderRadius: '14px', padding: '20px', textAlign: 'center' },
-  ozetLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginBottom: '8px' },
-  ozetDeger: { fontSize: '20px', fontWeight: 'bold' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' },
+  ozetKart: { background: '#ffffff', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
+  ozetLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '6px' },
+  ozetDeger: { fontSize: '18px', fontWeight: 'bold' },
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  guncelleBtn: { padding: '12px 20px', background: 'rgba(69,183,209,0.15)', border: '1px solid #45b7d1', borderRadius: '10px', color: '#45b7d1', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  ekleBtn: { padding: '12px 24px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '420px', border: '1px solid rgba(255,255,255,0.1)', maxHeight: '90vh', overflowY: 'auto' },
-  modalBaslik: { color: '#fff', fontSize: '18px', margin: '0 0 20px 0' },
-  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px' },
-  toggleLabel: { color: 'rgba(255,255,255,0.7)', fontSize: '14px' },
+  guncelleBtn: { padding: '10px 18px', background: 'rgba(14,165,233,0.08)', border: '1px solid #0ea5e9', borderRadius: '10px', color: '#0ea5e9', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: '#ffffff', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', boxSizing: 'border-box' },
+  modalBaslik: { color: '#0f172a', fontSize: '18px', margin: '0 0 20px 0' },
+  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' },
+  toggleLabel: { color: '#475569', fontSize: '14px' },
   toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
   toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
-  bilgiMesaj: { background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '10px', padding: '12px', color: '#4ecca3', fontSize: '13px', marginBottom: '14px' },
-  label: { color: 'rgba(255,255,255,0.6)', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '12px', marginBottom: '14px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' },
+  bilgiMesaj: { background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '10px', padding: '12px', color: '#0d9488', fontSize: '13px', marginBottom: '14px' },
+  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
+  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a', fontSize: '14px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '12px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', cursor: 'pointer' },
-  yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '48px' },
+  iptalBtn: { flex: 1, padding: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
   liste: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  kart: { display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255,255,255,0.04)', borderRadius: '14px', padding: '20px', border: '1px solid rgba(255,255,255,0.06)' },
+  kart: { display: 'flex', alignItems: 'center', gap: '20px', background: '#ffffff', borderRadius: '14px', padding: '16px 20px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' },
   kartSol: { display: 'flex', alignItems: 'center', gap: '12px', flex: 1.5 },
-  ikon: { fontSize: '28px' },
-  ad: { color: '#fff', fontSize: '15px', fontWeight: 'bold' },
-  tur: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' },
-  hesapTag: { background: 'rgba(78,204,163,0.1)', color: '#4ecca3', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' },
+  ikon: { fontSize: '24px' },
+  ad: { color: '#0f172a', fontSize: '14px', fontWeight: 'bold' },
+  tur: { color: '#94a3b8', fontSize: '12px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' },
+  hesapTag: { background: 'rgba(13,148,136,0.08)', color: '#0d9488', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' },
   kartOrta: { flex: 1, textAlign: 'center' },
-  detayLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginBottom: '4px' },
-  detayDeger: { color: '#fff', fontSize: '14px', fontWeight: '500' },
-  duzenleBtn: { padding: '6px 10px', background: 'rgba(69,183,209,0.15)', border: '1px solid rgba(69,183,209,0.3)', borderRadius: '8px', color: '#45b7d1', fontSize: '13px', cursor: 'pointer' },
+  detayLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '4px' },
+  detayDeger: { color: '#0f172a', fontSize: '13px', fontWeight: '500' },
+  duzenleBtn: { padding: '6px 10px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.25)', borderRadius: '8px', color: '#0ea5e9', fontSize: '13px', cursor: 'pointer' },
   kartSag: { textAlign: 'right', minWidth: '120px' },
-  satisBtn: { padding: '6px 14px', background: 'rgba(255,140,66,0.15)', border: '1px solid rgba(255,140,66,0.4)', borderRadius: '8px', color: '#ff8c42', fontSize: '13px', cursor: 'pointer' },
+  satisBtn: { padding: '6px 14px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', color: '#f97316', fontSize: '13px', cursor: 'pointer' },
   silBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.4 },
 }
 

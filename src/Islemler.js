@@ -27,9 +27,9 @@
     }
 
     const turRenk = {
-        gelir: '#4ecca3',
-        gider: '#ff6b6b',
-        transfer: '#45b7d1'
+        gelir: '#0d9488',
+        gider: '#ef4444',
+        transfer: '#0ea5e9'
     }
 
     const turLabel = {
@@ -225,15 +225,15 @@ if (yeni.tur === 'gider') {
         <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
             <div style={styles.ozetKart}>
             <div style={styles.ozetLabel}>Toplam Gelir</div>
-            <div style={{ ...styles.ozetDeger, color: '#4ecca3' }}>₺{toplamGelir.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+            <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>₺{toplamGelir.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
             </div>
             <div style={styles.ozetKart}>
             <div style={styles.ozetLabel}>Toplam Gider</div>
-            <div style={{ ...styles.ozetDeger, color: '#ff6b6b' }}>₺{toplamGider.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+            <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{toplamGider.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
             </div>
             <div style={styles.ozetKart}>
             <div style={styles.ozetLabel}>Net</div>
-            <div style={{ ...styles.ozetDeger, color: (toplamGelir - toplamGider) >= 0 ? '#4ecca3' : '#ff6b6b' }}>
+            <div style={{ ...styles.ozetDeger, color: (toplamGelir - toplamGider) >= 0 ? '#0d9488' : '#ef4444' }}>
                 ₺{(toplamGelir - toplamGider).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
             </div>
             </div>
@@ -268,7 +268,7 @@ if (yeni.tur === 'gider') {
                     <button
                     key={t}
                     style={yeni.tur === t
-                        ? { ...styles.turBtn, background: turRenk[t], color: '#0f172a' }
+                        ? { ...styles.turBtn, background: turRenk[t], color: '#ffffff' }
                         : styles.turBtn}
                     onClick={() => setYeni({ ...yeni, tur: t, kategori: kategoriler[t][0] })}
                     >
@@ -321,7 +321,7 @@ if (yeni.tur === 'gider') {
             </div>
             <div style={styles.toggleSatir}>
             <span style={styles.toggleLabel}>Taksitli mi?</span>
-            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#0d9488' : '#e2e8f0' }}
                 onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '' })}>
                 <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
@@ -391,7 +391,7 @@ if (yeni.tur === 'gider') {
         ) : filtreliIslemler.length === 0 ? (
             <div style={styles.bos}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>💸</div>
-            <p style={{ color: 'rgba(255,255,255,0.4)' }}>Henüz işlem yok.</p>
+            <p style={{ color: '#94a3b8' }}>Henüz işlem yok.</p>
             </div>
         ) : (
             <div style={styles.liste}>
@@ -406,7 +406,7 @@ if (yeni.tur === 'gider') {
                     {islem.tarih} · {islem.hesaplar?.ad} · {islem.kategori}
                     </div>
                 </div>
-                <div style={{ ...styles.islemTutar, color: islem.tur === 'gelir' ? '#4ecca3' : islem.tur === 'gider' ? '#ff6b6b' : '#ffd93d' }}>
+                <div style={{ ...styles.islemTutar, color: islem.tur === 'gelir' ? '#0d9488' : islem.tur === 'gider' ? '#ef4444' : '#0ea5e9' }}>
                     {islem.tur === 'gelir' ? '+' : '-'}₺{parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </div>
                 <button style={styles.silBtn} onClick={() => islemSil(islem.id)}>🗑️</button>
@@ -419,48 +419,48 @@ if (yeni.tur === 'gider') {
     }
 
     const styles = {
-    ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '24px' },
-    ozetKart: { background: 'rgba(255,255,255,0.05)', borderRadius: '14px', padding: '20px', textAlign: 'center' },
-    ozetLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginBottom: '8px' },
-    ozetDeger: { fontSize: '20px', fontWeight: 'bold' },
-    toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+    ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' },
+    ozetKart: { background: '#ffffff', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
+    ozetLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '6px' },
+    ozetDeger: { fontSize: '18px', fontWeight: 'bold' },
+    toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' },
     filtreler: { display: 'flex', gap: '8px' },
-    filtreBtn: { padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px' },
-    filtreBtnAktif: { background: 'rgba(78,204,163,0.15)', border: '1px solid #4ecca3', color: '#4ecca3' },
-    ekleBtn: { padding: '12px 24px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-    modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-    modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '420px', border: '1px solid rgba(255,255,255,0.1)', maxHeight: '90vh', overflowY: 'auto' },
-    modalBaslik: { color: '#fff', fontSize: '18px', margin: '0 0 20px 0' },
+    filtreBtn: { padding: '7px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', fontSize: '13px' },
+    filtreBtnAktif: { background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488', color: '#0d9488' },
+    ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+    modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+    modal: { background: '#ffffff', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', boxSizing: 'border-box' },
+    modalBaslik: { color: '#0f172a', fontSize: '18px', margin: '0 0 20px 0' },
     turSecici: { display: 'flex', gap: '8px', marginBottom: '16px' },
-    turBtn: { flex: 1, padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '13px' },
-    label: { color: 'rgba(255,255,255,0.6)', fontSize: '13px', display: 'block', marginBottom: '6px' },
-    input: { width: '100%', padding: '12px', marginBottom: '14px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' },
+    turBtn: { flex: 1, padding: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', fontSize: '13px' },
+    label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
+    input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a', fontSize: '14px', boxSizing: 'border-box' },
     modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-    iptalBtn: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' },
-    kaydetBtn: { flex: 1, padding: '12px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', cursor: 'pointer' },
-    yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '48px' },
+    iptalBtn: { flex: 1, padding: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer' },
+    kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+    yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '48px' },
     bos: { textAlign: 'center', padding: '64px' },
     liste: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    islemSatir: { display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)' },
+    islemSatir: { display: 'flex', alignItems: 'center', gap: '16px', background: '#ffffff', borderRadius: '12px', padding: '14px 16px', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
     turBadge: { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     islemBilgi: { flex: 1 },
-    islemAciklama: { color: '#fff', fontSize: '14px', fontWeight: '500' },
-    islemDetay: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '2px' },
-    islemTutar: { fontSize: '16px', fontWeight: 'bold', whiteSpace: 'nowrap' },
+    islemAciklama: { color: '#0f172a', fontSize: '14px', fontWeight: '500' },
+    islemDetay: { color: '#94a3b8', fontSize: '12px', marginTop: '2px' },
+    islemTutar: { fontSize: '15px', fontWeight: 'bold', whiteSpace: 'nowrap' },
     silBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.4 },
-    bilgiMesaj: { 
-    background: 'rgba(78,204,163,0.1)', 
-    border: '1px solid rgba(78,204,163,0.3)', 
-    borderRadius: '10px', 
-    padding: '12px', 
-    color: '#4ecca3', 
-    fontSize: '13px', 
-    marginBottom: '14px' },
-    toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px' },
-    toggleLabel: { color: 'rgba(43, 40, 40, 0.7)', fontSize: '14px' },
+    bilgiMesaj: {
+      background: 'rgba(13,148,136,0.06)',
+      border: '1px solid rgba(13,148,136,0.2)',
+      borderRadius: '10px',
+      padding: '12px',
+      color: '#0d9488',
+      fontSize: '13px',
+      marginBottom: '14px' },
+    toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' },
+    toggleLabel: { color: '#475569', fontSize: '14px' },
     toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
     toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
-    taksitBilgi: { background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '10px', padding: '12px', color: '#4ecca3', fontSize: '14px', marginBottom: '14px' },
+    taksitBilgi: { background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '10px', padding: '12px', color: '#0d9488', fontSize: '14px', marginBottom: '14px' },
     }
     
 

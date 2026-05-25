@@ -19,9 +19,9 @@ function Hedefler({ session, mobil }) {
   const yillar = [buYil - 2, buYil - 1, buYil, buYil + 1]
 
   const turRenk = {
-    'Hisse': '#4ecca3', 'Kripto': '#ffd93d', 'Fon': '#45b7d1',
+    'Hisse': '#0d9488', 'Kripto': '#eab308', 'Fon': '#0ea5e9',
     'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399',
-    'Nakit': '#4ecca3', 'Toplam Varlık': '#4ecca3', 'Net Varlık': '#38b2ac', 'Diğer': '#a8a8b3'
+    'Nakit': '#0d9488', 'Toplam Varlık': '#0d9488', 'Net Varlık': '#0ea5e9', 'Diğer': '#94a3b8'
   }
 
   useEffect(() => { verileriGetir() }, [aktifYil]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -219,7 +219,7 @@ if (guncelDeger !== null) {
       ) : hedefler.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-          <p style={{ color: 'rgba(255,255,255,0.4)' }}>{aktifYil} yılı için henüz hedef eklenmemiş.</p>
+          <p style={{ color: '#94a3b8' }}>{aktifYil} yılı için henüz hedef eklenmemiş.</p>
         </div>
       ) : (
         <div style={{ ...styles.tabloWrapper, fontSize: mobil ? '11px' : undefined }}>
@@ -229,8 +229,8 @@ if (guncelDeger !== null) {
             {aylar.map((ay, i) => (
               <div key={i} style={{
                 ...styles.baslikHucre, textAlign: 'center',
-                color: aktifYil === buYil && i + 1 === buAy ? '#4ecca3' : 'rgba(255,255,255,0.4)',
-                background: aktifYil === buYil && i + 1 === buAy ? 'rgba(78,204,163,0.1)' : 'transparent',
+                color: aktifYil === buYil && i + 1 === buAy ? '#0d9488' : '#94a3b8',
+                background: aktifYil === buYil && i + 1 === buAy ? 'rgba(13,148,136,0.08)' : 'transparent',
                 borderRadius: '6px'
               }}>{ay}</div>
             ))}
@@ -252,12 +252,12 @@ if (guncelDeger !== null) {
                 ...styles.satir,
                 gridTemplateColumns: grid,
                 borderLeft: `3px solid ${renk}`,
-                background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent'
+                background: idx % 2 === 0 ? '#fafafa' : 'transparent'
               }}>
                 {/* Kategori */}
                 <div style={styles.kategoriHucre}>
-                  <div style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold' }}>{hedef.kategori}</div>
-                  {hedef.aciklama && <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginTop: '2px' }}>{hedef.aciklama}</div>}
+                  <div style={{ color: '#0f172a', fontSize: '13px', fontWeight: 'bold' }}>{hedef.kategori}</div>
+                  {hedef.aciklama && <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '2px' }}>{hedef.aciklama}</div>}
                 </div>
 
                 {/* Aylık Inputlar */}
@@ -271,16 +271,16 @@ if (guncelDeger !== null) {
                   return (
                     <div key={ay} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: aktifAy ? 'rgba(78,204,163,0.05)' : 'transparent', padding: '2px'
+                      background: aktifAy ? 'rgba(13,148,136,0.04)' : 'transparent', padding: '2px'
                     }}>
                       {gecmisAy ? (
                         <input
                           style={{
                             width: mobil ? '55px' : '62px', padding: '4px 4px', textAlign: 'center',
-                            background: 'rgba(255,255,255,0.05)',
-                            border: `1px solid ${ayOran >= 100 ? 'rgba(78,204,163,0.5)' : ayOran >= 70 ? 'rgba(255,217,61,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                            background: '#ffffff',
+                            border: `1px solid ${ayOran >= 100 ? '#0d9488' : ayOran >= 70 ? '#eab308' : '#e2e8f0'}`,
                             borderRadius: '6px',
-                            color: ayOran >= 100 ? '#4ecca3' : ayOran >= 70 ? '#ffd93d' : '#fff',
+                            color: ayOran >= 100 ? '#0d9488' : ayOran >= 70 ? '#eab308' : '#0f172a',
                             fontSize: '12px'
                           }}
                           type="number"
@@ -336,14 +336,14 @@ onBlur={async e => {
 }}
                         />
                       ) : (
-                        <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '12px' }}>—</span>
+                        <span style={{ color: '#cbd5e1', fontSize: '12px' }}>—</span>
                       )}
                     </div>
                   )
                 })}
 
                 {/* Hedef Tutarı */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '12px' }}>
                   ₺{hedefTutar.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
                 </div>
 
@@ -355,7 +355,7 @@ onBlur={async e => {
                 {/* Oran */}
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '13px',
-                  color: oran === null ? 'rgba(255,255,255,0.3)' : oran >= 100 ? '#4ecca3' : oran >= 70 ? '#ffd93d' : '#ff6b6b'
+                  color: oran === null ? '#94a3b8' : oran >= 100 ? '#0d9488' : oran >= 70 ? '#eab308' : '#ef4444'
                 }}>
                   {oran !== null ? `%${oran.toFixed(1)}` : '—'}
                 </div>
@@ -376,37 +376,38 @@ onBlur={async e => {
 
 const styles = {
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-  yilSecici: { display: 'flex', gap: '8px' },
-  yilBtn: { padding: '10px 20px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '15px' },
-  yilBtnAktif: { background: 'rgba(78,204,163,0.15)', border: '1px solid #4ecca3', color: '#4ecca3', fontWeight: 'bold' },
-  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '420px', border: '1px solid rgba(255,255,255,0.1)', maxHeight: '90vh', overflowY: 'auto' },
-  modalBaslik: { color: '#fff', fontSize: '18px', margin: '0 0 20px 0' },
-  label: { color: 'rgba(255,255,255,0.6)', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '12px', marginBottom: '14px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' },
+  yilSecici: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+  yilBtn: { padding: '9px 18px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer', fontSize: '14px' },
+  yilBtnAktif: { background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488', color: '#0d9488', fontWeight: 'bold' },
+  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: '#ffffff', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', boxSizing: 'border-box' },
+  modalBaslik: { color: '#0f172a', fontSize: '18px', margin: '0 0 20px 0' },
+  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
+  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a', fontSize: '14px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '12px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', cursor: 'pointer' },
-  yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '48px' },
+  iptalBtn: { flex: 1, padding: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
-  tabloWrapper: { 
-  background: 'rgba(255,255,255,0.03)', 
-  borderRadius: '16px', 
-  border: '1px solid rgba(255,255,255,0.07)', 
-  overflowX: 'auto',
-  width: '100%'
-},
-satir: { 
-  display: 'grid', 
-  padding: '10px 16px', 
-  borderBottom: '1px solid rgba(255,255,255,0.04)', 
-  alignItems: 'center', 
-  minWidth: '1400px',
-  background: 'transparent'
-},
-  baslikSatir: { background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)' },
-  baslikHucre: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  tabloWrapper: {
+    background: '#ffffff',
+    borderRadius: '16px',
+    border: '1px solid #e2e8f0',
+    overflowX: 'auto',
+    width: '100%',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+  },
+  satir: {
+    display: 'grid',
+    padding: '10px 16px',
+    borderBottom: '1px solid #f1f5f9',
+    alignItems: 'center',
+    minWidth: '1400px',
+    background: 'transparent'
+  },
+  baslikSatir: { background: '#f8fafc', borderBottom: '1px solid #e2e8f0' },
+  baslikHucre: { color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   kategoriHucre: { paddingRight: '8px' },
 }
 

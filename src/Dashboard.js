@@ -215,15 +215,15 @@ function OzetSayfasi({ session }) {
     setOzet({ toplamNakit, toplamYatirim: yatirimToplam, toplamBorc, toplamVarlik, netVarlik })
   }
 
-  const turRenk = { gelir: '#4ecca3', gider: '#ff6b6b', transfer: '#45b7d1' }
+  const turRenk = { gelir: '#0d9488', gider: '#ef4444', transfer: '#0ea5e9' }
   const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer' }
 
   const kartlar = [
-    { baslik: 'Toplam Varlık', deger: '₺' + (ozet.toplamVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#4ecca3', icon: '💎' },
-    { baslik: 'Toplam Nakit', deger: '₺' + (ozet.toplamNakit || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#45b7d1', icon: '💵' },
-    { baslik: 'Toplam Yatırım', deger: '₺' + (ozet.toplamYatirim || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ffd93d', icon: '📈' },
-    { baslik: 'Toplam Borç', deger: '₺' + (ozet.toplamBorc || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ff6b6b', icon: '💳' },
-    { baslik: 'Net Varlık', deger: '₺' + (ozet.netVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: (ozet.netVarlik || 0) >= 0 ? '#4ecca3' : '#ff6b6b', icon: '⚖️' },
+    { baslik: 'Toplam Varlık', deger: '₺' + (ozet.toplamVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#0d9488', icon: '💎' },
+    { baslik: 'Toplam Nakit', deger: '₺' + (ozet.toplamNakit || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#0ea5e9', icon: '💵' },
+    { baslik: 'Toplam Yatırım', deger: '₺' + (ozet.toplamYatirim || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#eab308', icon: '📈' },
+    { baslik: 'Toplam Borç', deger: '₺' + (ozet.toplamBorc || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ef4444', icon: '💳' },
+    { baslik: 'Net Varlık', deger: '₺' + (ozet.netVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: (ozet.netVarlik || 0) >= 0 ? '#0d9488' : '#ef4444', icon: '⚖️' },
   ]
 
   return (
@@ -255,7 +255,7 @@ function OzetSayfasi({ session }) {
                 <div style={styles.islemAd}>{islem.aciklama || islem.kategori}</div>
                 <div style={styles.islemTarih}>{islem.tarih} · {islem.hesaplar?.ad}</div>
               </div>
-              <div style={{ color: islem.tur === 'gelir' ? '#4ecca3' : '#ff6b6b', fontWeight: 'bold', fontSize: '14px' }}>
+              <div style={{ color: islem.tur === 'gelir' ? '#0d9488' : '#ef4444', fontWeight: 'bold', fontSize: '14px' }}>
                 {islem.tur === 'gelir' ? '+' : '-'}₺{parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </div>
             </div>
@@ -270,7 +270,7 @@ function OzetSayfasi({ session }) {
             <div key={hesap.id} style={styles.hesapSatir}>
               <div style={styles.hesapAd}>{hesap.ad}</div>
               <div style={styles.hesapTur}>{hesap.tur}</div>
-              <div style={{ color: parseFloat(hesap.bakiye) < 0 ? '#ff6b6b' : '#4ecca3', fontWeight: 'bold', fontSize: '14px' }}>
+              <div style={{ color: parseFloat(hesap.bakiye) < 0 ? '#ef4444' : '#0d9488', fontWeight: 'bold', fontSize: '14px' }}>
                 {hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '}
                 {parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </div>
@@ -295,21 +295,22 @@ const styles = {
 wrapper: {
   display: 'flex',
   minHeight: '100vh',
-  background: '#0f172a',
+  background: '#f1f5f9',
   fontFamily: "'Segoe UI', sans-serif",
   width: '100%',
   overflowX: 'hidden',
 },
   sidebar: {
     width: '240px',
-    background: '#0f172a',
-    borderRight: '1px solid rgba(255,255,255,0.08)',
+    background: '#ffffff',
+    borderRight: '1px solid #e2e8f0',
     display: 'flex',
     flexDirection: 'column',
     padding: '24px 16px',
     position: 'fixed',
     height: '100vh',
     boxSizing: 'border-box',
+    boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
   },
   logoWrap: {
     display: 'flex',
@@ -320,19 +321,19 @@ wrapper: {
   logoIcon: {
     width: 32, height: 32,
     borderRadius: '9px',
-    background: 'rgba(78,204,163,0.1)',
-    border: '1px solid rgba(78,204,163,0.2)',
+    background: 'rgba(13,148,136,0.08)',
+    border: '1px solid rgba(13,148,136,0.2)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
   logo: {
-    color: '#4ecca3',
+    color: '#0d9488',
     fontSize: '14px',
     fontWeight: '700',
     lineHeight: 1.2,
   },
   logoAlt: {
-    color: 'rgba(78,204,163,0.45)',
+    color: 'rgba(13,148,136,0.55)',
     fontSize: '9px',
     letterSpacing: '0.5px',
     fontWeight: 500,
@@ -342,18 +343,18 @@ wrapper: {
     marginBottom: '24px',
     marginTop: '8px',
     padding: '10px 8px',
-    background: 'rgba(255,255,255,0.03)',
+    background: '#f8fafc',
     borderRadius: '10px',
-    border: '1px solid rgba(255,255,255,0.06)',
+    border: '1px solid #e2e8f0',
   },
   kullaniciAd: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#1e293b',
     fontSize: '13px',
     fontWeight: '600',
     marginBottom: '2px',
   },
   kullaniciEmail: {
-    color: 'rgba(255,255,255,0.28)',
+    color: '#94a3b8',
     fontSize: '10px',
     letterSpacing: '0.2px',
     whiteSpace: 'nowrap',
@@ -366,7 +367,7 @@ wrapper: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    color: 'rgba(255,255,255,0.2)',
+    color: '#94a3b8',
     fontSize: '10px',
     letterSpacing: '0.4px',
     marginTop: '12px',
@@ -374,7 +375,7 @@ wrapper: {
   },
   nkodeDot: {
     width: 5, height: 5, borderRadius: '50%',
-    background: '#4ecca3', opacity: 0.5,
+    background: '#0d9488', opacity: 0.6,
   },
   nav: {
     display: 'flex',
@@ -390,7 +391,7 @@ wrapper: {
     background: 'transparent',
     border: 'none',
     borderRadius: '10px',
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748b',
     fontSize: '14px',
     cursor: 'pointer',
     textAlign: 'left',
@@ -401,10 +402,10 @@ wrapper: {
     alignItems: 'center',
     gap: '10px',
     padding: '12px 16px',
-    background: 'rgba(78,204,163,0.15)',
+    background: 'rgba(13,148,136,0.08)',
     border: 'none',
     borderRadius: '10px',
-    color: '#4ecca3',
+    color: '#0d9488',
     fontSize: '14px',
     cursor: 'pointer',
     textAlign: 'left',
@@ -413,10 +414,10 @@ wrapper: {
   menuIcon: { fontSize: '18px' },
   cikisBtn: {
     padding: '12px',
-    background: 'rgba(255,100,100,0.1)',
-    border: '1px solid rgba(255,100,100,0.2)',
+    background: 'rgba(239,68,68,0.06)',
+    border: '1px solid rgba(239,68,68,0.2)',
     borderRadius: '10px',
-    color: '#ff6b6b',
+    color: '#ef4444',
     fontSize: '14px',
     cursor: 'pointer',
   },
@@ -438,7 +439,7 @@ header: {
   gap: '8px',
 },
 pageTitle: {
-  color: '#fff',
+  color: '#0f172a',
   fontSize: '20px',
   margin: 0,
   display: 'flex',
@@ -446,35 +447,37 @@ pageTitle: {
   gap: '8px',
 },
   tarih: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#94a3b8',
     fontSize: '14px',
   },
   pageContent: {},
 kartGrid: {
   display: 'grid',
   gridTemplateColumns: window.innerWidth < 768 ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)',
-  gap: '16px',
+  gap: '12px',
   marginBottom: '24px',
 },
 kart: {
-  background: 'rgba(255,255,255,0.05)',
-  borderRadius: '16px',
-  padding: window.innerWidth < 768 ? '16px 12px' : '24px',
+  background: '#ffffff',
+  borderRadius: '14px',
+  padding: window.innerWidth < 768 ? '12px 10px' : '20px',
   textAlign: 'center',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+  border: '1px solid #f1f5f9',
 },
-kartIcon: { 
-  fontSize: window.innerWidth < 768 ? '20px' : '28px', 
-  marginBottom: window.innerWidth < 768 ? '6px' : '12px' 
+kartIcon: {
+  fontSize: window.innerWidth < 768 ? '18px' : '24px',
+  marginBottom: window.innerWidth < 768 ? '4px' : '10px'
 },
-kartDeger: { 
-  color: '#fff', 
-  fontSize: window.innerWidth < 768 ? '16px' : '24px', 
-  fontWeight: 'bold', 
-  marginBottom: '4px' 
+kartDeger: {
+  color: '#0f172a',
+  fontSize: window.innerWidth < 768 ? '13px' : '20px',
+  fontWeight: 'bold',
+  marginBottom: '4px'
 },
-kartBaslik: { 
-  color: 'rgba(255,255,255,0.5)', 
-  fontSize: window.innerWidth < 768 ? '11px' : '13px' 
+kartBaslik: {
+  color: '#64748b',
+  fontSize: window.innerWidth < 768 ? '10px' : '12px'
 },
 altGrid: {
   display: 'grid',
@@ -482,17 +485,20 @@ altGrid: {
   gap: '16px',
 },
   panel: {
-    background: 'rgba(255,255,255,0.05)',
-    borderRadius: '16px',
-    padding: '24px',
+    background: '#ffffff',
+    borderRadius: '14px',
+    padding: '20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+    border: '1px solid #f1f5f9',
   },
   panelBaslik: {
-    color: '#fff',
-    fontSize: '16px',
+    color: '#0f172a',
+    fontSize: '15px',
+    fontWeight: '600',
     margin: '0 0 16px 0',
   },
   bosMetin: {
-    color: 'rgba(255,255,255,0.3)',
+    color: '#94a3b8',
     fontSize: '14px',
     textAlign: 'center',
     padding: '24px 0',
@@ -505,31 +511,31 @@ altGrid: {
     height: '400px',
   },
   yakindaIcon: { fontSize: '48px', marginBottom: '16px' },
-  yakindaBaslik: { color: '#fff', fontSize: '22px', margin: '0 0 8px 0' },
-  yakindaMetin: { color: 'rgba(255,255,255,0.4)', fontSize: '15px' },
+  yakindaBaslik: { color: '#0f172a', fontSize: '22px', margin: '0 0 8px 0' },
+  yakindaMetin: { color: '#64748b', fontSize: '15px' },
   overlay: {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(0,0,0,0.5)',
+  background: 'rgba(0,0,0,0.4)',
   zIndex: 999,
 },
 hamburger: {
   background: 'none',
   border: 'none',
-  color: '#fff',
+  color: '#0f172a',
   fontSize: '24px',
   cursor: 'pointer',
   marginRight: '16px',
   padding: '4px 8px',
 },
 
-  islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+  islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #f1f5f9' },
   badge: { padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-  islemAd: { color: '#fff', fontSize: '13px', fontWeight: '500' },
-  islemTarih: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '2px' },
-  hesapSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-  hesapAd: { color: '#fff', fontSize: '13px', fontWeight: '500', flex: 1 },
-  hesapTur: { color: 'rgba(255,255,255,0.4)', fontSize: '11px' },
+  islemAd: { color: '#0f172a', fontSize: '13px', fontWeight: '500' },
+  islemTarih: { color: '#94a3b8', fontSize: '11px', marginTop: '2px' },
+  hesapSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #f1f5f9' },
+  hesapAd: { color: '#0f172a', fontSize: '13px', fontWeight: '500', flex: 1 },
+  hesapTur: { color: '#94a3b8', fontSize: '11px' },
 }
 
 export default Dashboard

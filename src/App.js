@@ -61,8 +61,8 @@ function Background() {
       {/* Izgara çizgisi overlay */}
       <div style={bgStyles.grid} />
       {/* Büyük parlak halka */}
-      <div style={{ ...bgStyles.glow, top: '30%', left: '18%', width: 420, height: 420, background: 'radial-gradient(circle, rgba(78,204,163,0.12) 0%, transparent 70%)' }} />
-      <div style={{ ...bgStyles.glow, top: '60%', left: '55%', width: 320, height: 320, background: 'radial-gradient(circle, rgba(56,178,172,0.09) 0%, transparent 70%)' }} />
+      <div style={{ ...bgStyles.glow, top: '30%', left: '18%', width: 420, height: 420, background: 'radial-gradient(circle, rgba(13,148,136,0.07) 0%, transparent 70%)' }} />
+      <div style={{ ...bgStyles.glow, top: '60%', left: '55%', width: 320, height: 320, background: 'radial-gradient(circle, rgba(14,165,233,0.05) 0%, transparent 70%)' }} />
       {/* Kayan noktalar */}
       {DOTS.map(d => (
         <div
@@ -74,7 +74,7 @@ function Background() {
             width: d.size,
             height: d.size,
             borderRadius: '50%',
-            background: 'rgba(78,204,163,0.55)',
+            background: 'rgba(13,148,136,0.18)',
             animation: `drift ${d.dur}s ease-in-out ${d.delay}s infinite`,
             '--dx': `${d.dx}px`,
             '--dy': `${d.dy}px`,
@@ -83,7 +83,7 @@ function Background() {
       ))}
       {/* Yatay dekoratif çizgiler */}
       {[15, 40, 65, 88].map(top => (
-        <div key={top} style={{ position: 'absolute', top: `${top}%`, left: 0, right: 0, height: 1, background: 'rgba(78,204,163,0.06)' }} />
+        <div key={top} style={{ position: 'absolute', top: `${top}%`, left: 0, right: 0, height: 1, background: 'rgba(13,148,136,0.04)' }} />
       ))}
     </div>
   )
@@ -94,8 +94,8 @@ const bgStyles = {
   grid: {
     position: 'absolute', inset: 0,
     backgroundImage: `
-      linear-gradient(rgba(78,204,163,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(78,204,163,0.04) 1px, transparent 1px)
+      linear-gradient(rgba(13,148,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(13,148,136,0.04) 1px, transparent 1px)
     `,
     backgroundSize: '60px 60px',
   },
@@ -190,7 +190,7 @@ function App() {
 
           <p style={styles.altYazi}>
             Harcamalar ve Portföy<br />
-            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>Tek Noktada</strong>
+            <strong style={{ color: '#0f172a' }}>Tek Noktada</strong>
           </p>
 
           {/* Özellik fişleri */}
@@ -220,7 +220,7 @@ function App() {
             {/* Kart logo */}
             <div style={styles.cardLogo}>
               <FinkodLogo size={22} uid="c" />
-              <span style={styles.cardLogoText}>Finkod <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>Cüzdan</span></span>
+              <span style={styles.cardLogoText}>Finkod <span style={{ color: '#94a3b8', fontWeight: 400 }}>Cüzdan</span></span>
             </div>
 
             <h2 style={styles.cardBaslik}>
@@ -341,7 +341,7 @@ function App() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1b3e 55%, #0a1628 100%)',
+    background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 50%, #f0f9ff 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -366,21 +366,20 @@ const styles = {
   logoWrap: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' },
   logoIcon: {
     width: 48, height: 48, borderRadius: '14px',
-    background: 'rgba(78,204,163,0.1)',
-    border: '1px solid rgba(78,204,163,0.25)',
+    background: 'rgba(13,148,136,0.08)',
+    border: '1px solid rgba(13,148,136,0.2)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 0 20px rgba(78,204,163,0.15)',
   },
-  logoText: { color: '#4ecca3', fontSize: '22px', fontWeight: 700, lineHeight: 1.1 },
-  logoSub: { color: 'rgba(78,204,163,0.55)', fontSize: '10px', letterSpacing: '3px', fontWeight: 600 },
+  logoText: { color: '#0d9488', fontSize: '22px', fontWeight: 700, lineHeight: 1.1 },
+  logoSub: { color: 'rgba(13,148,136,0.6)', fontSize: '10px', letterSpacing: '3px', fontWeight: 600 },
   accentLine: {
     width: 48, height: 3, borderRadius: 2,
-    background: 'linear-gradient(90deg, #4ecca3, #38b2ac)',
+    background: 'linear-gradient(90deg, #0d9488, #0ea5e9)',
     marginBottom: '28px',
     animation: 'lineGrow 0.8s ease 0.3s both',
   },
   buyukBaslik: {
-    color: 'rgba(255,255,255,0.9)',
+    color: '#0f172a',
     fontSize: '42px',
     fontWeight: 800,
     lineHeight: 1.15,
@@ -388,37 +387,36 @@ const styles = {
     letterSpacing: '-0.5px',
   },
   buyukBaslikVurgu: {
-    background: 'linear-gradient(90deg, #4ecca3, #38b2ac)',
+    background: 'linear-gradient(90deg, #0d9488, #0ea5e9)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
   },
-  altYazi: { color: 'rgba(255,255,255,0.4)', fontSize: '17px', lineHeight: 1.6, margin: '0 0 32px 0' },
+  altYazi: { color: '#64748b', fontSize: '17px', lineHeight: 1.6, margin: '0 0 32px 0' },
   fisler: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' },
   fis: {
     display: 'flex', alignItems: 'center', gap: '12px',
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'rgba(255,255,255,0.8)',
+    border: '1px solid #e2e8f0',
     borderRadius: '10px', padding: '12px 16px',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   },
   fisIkon: { fontSize: '18px' },
-  fisYazi: { color: 'rgba(255,255,255,0.65)', fontSize: '14px' },
+  fisYazi: { color: '#475569', fontSize: '14px' },
   nkode: {
     display: 'flex', alignItems: 'center', gap: '8px',
-    color: 'rgba(255,255,255,0.25)', fontSize: '12px', letterSpacing: '0.5px',
+    color: '#94a3b8', fontSize: '12px', letterSpacing: '0.5px',
   },
-  nkodeDot: { width: 6, height: 6, borderRadius: '50%', background: '#4ecca3', opacity: 0.6 },
+  nkodeDot: { width: 6, height: 6, borderRadius: '50%', background: '#0d9488', opacity: 0.6 },
 
   /* SAĞ */
   right: { width: '380px', flexShrink: 0 },
   card: {
-    background: 'rgba(255,255,255,0.05)',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.11)',
+    background: '#ffffff',
+    border: '1px solid #e2e8f0',
     borderRadius: '24px',
     padding: '36px 32px',
-    boxShadow: '0 32px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
     maxHeight: '92vh',
     overflowY: 'auto',
   },
@@ -431,76 +429,75 @@ const styles = {
     display: 'flex', alignItems: 'center', gap: '8px',
     marginBottom: '24px',
   },
-  cardLogoText: { color: '#4ecca3', fontSize: '16px', fontWeight: 700 },
-  cardBaslik: { color: '#fff', fontSize: '20px', fontWeight: 700, margin: '0 0 6px 0' },
-  cardAlt: { color: 'rgba(255,255,255,0.4)', fontSize: '13px', margin: '0 0 20px 0' },
+  cardLogoText: { color: '#0d9488', fontSize: '16px', fontWeight: 700 },
+  cardBaslik: { color: '#0f172a', fontSize: '20px', fontWeight: 700, margin: '0 0 6px 0' },
+  cardAlt: { color: '#94a3b8', fontSize: '13px', margin: '0 0 20px 0' },
   tabBar: {
     display: 'flex',
-    background: 'rgba(255,255,255,0.05)',
+    background: '#f1f5f9',
     borderRadius: '10px', padding: '4px',
     marginBottom: '20px',
   },
   tab: {
     flex: 1, padding: '9px', border: 'none', background: 'transparent',
-    color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+    color: '#94a3b8', cursor: 'pointer',
     borderRadius: '7px', fontSize: '13px', transition: 'all 0.2s',
   },
   tabAktif: {
     flex: 1, padding: '9px', border: 'none',
-    background: 'rgba(78,204,163,0.18)',
-    color: '#4ecca3', cursor: 'pointer',
+    background: 'rgba(13,148,136,0.1)',
+    color: '#0d9488', cursor: 'pointer',
     borderRadius: '7px', fontSize: '13px', fontWeight: '700',
-    boxShadow: '0 0 12px rgba(78,204,163,0.15)',
   },
   inputWrap: {
     display: 'flex', alignItems: 'center',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
     borderRadius: '11px', marginBottom: '12px',
     padding: '0 14px',
     transition: 'border-color 0.2s',
   },
-  inputIkon: { fontSize: '14px', marginRight: '8px', opacity: 0.5 },
+  inputIkon: { fontSize: '14px', marginRight: '8px', opacity: 0.4, color: '#64748b' },
   input: {
     flex: 1, padding: '13px 0', background: 'transparent',
-    border: 'none', color: '#fff', fontSize: '14px',
+    border: 'none', color: '#0f172a', fontSize: '14px',
     outline: 'none',
   },
   mesajHata: {
-    background: 'rgba(255,107,107,0.12)',
-    border: '1px solid rgba(255,107,107,0.3)',
+    background: 'rgba(239,68,68,0.06)',
+    border: '1px solid rgba(239,68,68,0.2)',
     borderRadius: '9px', padding: '10px 12px',
-    color: '#ff9999', fontSize: '12px', marginBottom: '12px',
+    color: '#ef4444', fontSize: '12px', marginBottom: '12px',
     lineHeight: 1.5,
   },
   mesajBasari: {
-    background: 'rgba(78,204,163,0.1)',
-    border: '1px solid rgba(78,204,163,0.3)',
+    background: 'rgba(13,148,136,0.06)',
+    border: '1px solid rgba(13,148,136,0.2)',
     borderRadius: '9px', padding: '10px 12px',
-    color: '#4ecca3', fontSize: '12px', marginBottom: '12px',
+    color: '#0d9488', fontSize: '12px', marginBottom: '12px',
     lineHeight: 1.5,
   },
   btn: {
     width: '100%', padding: '14px',
-    background: 'linear-gradient(135deg, #4ecca3 0%, #38b2ac 100%)',
+    background: 'linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%)',
     border: 'none', borderRadius: '11px',
-    color: '#0a0f1e', fontSize: '15px', fontWeight: '700',
+    color: '#ffffff', fontSize: '15px', fontWeight: '700',
     cursor: 'pointer', letterSpacing: '0.3px',
-    boxShadow: '0 8px 24px rgba(78,204,163,0.3)',
+    boxShadow: '0 6px 20px rgba(13,148,136,0.25)',
     transition: 'transform 0.15s, box-shadow 0.15s',
     marginTop: '4px',
   },
   btnSpinner: { display: 'inline-block' },
   gecisMetni: {
-    textAlign: 'center', color: 'rgba(255,255,255,0.35)',
+    textAlign: 'center', color: '#94a3b8',
     fontSize: '13px', margin: '16px 0 0 0',
   },
   linkBtn: {
-    background: 'none', border: 'none', color: '#4ecca3',
+    background: 'none', border: 'none', color: '#0d9488',
     cursor: 'pointer', fontSize: '13px', fontWeight: '600', padding: 0,
   },
   cardNkode: {
-    textAlign: 'center', color: 'rgba(255,255,255,0.18)',
+    textAlign: 'center', color: '#cbd5e1',
     fontSize: '11px', marginTop: '20px', letterSpacing: '0.4px',
   },
 }

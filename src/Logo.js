@@ -21,19 +21,19 @@ function FinkodLogo({ size = 44, uid = 'a' }) {
         </linearGradient>
         {/* İç highlight gradyanı */}
         <linearGradient id={bgInner} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(78,204,163,0.18)" />
-          <stop offset="100%" stopColor="rgba(78,204,163,0)" />
+          <stop offset="0%" stopColor="rgba(13,148,136,0.18)" />
+          <stop offset="100%" stopColor="rgba(13,148,136,0)" />
         </linearGradient>
         {/* Kenarlık gradyanı */}
         <linearGradient id={br} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#6ee7c0" />
-          <stop offset="60%" stopColor="#4ecca3" />
-          <stop offset="100%" stopColor="#2bb5a0" />
+          <stop offset="0%" stopColor="#5eead4" />
+          <stop offset="60%" stopColor="#0d9488" />
+          <stop offset="100%" stopColor="#0ea5e9" />
         </linearGradient>
         {/* Ok / parlama gradyanı */}
         <linearGradient id={gl} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stopColor="#4ecca3" />
-          <stop offset="100%" stopColor="#a3f7df" />
+          <stop offset="0%" stopColor="#0d9488" />
+          <stop offset="100%" stopColor="#5eead4" />
         </linearGradient>
         {/* Glow filtresi */}
         <filter id={glowFilter} x="-30%" y="-30%" width="160%" height="160%">
@@ -49,7 +49,7 @@ function FinkodLogo({ size = 44, uid = 'a' }) {
       <path
         d="M22 1 C37 1 42 8 42 16 L42 30 C42 43 22 51 22 51 C22 51 2 43 2 30 L2 16 C2 8 7 1 22 1Z"
         fill="none"
-        stroke="rgba(78,204,163,0.25)"
+        stroke="rgba(13,148,136,0.22)"
         strokeWidth="3"
       />
 
@@ -70,13 +70,13 @@ function FinkodLogo({ size = 44, uid = 'a' }) {
       {/* ── Bar chart ── */}
       {/* Bar 1 (sol, kısa) */}
       <rect x="10" y="35" width="5" height="7" rx="1.2"
-        fill="#4ecca3" opacity="0.55" />
+        fill="#5eead4" opacity="0.65" />
       {/* Bar 2 (orta) */}
       <rect x="17" y="29" width="5" height="13" rx="1.2"
-        fill="#4ecca3" opacity="0.72" />
+        fill="#2dd4bf" opacity="0.80" />
       {/* Bar 3 (sağ, uzun) */}
       <rect x="24" y="23" width="5" height="19" rx="1.2"
-        fill="#4ecca3" opacity="0.9" />
+        fill="#0d9488" opacity="0.95" />
 
       {/* ── Yukarı ok çizgisi ── */}
       <line
@@ -100,17 +100,17 @@ function FinkodLogo({ size = 44, uid = 'a' }) {
       {/* ── Yaprak ── */}
       <path
         d="M18 45 Q22 40 27 43 Q23 48 18 45Z"
-        fill="#4ecca3"
-        opacity="0.88"
+        fill="#0d9488"
+        opacity="0.90"
         filter={`url(#${glowFilter})`}
       />
       {/* Yaprak sapı */}
       <line
         x1="22" y1="45" x2="22" y2="48"
-        stroke="#4ecca3"
+        stroke="#0d9488"
         strokeWidth="1.2"
         strokeLinecap="round"
-        opacity="0.65"
+        opacity="0.70"
       />
     </svg>
   )

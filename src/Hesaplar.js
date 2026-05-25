@@ -21,12 +21,12 @@ const [hesapYatirimlari, setHesapYatirimlari] = useState([])
 
 
   const turRenkleri = {
-    'Banka': '#4ecca3',
-    'Nakit': '#ffd93d',
-    'Kredi Kartı': '#ff6b6b',
-    'Yatırım': '#45b7d1',
-    'Borç': '#ff8c42',
-    'Diğer': '#a8a8b3'
+    'Banka': '#0d9488',
+    'Nakit': '#eab308',
+    'Kredi Kartı': '#ef4444',
+    'Yatırım': '#0ea5e9',
+    'Borç': '#f97316',
+    'Diğer': '#94a3b8'
   }
 
   const turIkonlari = {
@@ -61,7 +61,7 @@ const handleDragOver = (e) => {
   e.dataTransfer.dropEffect = 'move'
 }
 
-const handleDrop = (e, hedefId) => {
+const handleDrop = async (e, hedefId) => {
   e.preventDefault()
   if (!suruklenen || suruklenen === hedefId) return
 
@@ -73,8 +73,12 @@ const handleDrop = (e, hedefId) => {
   setHesaplar(yeniSira)
   setSuruklenen(null)
 
-  // Sırayı localStorage'a kaydet
-  localStorage.setItem('hesapSirasi', JSON.stringify(yeniSira.map(h => h.id)))
+  // Supabase'e sırayı kaydet
+  for (let i = 0; i < yeniSira.length; i++) {
+    await supabase.from('hesaplar')
+      .update({ sira_no: i })
+      .eq('id', yeniSira[i].id)
+  }
 }
 
   useEffect(() => {
@@ -88,7 +92,7 @@ const hesaplariGetir = async () => {
     .from('hesaplar')
     .select('*')
     .eq('user_id', session.user.id)
-    .order('created_at', { ascending: false })
+    .order('sira_no', { ascending: true })
 
   if (!error && data) {
     const { data: yatirimData } = await supabase
@@ -198,25 +202,25 @@ const toplamTRY = hesaplar
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Varlık (TRY)</div>
-          <div style={{ ...styles.ozetDeger, color: '#4ecca3' }}>
+          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>
             ₺{toplamTRY.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Borç</div>
-          <div style={{ ...styles.ozetDeger, color: '#ff6b6b' }}>
+          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>
             ₺{toplamBorc.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Net Durum</div>
-          <div style={{ ...styles.ozetDeger, color: (toplamTRY - toplamBorc) >= 0 ? '#4ecca3' : '#ff6b6b' }}>
+          <div style={{ ...styles.ozetDeger, color: (toplamTRY - toplamBorc) >= 0 ? '#0d9488' : '#ef4444' }}>
             ₺{(toplamTRY - toplamBorc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Hesap Sayısı</div>
-          <div style={{ ...styles.ozetDeger, color: '#45b7d1' }}>{hesaplar.length}</div>
+          <div style={{ ...styles.ozetDeger, color: '#0ea5e9' }}>{hesaplar.length}</div>
         </div>
       </div>
 
@@ -224,13 +228,13 @@ const toplamTRY = hesaplar
 <div style={styles.toolbar}>
   <div style={{ display: 'flex', gap: '10px' }}>
     <button
-      style={{ ...styles.ekleBtn, background: siralamaAktif ? 'rgba(78,204,163,0.2)' : 'rgba(255,255,255,0.05)', border: siralamaAktif ? '1px solid #4ecca3' : '1px solid rgba(255,255,255,0.1)', color: siralamaAktif ? '#4ecca3' : 'rgba(255,255,255,0.6)' }}
+      style={{ ...styles.ekleBtn, background: siralamaAktif ? 'rgba(13,148,136,0.12)' : '#f1f5f9', border: siralamaAktif ? '1px solid #0d9488' : '1px solid #e2e8f0', color: siralamaAktif ? '#0d9488' : '#64748b' }}
       onClick={() => setSiralamaAktif(!siralamaAktif)}>
       {siralamaAktif ? '✅ Sıralamayı Bitir' : '↕️ Sırala'}
     </button>
     {gizliHesaplar.length > 0 && (
       <button
-        style={{ ...styles.ekleBtn, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)' }}
+        style={{ ...styles.ekleBtn, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#64748b' }}
         onClick={() => { setGizliHesaplar([]); localStorage.removeItem('gizliHesaplar') }}>
         👁️ Tümünü Göster ({gizliHesaplar.length})
       </button>
@@ -243,10 +247,10 @@ const toplamTRY = hesaplar
   <div style={styles.modalOverlay}>
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '560px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h3 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>
+        <h3 style={{ color: '#0f172a', fontSize: '18px', margin: 0 }}>
           📂 {detayHesap.ad}
         </h3>
-        <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '20px' }}
+        <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '20px' }}
           onClick={() => setDetayModal(false)}>✕</button>
       </div>
 
@@ -254,7 +258,7 @@ const toplamTRY = hesaplar
       <div style={styles.detayOzetKart}>
         <div style={styles.detayOzetSatir}>
           <span style={styles.detayOzetLabel}>💵 Nakit Bakiye</span>
-          <span style={{ color: '#4ecca3', fontWeight: 'bold', fontSize: '16px' }}>
+          <span style={{ color: '#0d9488', fontWeight: 'bold', fontSize: '16px' }}>
             {detayHesap.para_birimi === 'TRY' ? '₺' : detayHesap.para_birimi + ' '}
             {parseFloat(detayHesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </span>
@@ -262,7 +266,7 @@ const toplamTRY = hesaplar
         {hesapYatirimlari.length > 0 && (
           <div style={styles.detayOzetSatir}>
             <span style={styles.detayOzetLabel}>📈 Yatırım Değeri</span>
-            <span style={{ color: '#45b7d1', fontWeight: 'bold', fontSize: '16px' }}>
+            <span style={{ color: '#0ea5e9', fontWeight: 'bold', fontSize: '16px' }}>
               ₺{hesapYatirimlari.reduce((a, y) => a + parseFloat(y.guncel_deger), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -270,7 +274,7 @@ const toplamTRY = hesaplar
         {hesapYatirimlari.length > 0 && (
           <div style={{ ...styles.detayOzetSatir, borderBottom: 'none', paddingBottom: 0 }}>
             <span style={styles.detayOzetLabel}>💎 Toplam Değer</span>
-            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '18px' }}>
+            <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '18px' }}>
               ₺{(parseFloat(detayHesap.bakiye) + hesapYatirimlari.reduce((a, y) => a + parseFloat(y.guncel_deger), 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -279,12 +283,12 @@ const toplamTRY = hesaplar
 
       {/* Yatırımlar Listesi */}
       {hesapYatirimlari.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
           Bu hesaba bağlı yatırım yok
         </div>
       ) : (
         <>
-          <h4 style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', margin: '20px 0 12px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <h4 style={{ color: '#64748b', fontSize: '13px', margin: '20px 0 12px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Yatırımlar
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -292,33 +296,33 @@ const toplamTRY = hesaplar
               const karZarar = parseFloat(y.guncel_deger) - parseFloat(y.maliyet)
               const getiri = parseFloat(y.maliyet) > 0 ? ((karZarar / parseFloat(y.maliyet)) * 100).toFixed(1) : 0
               const turRenk = {
-                'Hisse': '#4ecca3', 'Kripto': '#ffd93d', 'Fon': '#45b7d1',
-                'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399', 'Diğer': '#a8a8b3'
+                'Hisse': '#0d9488', 'Kripto': '#eab308', 'Fon': '#0ea5e9',
+                'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399', 'Diğer': '#94a3b8'
               }
               return (
                 <div key={y.id} style={styles.detayYatirimSatir}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: turRenk[y.tur] || '#a8a8b3', flexShrink: 0 }} />
                     <div>
-                      <div style={{ color: '#fff', fontSize: '14px', fontWeight: '500' }}>{y.ad}</div>
-                      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>
+                      <div style={{ color: '#0f172a', fontSize: '14px', fontWeight: '500' }}>{y.ad}</div>
+                      <div style={{ color: '#94a3b8', fontSize: '12px' }}>
                         {y.tur}{parseFloat(y.miktar) > 0 ? ` · ${y.miktar} adet` : ''}
                       </div>
                     </div>
                   </div>
                   <div style={{ textAlign: 'center', minWidth: '100px' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>Maliyet</div>
-                    <div style={{ color: '#fff', fontSize: '13px' }}>₺{parseFloat(y.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}</div>
+                    <div style={{ color: '#94a3b8', fontSize: '11px' }}>Maliyet</div>
+                    <div style={{ color: '#0f172a', fontSize: '13px' }}>₺{parseFloat(y.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}</div>
                   </div>
                   <div style={{ textAlign: 'center', minWidth: '100px' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>Güncel</div>
-                    <div style={{ color: '#fff', fontSize: '13px' }}>₺{parseFloat(y.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}</div>
+                    <div style={{ color: '#94a3b8', fontSize: '11px' }}>Güncel</div>
+                    <div style={{ color: '#0f172a', fontSize: '13px' }}>₺{parseFloat(y.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}</div>
                   </div>
                   <div style={{ textAlign: 'right', minWidth: '80px' }}>
-                    <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '13px', fontWeight: 'bold' }}>
+                    <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>
                       {karZarar >= 0 ? '+' : ''}{getiri}%
                     </div>
-                    <div style={{ color: karZarar >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '12px' }}>
+                    <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '12px' }}>
                       {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
                     </div>
                   </div>
@@ -354,7 +358,7 @@ const toplamTRY = hesaplar
 
       <div style={styles.toggleSatir}>
         <span style={styles.toggleLabel}>Yatırım Hesabı mı?</span>
-        <div style={{ ...styles.toggle, background: duzenleHesap.yatirim_hesabi ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+        <div style={{ ...styles.toggle, background: duzenleHesap.yatirim_hesabi ? '#0d9488' : '#e2e8f0' }}
           onClick={() => setDuzenleHesap({ ...duzenleHesap, yatirim_hesabi: !duzenleHesap.yatirim_hesabi })}>
           <div style={{ ...styles.toggleTop, transform: duzenleHesap.yatirim_hesabi ? 'translateX(20px)' : 'translateX(0)' }} />
         </div>
@@ -446,7 +450,7 @@ const toplamTRY = hesaplar
             <div style={styles.toggleSatir}>
               <span style={styles.toggleLabel}>Yatırım Hesabı mı?</span>
               <div
-                style={{ ...styles.toggle, background: yeniHesap.yatirim_hesabi ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+                style={{ ...styles.toggle, background: yeniHesap.yatirim_hesabi ? '#0d9488' : '#e2e8f0' }}
                 onClick={() => setYeniHesap({ ...yeniHesap, yatirim_hesabi: !yeniHesap.yatirim_hesabi })}
               >
                 <div style={{ ...styles.toggleTop, transform: yeniHesap.yatirim_hesabi ? 'translateX(20px)' : 'translateX(0)' }} />
@@ -469,7 +473,7 @@ const toplamTRY = hesaplar
       ) : hesaplar.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏦</div>
-          <p style={{ color: 'rgba(255,255,255,0.4)' }}>Henüz hesap eklenmemiş. İlk hesabını ekle!</p>
+          <p style={{ color: '#94a3b8' }}>Henüz hesap eklenmemiş. İlk hesabını ekle!</p>
         </div>
       ) : (
         <div style={{ ...styles.hesapGrid, gridTemplateColumns: mobil ? '1fr' : 'repeat(3,1fr)' }}>
@@ -495,7 +499,7 @@ const toplamTRY = hesaplar
                   <div style={styles.hesapAd}>{hesap.ad}</div>
                   <div style={styles.hesapTur}>{hesap.tur}</div>
                   {hesap.yatirim_hesabi && (
-                <span style={{ background: 'rgba(78,204,163,0.15)', color: '#4ecca3', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', marginLeft: '6px' }}>
+                <span style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', marginLeft: '6px' }}>
                  📈 Yatırım Hesabı
                  </span>
                       )}
@@ -506,7 +510,7 @@ const toplamTRY = hesaplar
                 <button style={styles.duzenleBtn} onClick={() => { setDuzenleHesap(hesap); setDuzenleModal(true) }}>✏️</button>
                 <button style={styles.silBtn} onClick={() => hesapSil(hesap.id)}>🗑️</button>
               </div>
-<div style={{ ...styles.hesapBakiye, color: turRenkleri[hesap.tur] || '#fff' }}>
+<div style={{ ...styles.hesapBakiye, color: turRenkleri[hesap.tur] || '#0f172a' }}>
   {hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '}
   {hesap.yatirim_hesabi && hesap.yatirim_toplam > 0
     ? (parseFloat(hesap.bakiye) + hesap.yatirim_toplam).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
@@ -514,12 +518,12 @@ const toplamTRY = hesaplar
   }
 </div>
 {hesap.para_birimi !== 'TRY' && (
-  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '4px' }}>
+  <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
     ≈ ₺{(hesap.bakiye_tl || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
   </div>
 )}
 {hesap.yatirim_hesabi && hesap.yatirim_toplam > 0 && (
-  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '4px' }}>
+  <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
     Nakit: ₺{parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })} + 
     Yatırım: ₺{hesap.yatirim_toplam.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
   </div>
@@ -533,39 +537,40 @@ const toplamTRY = hesaplar
 }
 
 const styles = {
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '24px' },
-  ozetKart: { background: 'rgba(255,255,255,0.05)', borderRadius: '14px', padding: '20px', textAlign: 'center' },
-  ozetLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginBottom: '8px' },
-  ozetDeger: { fontSize: '22px', fontWeight: 'bold' },
-  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' },
-  ekleBtn: { padding: '12px 24px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#1e293b', borderRadius: '20px', padding: '32px', width: '400px', border: '1px solid rgba(255,255,255,0.1)', boxSizing: 'border-box' },
-  modalBaslik: { color: '#fff', fontSize: '18px', margin: '0 0 24px 0' },
-  label: { color: 'rgba(255,255,255,0.6)', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '12px', marginBottom: '14px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', color: '#fff', fontSize: '14px', boxSizing: 'border-box' },
-  iptalBtn: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '12px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#0f172a', fontWeight: 'bold', cursor: 'pointer' },
-  yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '48px' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' },
+  ozetKart: { background: '#ffffff', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
+  ozetLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '6px' },
+  ozetDeger: { fontSize: '18px', fontWeight: 'bold' },
+  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '8px', flexWrap: 'wrap' },
+  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: '#ffffff', borderRadius: '20px', padding: '28px', width: '400px', border: '1px solid #e2e8f0', boxSizing: 'border-box', boxShadow: '0 20px 60px rgba(0,0,0,0.12)' },
+  modalBaslik: { color: '#0f172a', fontSize: '18px', margin: '0 0 20px 0' },
+  modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
+  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
+  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a', fontSize: '14px', boxSizing: 'border-box' },
+  iptalBtn: { flex: 1, padding: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
-  hesapGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '16px' },
-  hesapKart: { background: 'rgba(255,255,255,0.05)', borderRadius: '14px', padding: '20px' },
-  hesapUst: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' },
-  hesapIkon: { fontSize: '28px' },
-  hesapAd: { color: '#fff', fontSize: '15px', fontWeight: 'bold' },
-  hesapTur: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '2px' },
-  silBtn: { marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.5 },
-  duzenleBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.5, marginRight: '4px' },
-  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px' },
-toggleLabel: { color: 'rgba(255,255,255,0.7)', fontSize: '14px' },
-toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
-toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
-detayOzetKart: { background: 'rgba(255,255,255,0.04)', borderRadius: '12px', padding: '16px', marginBottom: '8px' },
-detayOzetSatir: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-detayOzetLabel: { color: 'rgba(255,255,255,0.5)', fontSize: '14px' },
-gizleBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.5, marginRight: '4px' },
-detayYatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' },
-  hesapBakiye: { fontSize: '22px', fontWeight: 'bold' },
+  hesapGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '14px' },
+  hesapKart: { background: '#ffffff', borderRadius: '14px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
+  hesapUst: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' },
+  hesapIkon: { fontSize: '24px' },
+  hesapAd: { color: '#0f172a', fontSize: '14px', fontWeight: 'bold' },
+  hesapTur: { color: '#94a3b8', fontSize: '12px', marginTop: '2px' },
+  silBtn: { marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.4 },
+  duzenleBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.4, marginRight: '4px' },
+  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' },
+  toggleLabel: { color: '#475569', fontSize: '14px' },
+  toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
+  toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
+  detayOzetKart: { background: '#f8fafc', borderRadius: '12px', padding: '14px', marginBottom: '8px', border: '1px solid #e2e8f0' },
+  detayOzetSatir: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9' },
+  detayOzetLabel: { color: '#64748b', fontSize: '14px' },
+  gizleBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.4, marginRight: '4px' },
+  detayYatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' },
+  hesapBakiye: { fontSize: '18px', fontWeight: 'bold' },
 }
 
 export default Hesaplar               

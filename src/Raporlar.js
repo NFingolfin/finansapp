@@ -69,7 +69,7 @@ function Raporlar({ session, mobil }) {
     .map(([name, value]) => ({ name, value: Math.round(value) }))
 
   const KATEGORI_RENK = [
-    '#4ecca3', '#45b7d1', '#ffd93d', '#ff6b6b', '#a78bfa',
+    '#0d9488', '#0ea5e9', '#eab308', '#ef4444', '#a78bfa',
     '#f59e0b', '#34d399', '#f87171', '#60a5fa', '#c084fc'
   ]
 
@@ -141,10 +141,10 @@ function Raporlar({ session, mobil }) {
 
       {/* Üst Özet Kartları */}
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
-        <OzetKart baslik="Aylık Gelir" deger={formatTL(ayGelir)} renk="#4ecca3" icon="💰" />
-        <OzetKart baslik="Aylık Gider" deger={formatTL(ayGider)} renk="#ff6b6b" icon="💸" />
-        <OzetKart baslik="Net Akış" deger={formatTL(ayNet)} renk={ayNet >= 0 ? '#4ecca3' : '#ff6b6b'} icon="⚖️" />
-        <OzetKart baslik="Tasarruf Oranı" deger={`%${tasarrufOrani}`} renk={tasarrufOrani >= 20 ? '#4ecca3' : tasarrufOrani >= 0 ? '#ffd93d' : '#ff6b6b'} icon="🏦" />
+        <OzetKart baslik="Aylık Gelir" deger={formatTL(ayGelir)} renk="#0d9488" icon="💰" />
+        <OzetKart baslik="Aylık Gider" deger={formatTL(ayGider)} renk="#ef4444" icon="💸" />
+        <OzetKart baslik="Net Akış" deger={formatTL(ayNet)} renk={ayNet >= 0 ? '#0d9488' : '#ef4444'} icon="⚖️" />
+        <OzetKart baslik="Tasarruf Oranı" deger={`%${tasarrufOrani}`} renk={tasarrufOrani >= 20 ? '#0d9488' : tasarrufOrani >= 0 ? '#eab308' : '#ef4444'} icon="🏦" />
       </div>
 
       {/* Aylık Gelir/Gider Grafiği */}
@@ -155,14 +155,14 @@ function Raporlar({ session, mobil }) {
         ) : (
           <ResponsiveContainer width="100%" height={mobil ? 200 : 280}>
             <BarChart data={aylikGrafikVerisi} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-              <XAxis dataKey="ay" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="ay" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }} />
-              <Bar dataKey="Gelir" fill="#4ecca3" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Gider" fill="#ff6b6b" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Net" fill="#45b7d1" radius={[4, 4, 0, 0]} />
+              <Legend wrapperStyle={{ color: '#64748b', fontSize: '13px' }} />
+              <Bar dataKey="Gelir" fill="#0d9488" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Net" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -195,7 +195,7 @@ function Raporlar({ session, mobil }) {
                       <Cell key={i} fill={KATEGORI_RENK[i % KATEGORI_RENK.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff' }} />
+                  <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div style={styles.kategoriListe}>
@@ -228,21 +228,21 @@ function Raporlar({ session, mobil }) {
               <div style={styles.yatirimOzetGrid}>
                 <div style={styles.yatirimOzetKart}>
                   <div style={styles.yatirimOzetLabel}>Toplam Maliyet</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: '#45b7d1' }}>{formatTL(toplamMaliyet)}</div>
+                  <div style={{ ...styles.yatirimOzetDeger, color: '#0ea5e9' }}>{formatTL(toplamMaliyet)}</div>
                 </div>
                 <div style={styles.yatirimOzetKart}>
                   <div style={styles.yatirimOzetLabel}>Güncel Değer</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: '#4ecca3' }}>{formatTL(toplamGuncelDeger)}</div>
+                  <div style={{ ...styles.yatirimOzetDeger, color: '#0d9488' }}>{formatTL(toplamGuncelDeger)}</div>
                 </div>
                 <div style={styles.yatirimOzetKart}>
                   <div style={styles.yatirimOzetLabel}>Kâr / Zarar</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: toplamKarZarar >= 0 ? '#4ecca3' : '#ff6b6b' }}>
+                  <div style={{ ...styles.yatirimOzetDeger, color: toplamKarZarar >= 0 ? '#0d9488' : '#ef4444' }}>
                     {toplamKarZarar >= 0 ? '+' : ''}{formatTL(toplamKarZarar)}
                   </div>
                 </div>
                 <div style={styles.yatirimOzetKart}>
                   <div style={styles.yatirimOzetLabel}>Getiri %</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: yatirimGetirisi >= 0 ? '#4ecca3' : '#ff6b6b' }}>
+                  <div style={{ ...styles.yatirimOzetDeger, color: yatirimGetirisi >= 0 ? '#0d9488' : '#ef4444' }}>
                     {yatirimGetirisi >= 0 ? '+' : ''}{yatirimGetirisi}%
                   </div>
                 </div>
@@ -250,13 +250,13 @@ function Raporlar({ session, mobil }) {
 
               {yatirimGrafikVerisi.length > 0 && (
                 <>
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginBottom: '12px' }}>Türe göre dağılım (TL varlıklar)</div>
+                  <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px' }}>Türe göre dağılım (TL varlıklar)</div>
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={yatirimGrafikVerisi} layout="vertical" barSize={18}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" horizontal={false} />
-                      <XAxis type="number" tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 12 }} axisLine={false} tickLine={false} width={55} />
-                      <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', color: '#fff' }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                      <XAxis type="number" tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} width={55} />
+                      <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a' }} />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                         {yatirimGrafikVerisi.map((_, i) => (
                           <Cell key={i} fill={KATEGORI_RENK[i % KATEGORI_RENK.length]} />
@@ -279,7 +279,7 @@ function Raporlar({ session, mobil }) {
                     <div key={y.id} style={styles.yatirimSatir}>
                       <div style={styles.yatirimAd}>{y.ad}</div>
                       <div style={styles.yatirimTur}>{y.tur}</div>
-                      <div style={{ color: kz >= 0 ? '#4ecca3' : '#ff6b6b', fontSize: '13px', textAlign: 'right' }}>
+                      <div style={{ color: kz >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px', textAlign: 'right' }}>
                         <div style={{ fontWeight: 'bold' }}>{formatTL(guncel)}</div>
                         <div style={{ fontSize: '11px' }}>{kz >= 0 ? '+' : ''}{kzYuzde}%</div>
                       </div>
@@ -297,47 +297,48 @@ function Raporlar({ session, mobil }) {
 
 function OzetKart({ baslik, deger, renk, icon }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '20px', borderTop: `3px solid ${renk}`, textAlign: 'center' }}>
-      <div style={{ fontSize: '24px', marginBottom: '8px' }}>{icon}</div>
-      <div style={{ color: renk, fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>{deger}</div>
-      <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px' }}>{baslik}</div>
+    <div style={{ background: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #f1f5f9', borderTop: `3px solid ${renk}`, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+      <div style={{ fontSize: '20px', marginBottom: '6px' }}>{icon}</div>
+      <div style={{ color: renk, fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>{deger}</div>
+      <div style={{ color: '#94a3b8', fontSize: '11px' }}>{baslik}</div>
     </div>
   )
 }
 
 const styles = {
-  yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '80px' },
+  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '80px' },
   aySecici: {
     display: 'flex', alignItems: 'center', gap: '12px',
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '12px', padding: '12px 20px', marginBottom: '24px'
+    background: '#ffffff', border: '1px solid #e2e8f0',
+    borderRadius: '12px', padding: '12px 20px', marginBottom: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
   },
-  aySeciciLabel: { color: 'rgba(255,255,255,0.6)', fontSize: '14px', whiteSpace: 'nowrap' },
+  aySeciciLabel: { color: '#475569', fontSize: '14px', whiteSpace: 'nowrap' },
   aySelect: {
-    background: '#1e293b', border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: '8px', color: '#fff', padding: '8px 12px', fontSize: '14px', cursor: 'pointer'
+    background: '#f8fafc', border: '1px solid #e2e8f0',
+    borderRadius: '8px', color: '#0f172a', padding: '8px 12px', fontSize: '14px', cursor: 'pointer'
   },
-  aySeciciAlt: { color: 'rgba(255,255,255,0.3)', fontSize: '12px' },
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '20px' },
-  grafPanel: { background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '24px', marginBottom: '20px' },
-  panelBaslik: { color: '#fff', fontSize: '15px', margin: '0 0 20px 0', fontWeight: '600' },
-  bosGraf: { color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '40px', fontSize: '14px' },
+  aySeciciAlt: { color: '#94a3b8', fontSize: '12px' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' },
+  grafPanel: { background: '#ffffff', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
+  panelBaslik: { color: '#0f172a', fontSize: '15px', margin: '0 0 20px 0', fontWeight: '600' },
+  bosGraf: { color: '#94a3b8', textAlign: 'center', padding: '40px', fontSize: '14px' },
   altGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
-  tooltip: { background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '10px 14px' },
-  tooltipBaslik: { color: 'rgba(255,255,255,0.6)', fontSize: '12px', marginBottom: '6px' },
+  tooltip: { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
+  tooltipBaslik: { color: '#94a3b8', fontSize: '12px', marginBottom: '6px' },
   kategoriListe: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' },
-  kategoriSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
-  kategoriAd: { color: 'rgba(255,255,255,0.7)', fontSize: '13px' },
+  kategoriSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' },
+  kategoriAd: { color: '#475569', fontSize: '13px' },
   kategoriSag: { display: 'flex', gap: '12px', alignItems: 'center' },
-  kategoriTutar: { color: '#fff', fontSize: '13px', fontWeight: '500' },
-  kategoriYuzde: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', minWidth: '32px', textAlign: 'right' },
+  kategoriTutar: { color: '#0f172a', fontSize: '13px', fontWeight: '500' },
+  kategoriYuzde: { color: '#94a3b8', fontSize: '12px', minWidth: '32px', textAlign: 'right' },
   yatirimOzetGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' },
-  yatirimOzetKart: { background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '14px', textAlign: 'center' },
-  yatirimOzetLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginBottom: '6px' },
-  yatirimOzetDeger: { fontSize: '16px', fontWeight: 'bold' },
-  yatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
-  yatirimAd: { color: '#fff', fontSize: '13px', fontWeight: '500', flex: 1 },
-  yatirimTur: { color: 'rgba(255,255,255,0.4)', fontSize: '11px', minWidth: '50px' },
+  yatirimOzetKart: { background: '#f8fafc', borderRadius: '10px', padding: '14px', textAlign: 'center', border: '1px solid #e2e8f0' },
+  yatirimOzetLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '6px' },
+  yatirimOzetDeger: { fontSize: '15px', fontWeight: 'bold' },
+  yatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid #f1f5f9' },
+  yatirimAd: { color: '#0f172a', fontSize: '13px', fontWeight: '500', flex: 1 },
+  yatirimTur: { color: '#94a3b8', fontSize: '11px', minWidth: '50px' },
 }
 
 export default Raporlar

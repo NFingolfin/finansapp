@@ -12,10 +12,10 @@ function sifreGucu(sifre) {
 }
 function sifreGucRenk(s) {
   const g = sifreGucu(s)
-  if (g <= 1) return '#ff6b6b'
-  if (g === 2) return '#ffd93d'
-  if (g === 3) return '#4ecca3'
-  return '#00ffaa'
+  if (g <= 1) return '#ef4444'
+  if (g === 2) return '#eab308'
+  if (g === 3) return '#0d9488'
+  return '#0d9488'
 }
 function sifreGucLabel(s) {
   const g = sifreGucu(s)
@@ -29,10 +29,10 @@ function sifreGucLabel(s) {
 function Mesaj({ tip, metin }) {
   return (
     <div style={{
-      background: tip === 'basari' ? 'rgba(78,204,163,0.1)' : 'rgba(255,107,107,0.1)',
-      border: `1px solid ${tip === 'basari' ? 'rgba(78,204,163,0.3)' : 'rgba(255,107,107,0.3)'}`,
+      background: tip === 'basari' ? 'rgba(13,148,136,0.06)' : 'rgba(239,68,68,0.06)',
+      border: `1px solid ${tip === 'basari' ? 'rgba(13,148,136,0.2)' : 'rgba(239,68,68,0.2)'}`,
       borderRadius: '10px', padding: '10px 14px',
-      color: tip === 'basari' ? '#4ecca3' : '#ff9999',
+      color: tip === 'basari' ? '#0d9488' : '#ef4444',
       fontSize: '13px', marginBottom: '16px', lineHeight: 1.5,
     }}>
       {tip === 'basari' ? '✅ ' : '⚠️ '}{metin}
@@ -241,7 +241,7 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
                   ...s.gucBar,
                   background: sifreGucu(yeniSifre) >= i
                     ? sifreGucRenk(yeniSifre)
-                    : 'rgba(255,255,255,0.1)',
+                    : '#e2e8f0',
                 }} />
               ))}
             </div>
@@ -276,99 +276,100 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
 
 const s = {
   sayfa: { maxWidth: '720px' },
-  yukleniyor: { color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '60px' },
+  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '60px' },
 
   /* Kullanıcı banner */
   kullaniciBanner: {
     display: 'flex', alignItems: 'center', gap: '20px',
-    background: 'linear-gradient(135deg, rgba(78,204,163,0.12), rgba(56,178,172,0.06))',
-    border: '1px solid rgba(78,204,163,0.2)',
+    background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(14,165,233,0.04))',
+    border: '1px solid rgba(13,148,136,0.15)',
     borderRadius: '18px', padding: '24px 28px', marginBottom: '24px',
   },
   avatarDaire: {
     width: 58, height: 58, borderRadius: '50%',
-    background: 'linear-gradient(135deg, #4ecca3, #38b2ac)',
-    color: '#0a0f1e', fontSize: '24px', fontWeight: '800',
+    background: 'linear-gradient(135deg, #0d9488, #0ea5e9)',
+    color: '#ffffff', fontSize: '24px', fontWeight: '800',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0, boxShadow: '0 4px 16px rgba(78,204,163,0.35)',
+    flexShrink: 0, boxShadow: '0 4px 16px rgba(13,148,136,0.25)',
   },
-  bannerAd: { color: '#fff', fontSize: '18px', fontWeight: '700', marginBottom: '2px' },
-  bannerEmail: { color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginBottom: '8px' },
+  bannerAd: { color: '#0f172a', fontSize: '18px', fontWeight: '700', marginBottom: '2px' },
+  bannerEmail: { color: '#94a3b8', fontSize: '13px', marginBottom: '8px' },
   bannerBadge: {
     display: 'inline-block',
-    background: 'rgba(78,204,163,0.15)', border: '1px solid rgba(78,204,163,0.3)',
+    background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.2)',
     borderRadius: '20px', padding: '2px 10px',
-    color: '#4ecca3', fontSize: '11px', fontWeight: '600',
+    color: '#0d9488', fontSize: '11px', fontWeight: '600',
   },
 
   /* Panel */
   panel: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    background: '#ffffff',
+    border: '1px solid #e2e8f0',
     borderRadius: '18px', padding: '28px',
     marginBottom: '20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
   },
   panelHeader: {
     display: 'flex', alignItems: 'center', gap: '16px',
     paddingBottom: '20px', marginBottom: '20px',
-    borderBottom: '1px solid rgba(255,255,255,0.07)',
+    borderBottom: '1px solid #f1f5f9',
   },
   panelIkon: {
     width: 46, height: 46,
-    background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.2)',
+    background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.15)',
     borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: '20px', flexShrink: 0,
   },
-  panelBaslik: { color: '#fff', fontSize: '16px', fontWeight: '700', margin: '0 0 3px 0' },
-  panelAlt: { color: 'rgba(255,255,255,0.4)', fontSize: '13px', margin: 0 },
+  panelBaslik: { color: '#0f172a', fontSize: '16px', fontWeight: '700', margin: '0 0 3px 0' },
+  panelAlt: { color: '#94a3b8', fontSize: '13px', margin: 0 },
 
   /* E-posta kutusu */
   epostaKutu: {
     display: 'flex', alignItems: 'center', gap: '12px',
-    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+    background: '#f8fafc', border: '1px solid #e2e8f0',
     borderRadius: '11px', padding: '11px 16px', marginBottom: '18px',
   },
-  epostaLabel: { color: 'rgba(255,255,255,0.35)', fontSize: '12px', minWidth: 52 },
-  epostaText: { color: 'rgba(255,255,255,0.65)', fontSize: '13px', flex: 1 },
+  epostaLabel: { color: '#94a3b8', fontSize: '12px', minWidth: 52 },
+  epostaText: { color: '#475569', fontSize: '13px', flex: 1 },
   epostaBadge: {
-    background: 'rgba(255,255,255,0.06)', borderRadius: '6px',
-    padding: '2px 8px', color: 'rgba(255,255,255,0.3)', fontSize: '10px',
+    background: '#f1f5f9', borderRadius: '6px',
+    padding: '2px 8px', color: '#94a3b8', fontSize: '10px',
   },
 
   /* Form */
   ikiliGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '4px' },
   label: {
-    display: 'block', color: 'rgba(255,255,255,0.5)', fontSize: '11px',
+    display: 'block', color: '#64748b', fontSize: '11px',
     fontWeight: '600', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '7px',
   },
   input: {
     width: '100%', padding: '12px 14px',
-    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '11px', color: '#fff', fontSize: '14px',
+    background: '#f8fafc', border: '1px solid #e2e8f0',
+    borderRadius: '11px', color: '#0f172a', fontSize: '14px',
     outline: 'none', boxSizing: 'border-box', marginBottom: '14px',
   },
 
   /* Şifre güç */
   gucSatir: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' },
-  gucLabel: { color: 'rgba(255,255,255,0.4)', fontSize: '12px', whiteSpace: 'nowrap' },
+  gucLabel: { color: '#94a3b8', fontSize: '12px', whiteSpace: 'nowrap' },
   gucBarlar: { display: 'flex', gap: '4px' },
   gucBar: { width: 30, height: 4, borderRadius: 2, transition: 'background 0.3s' },
 
-  eslesmeUyari: { color: '#ff9999', fontSize: '12px', marginBottom: '12px' },
-  eslesmeOk: { color: '#4ecca3', fontSize: '12px', marginBottom: '12px' },
+  eslesmeUyari: { color: '#ef4444', fontSize: '12px', marginBottom: '12px' },
+  eslesmeOk: { color: '#0d9488', fontSize: '12px', marginBottom: '12px' },
 
   /* Buton */
   btn: {
     padding: '13px 28px',
-    background: 'linear-gradient(135deg, #4ecca3, #38b2ac)',
+    background: 'linear-gradient(135deg, #0d9488, #0ea5e9)',
     border: 'none', borderRadius: '11px',
-    color: '#0a0f1e', fontSize: '14px', fontWeight: '700',
-    cursor: 'pointer', boxShadow: '0 4px 16px rgba(78,204,163,0.28)',
+    color: '#ffffff', fontSize: '14px', fontWeight: '700',
+    cursor: 'pointer', boxShadow: '0 4px 16px rgba(13,148,136,0.2)',
   },
   btnDisabled: {
     padding: '13px 28px',
-    background: 'rgba(78,204,163,0.25)', border: 'none', borderRadius: '11px',
-    color: 'rgba(10,15,30,0.5)', fontSize: '14px', fontWeight: '700', cursor: 'not-allowed',
+    background: 'rgba(13,148,136,0.15)', border: 'none', borderRadius: '11px',
+    color: 'rgba(13,148,136,0.4)', fontSize: '14px', fontWeight: '700', cursor: 'not-allowed',
   },
 }
 
