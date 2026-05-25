@@ -154,7 +154,7 @@ const [menuAcik, setMenuAcik] = useState(false)
 </div>
 
         <div style={styles.pageContent}>
-          {aktifSayfa === 'ozet' && <OzetSayfasi session={session} mobil={mobil} />}
+          {aktifSayfa === 'ozet' && <OzetSayfasi session={session} mobil={mobil} setAktifSayfa={setAktifSayfa} />}
           {aktifSayfa === 'hesaplar' && <Hesaplar session={session} mobil={mobil} />}
           {aktifSayfa === 'islemler' && <Islemler session={session} mobil={mobil} />}
           {aktifSayfa === 'yatirimlar' && <Yatirimlar session={session} mobil={mobil} />}
@@ -168,7 +168,7 @@ const [menuAcik, setMenuAcik] = useState(false)
   )
 }
 
-function OzetSayfasi({ session }) {
+function OzetSayfasi({ session, setAktifSayfa }) {
   const [ozet, setOzet] = useState({
     toplamNakit: 0,
     toplamYatirim: 0,
@@ -218,13 +218,13 @@ function OzetSayfasi({ session }) {
   const turRenk = { gelir: '#0d9488', gider: '#ef4444', transfer: '#0ea5e9' }
   const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer' }
 
-  const kartlar = [
-    { baslik: 'Toplam Varlık', deger: '₺' + (ozet.toplamVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#0d9488', icon: '💎' },
-    { baslik: 'Toplam Nakit', deger: '₺' + (ozet.toplamNakit || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#0ea5e9', icon: '💵' },
-    { baslik: 'Toplam Yatırım', deger: '₺' + (ozet.toplamYatirim || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#eab308', icon: '📈' },
-    { baslik: 'Toplam Borç', deger: '₺' + (ozet.toplamBorc || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ef4444', icon: '💳' },
-    { baslik: 'Net Varlık', deger: '₺' + (ozet.netVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: (ozet.netVarlik || 0) >= 0 ? '#0d9488' : '#ef4444', icon: '⚖️' },
-  ]
+const kartlar = [
+  { baslik: 'Toplam Varlık', deger: '₺' + (ozet.toplamVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#4ecca3', icon: '💎', sayfa: 'hesaplar' },
+  { baslik: 'Toplam Nakit', deger: '₺' + (ozet.toplamNakit || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#45b7d1', icon: '💵', sayfa: 'hesaplar' },
+  { baslik: 'Toplam Yatırım', deger: '₺' + (ozet.toplamYatirim || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ffd93d', icon: '📈', sayfa: 'yatirimlar' },
+  { baslik: 'Toplam Borç', deger: '₺' + (ozet.toplamBorc || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ff6b6b', icon: '💳', sayfa: 'borclar' },
+  { baslik: 'Net Varlık', deger: '₺' + (ozet.netVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: (ozet.netVarlik || 0) >= 0 ? '#4ecca3' : '#ff6b6b', icon: '⚖️', sayfa: null },
+]
 
   return (
     <div>
@@ -232,8 +232,14 @@ function OzetSayfasi({ session }) {
   ...styles.kartGrid, 
   gridTemplateColumns: window.innerWidth < 480 ? '1fr 1fr' : window.innerWidth < 768 ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)'
 }}>
-        {kartlar.map((kart, i) => (
-          <div key={i} style={{ ...styles.kart, borderTop: `3px solid ${kart.renk}` }}>
+{kartlar.map((kart, i) => (
+  <div key={i}
+    style={{
+      ...styles.kart,
+      borderTop: `3px solid ${kart.renk}`,
+      cursor: kart.sayfa ? 'pointer' : 'default'
+    }}
+    onClick={() => kart.sayfa && setAktifSayfa(kart.sayfa)}>
             <div style={styles.kartIcon}>{kart.icon}</div>
             <div style={{ ...styles.kartDeger, color: kart.renk }}>{kart.deger}</div>
             <div style={styles.kartBaslik}>{kart.baslik}</div>

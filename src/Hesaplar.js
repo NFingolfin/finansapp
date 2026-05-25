@@ -15,6 +15,7 @@ const [suruklenen, setSuruklenen] = useState(null)
   const [detayModal, setDetayModal] = useState(false)
 const [detayHesap, setDetayHesap] = useState(null)
 const [hesapYatirimlari, setHesapYatirimlari] = useState([])
+const [touchBaslangic, setTouchBaslangic] = useState(null)
 
   const hesapTurleri = ['Banka', 'Nakit', 'Kredi Kartı', 'Yatırım', 'Borç', 'Diğer']
   const paraBirimleri = ['TRY', 'USD', 'EUR', 'GBP', 'ALTIN']
@@ -79,6 +80,38 @@ const handleDrop = async (e, hedefId) => {
       .update({ sira_no: i })
       .eq('id', yeniSira[i].id)
   }
+}
+const handleTouchStart = (e, hesapId) => {
+  if (!siralamaAktif) return
+  setTouchBaslangic(hesapId)
+  setSuruklenen(hesapId)
+}
+
+const handleTouchEnd = async (e) => {
+  if (!siralamaAktif || !suruklenen) return
+  
+  const touch = e.changedTouches[0]
+  const element = document.elementFromPoint(touch.clientX, touch.clientY)
+  const hedefKart = element?.closest('[data-hesap-id]')
+  const hedefId = hedefKart?.getAttribute('data-hesap-id')
+  
+  if (hedefId && hedefId !== suruklenen) {
+    const yeniSira = [...hesaplar]
+    const kaynakIndex = yeniSira.findIndex(h => h.id === suruklenen)
+    const hedefIndex = yeniSira.findIndex(h => h.id === hedefId)
+    const [alinan] = yeniSira.splice(kaynakIndex, 1)
+    yeniSira.splice(hedefIndex, 0, alinan)
+    setHesaplar(yeniSira)
+
+    for (let i = 0; i < yeniSira.length; i++) {
+      await supabase.from('hesaplar')
+        .update({ sira_no: i })
+        .eq('id', yeniSira[i].id)
+    }
+  }
+  
+  setSuruklenen(null)
+  setTouchBaslangic(null)
 }
 
   useEffect(() => {
@@ -480,17 +513,20 @@ const toplamTRY = hesaplar
           {hesaplar.map(hesap => (
 <div
   key={hesap.id}
+  data-hesap-id={hesap.id}
   draggable={siralamaAktif}
   onDragStart={siralamaAktif ? (e) => handleDragStart(e, hesap.id) : undefined}
   onDragOver={siralamaAktif ? handleDragOver : undefined}
   onDrop={siralamaAktif ? (e) => handleDrop(e, hesap.id) : undefined}
+  onTouchStart={siralamaAktif ? (e) => handleTouchStart(e, hesap.id) : undefined}
+  onTouchEnd={siralamaAktif ? handleTouchEnd : undefined}
   style={{
     ...styles.hesapKart,
     borderLeft: `4px solid ${turRenkleri[hesap.tur] || '#a8a8b3'}`,
     cursor: siralamaAktif ? 'grab' : 'pointer',
-    opacity: gizliHesaplar.includes(hesap.id) ? 0.3 : 1,
+    opacity: suruklenen === hesap.id ? 0.5 : gizliHesaplar.includes(hesap.id) ? 0.3 : 1,
     transition: 'opacity 0.2s',
-    display: gizliHesaplar.includes(hesap.id) && !siralamaAktif ? 'none' : 'block'
+    display: gizliHesaplar.includes(hesap.id) && !siralamaAktif ? 'none' : undefined
   }}
   onClick={!siralamaAktif ? () => hesapDetayAc(hesap) : undefined}>
               <div style={styles.hesapUst}>
