@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Yatirimlar({ session, mobil }) {
+function Yatirimlar({ session, mobil, gizliMod }) {
+  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+    gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [yatirimlar, setYatirimlar] = useState([])
   const [hesaplar, setHesaplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -251,16 +253,16 @@ const satisYap = async () => {
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Maliyet</div>
-          <div style={{ ...styles.ozetDeger, color: '#0ea5e9' }}>₺{toplamMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#0ea5e9' }}>₺{pm(toplamMaliyet)}</div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Güncel Değer</div>
-          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>₺{toplamGuncel.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>₺{pm(toplamGuncel)}</div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Kar / Zarar</div>
           <div style={{ ...styles.ozetDeger, color: toplamKarZarar >= 0 ? '#0d9488' : '#ef4444' }}>
-            {toplamKarZarar >= 0 ? '+' : ''}₺{toplamKarZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            {gizliMod ? '₺ ****' : `${toplamKarZarar >= 0 ? '+' : ''}₺${toplamKarZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
           </div>
         </div>
         <div style={styles.ozetKart}>
@@ -541,20 +543,20 @@ const satisYap = async () => {
 </div>
 <div style={styles.kartOrta}>
   <div style={styles.detayLabel}>Toplam Maliyet</div>
-  <div style={styles.detayDeger}>₺{parseFloat(y.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+  <div style={styles.detayDeger}>₺{pm(y.maliyet)}</div>
 </div>
 <div style={styles.kartOrta}>
   <div style={styles.detayLabel}>Güncel Değer</div>
-  <div style={styles.detayDeger}>₺{parseFloat(y.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+  <div style={styles.detayDeger}>₺{pm(y.guncel_deger)}</div>
 </div>
                 </div>
                 <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
                   <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
                     <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '18px', fontWeight: 'bold' }}>
-                      {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      {gizliMod ? '₺ ****' : `${karZarar >= 0 ? '+' : ''}₺${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
                     </div>
                     <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px' }}>
-                      {getiri >= 0 ? '+' : ''}{getiri}%
+                      {gizliMod ? '***%' : `${getiri >= 0 ? '+' : ''}${getiri}%`}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>

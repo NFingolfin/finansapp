@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Borclar({ session, mobil }) {
+function Borclar({ session, mobil, gizliMod }) {
+  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+    gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [borclar, setBorclar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
   const [formAcik, setFormAcik] = useState(false)
@@ -245,17 +247,17 @@ const odemeYap = async (borc) => {
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={{ ...styles.ozetKart, borderTop: '3px solid #ef4444' }}>
           <div style={styles.ozetIcon}>💳</div>
-          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{toplamKalan.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{pm(toplamKalan)}</div>
           <div style={styles.ozetLabel}>Toplam Kalan Borç</div>
         </div>
         <div style={{ ...styles.ozetKart, borderTop: '3px solid #f97316' }}>
           <div style={styles.ozetIcon}>📅</div>
-          <div style={{ ...styles.ozetDeger, color: '#f97316' }}>₺{toplamAylik.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#f97316' }}>₺{pm(toplamAylik)}</div>
           <div style={styles.ozetLabel}>Aylık Toplam Ödeme</div>
         </div>
         <div style={{ ...styles.ozetKart, borderTop: '3px solid #eab308' }}>
           <div style={styles.ozetIcon}>🗓️</div>
-          <div style={{ ...styles.ozetDeger, color: '#eab308' }}>₺{buAyOdeme.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+          <div style={{ ...styles.ozetDeger, color: '#eab308' }}>₺{pm(buAyOdeme)}</div>
           <div style={styles.ozetLabel}>Bu Ay Ödenecek</div>
         </div>
         <div style={{ ...styles.ozetKart, borderTop: `3px solid ${kritikBorclar > 0 ? '#ef4444' : '#0d9488'}` }}>
@@ -479,14 +481,11 @@ const odemeYap = async (borc) => {
       <div style={{ ...styles.grupOzet, flexWrap: mobil ? 'wrap' : 'nowrap', gap: mobil ? '12px' : '32px' }}>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Toplam Kalan Borç</div>
-          <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>
-            ₺{toplamKalanKart.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-          </div>
+          <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>₺{pm(toplamKalanKart)}</div>
         </div>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Bu Ay Ödenecek</div>
-          <div style={{ ...styles.tutarDeger, color: '#eab308' }}>
-            ₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+          <div style={{ ...styles.tutarDeger, color: '#eab308' }}>₺{pm(buAyKart)}
           </div>
         </div>
         {enYakinTarih && (
@@ -541,11 +540,11 @@ const odemeYap = async (borc) => {
               </div>
               <div style={styles.altBorcSag}>
                 <div style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '15px' }}>
-                  ₺{parseFloat(borc.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  ₺{pm(borc.kalan_borc)}
                 </div>
                 {borc.taksitli && (
                   <div style={{ color: '#94a3b8', fontSize: '12px' }}>
-                    aylık ₺{parseFloat(borc.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                    aylık ₺{pm(borc.aylik_taksit)}
                   </div>
                 )}
               </div>
@@ -595,20 +594,18 @@ const odemeYap = async (borc) => {
                 <div style={styles.tutarlar}>
                   <div style={styles.tutarKutu}>
                     <div style={styles.tutarLabel}>Kalan Borç</div>
-                    <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>
-                      ₺{parseFloat(borc.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                    </div>
+                    <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>₺{pm(borc.kalan_borc)}</div>
                   </div>
                   {borc.toplam_borc > 0 && (
                     <div style={styles.tutarKutu}>
                       <div style={styles.tutarLabel}>Toplam Borç</div>
-                      <div style={styles.tutarDeger}>₺{parseFloat(borc.toplam_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</div>
+                      <div style={styles.tutarDeger}>₺{pm(borc.toplam_borc)}</div>
                     </div>
                   )}
                   <div style={styles.tutarKutu}>
                     <div style={styles.tutarLabel}>{borc.taksitli ? 'Aylık Taksit' : 'Min. Ödeme'}</div>
                     <div style={{ ...styles.tutarDeger, color: '#eab308' }}>
-                      ₺{parseFloat(borc.taksitli ? borc.aylik_taksit : borc.minimum_odeme || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      ₺{pm(borc.taksitli ? borc.aylik_taksit : borc.minimum_odeme || 0)}
                     </div>
                   </div>
                   {borc.son_odeme_tarihi && (

@@ -5,7 +5,7 @@ import {
   ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts'
 
-function Raporlar({ session, mobil }) {
+function Raporlar({ session, mobil, gizliMod }) {
   const [islemler, setIslemler] = useState([])
   const [yatirimlar, setYatirimlar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -104,7 +104,7 @@ function Raporlar({ session, mobil }) {
     return secenekler
   }
 
-  const formatTL = (v) => `₺${Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`
+  const formatTL = (v) => gizliMod ? '₺ ****' : `₺${Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
@@ -144,7 +144,7 @@ function Raporlar({ session, mobil }) {
         <OzetKart baslik="Aylık Gelir" deger={formatTL(ayGelir)} renk="#0d9488" icon="💰" />
         <OzetKart baslik="Aylık Gider" deger={formatTL(ayGider)} renk="#ef4444" icon="💸" />
         <OzetKart baslik="Net Akış" deger={formatTL(ayNet)} renk={ayNet >= 0 ? '#0d9488' : '#ef4444'} icon="⚖️" />
-        <OzetKart baslik="Tasarruf Oranı" deger={`%${tasarrufOrani}`} renk={tasarrufOrani >= 20 ? '#0d9488' : tasarrufOrani >= 0 ? '#eab308' : '#ef4444'} icon="🏦" />
+        <OzetKart baslik="Tasarruf Oranı" deger={gizliMod ? '***%' : `%${tasarrufOrani}`} renk={tasarrufOrani >= 20 ? '#0d9488' : tasarrufOrani >= 0 ? '#eab308' : '#ef4444'} icon="🏦" />
       </div>
 
       {/* Aylık Gelir/Gider Grafiği */}

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Hedefler({ session, mobil }) {
+function Hedefler({ session, mobil, gizliMod }) {
+  const pm = (val, opts = { minimumFractionDigits: 0 }) =>
+    gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [hedefler, setHedefler] = useState([])
   const [takip, setTakip] = useState([])
   const [hesaplar, setHesaplar] = useState([])
@@ -344,12 +346,12 @@ onBlur={async e => {
 
                 {/* Hedef Tutarı */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '12px' }}>
-                  ₺{hedefTutar.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
+                  ₺{pm(hedefTutar)}
                 </div>
 
                 {/* Güncel */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: renk, fontWeight: 'bold', fontSize: '13px' }}>
-                  {gerceklesen !== null ? `₺${gerceklesen.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}` : '—'}
+                  {gerceklesen !== null ? `₺${pm(gerceklesen)}` : '—'}
                 </div>
 
                 {/* Oran */}

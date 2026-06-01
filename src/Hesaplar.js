@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function Hesaplar({ session, mobil }) {
+function Hesaplar({ session, mobil, gizliMod }) {
+  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+    gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [hesaplar, setHesaplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
   const [formAcik, setFormAcik] = useState(false)
@@ -235,20 +237,16 @@ const toplamTRY = hesaplar
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Varlık (TRY)</div>
-          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>
-            ₺{toplamTRY.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-          </div>
+          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>₺{pm(toplamTRY)}</div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Toplam Borç</div>
-          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>
-            ₺{toplamBorc.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-          </div>
+          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{pm(toplamBorc)}</div>
         </div>
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Net Durum</div>
           <div style={{ ...styles.ozetDeger, color: (toplamTRY - toplamBorc) >= 0 ? '#0d9488' : '#ef4444' }}>
-            ₺{(toplamTRY - toplamBorc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            ₺{pm(toplamTRY - toplamBorc)}
           </div>
         </div>
         <div style={styles.ozetKart}>
@@ -547,20 +545,21 @@ const toplamTRY = hesaplar
                 <button style={styles.silBtn} onClick={() => hesapSil(hesap.id)}>🗑️</button>
               </div>
 <div style={{ ...styles.hesapBakiye, color: turRenkleri[hesap.tur] || '#0f172a' }}>
-  {hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '}
-  {hesap.yatirim_hesabi && hesap.yatirim_toplam > 0
-    ? (parseFloat(hesap.bakiye) + hesap.yatirim_toplam).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
-    : parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
-  }
+  {gizliMod ? '****' : (
+    (hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' ') +
+    (hesap.yatirim_hesabi && hesap.yatirim_toplam > 0
+      ? (parseFloat(hesap.bakiye) + hesap.yatirim_toplam).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+      : parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 }))
+  )}
 </div>
 {hesap.para_birimi !== 'TRY' && (
   <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
-    ≈ ₺{(hesap.bakiye_tl || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
+    ≈ ₺{gizliMod ? '****' : (hesap.bakiye_tl || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
   </div>
 )}
-{hesap.yatirim_hesabi && hesap.yatirim_toplam > 0 && (
+{hesap.yatirim_hesabi && hesap.yatirim_toplam > 0 && !gizliMod && (
   <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
-    Nakit: ₺{parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })} + 
+    Nakit: ₺{parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })} +
     Yatırım: ₺{hesap.yatirim_toplam.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
   </div>
 )}

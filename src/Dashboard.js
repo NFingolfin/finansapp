@@ -9,6 +9,7 @@ import Hedefler from './Hedefler'
 import Raporlar from './Raporlar'
 import Hesabim from './Hesabim'
 import FinkodLogo from './Logo'
+import ChatBot from './ChatBot'
 
 const useWindowSize = () => {
   const [width, setWidth] = useState(window.innerWidth)
@@ -26,6 +27,12 @@ function Dashboard({ session }) {
   const windowWidth = useWindowSize()
 const mobil = windowWidth < 768
 const [menuAcik, setMenuAcik] = useState(false)
+  const [gizliMod, setGizliMod] = useState(() => localStorage.getItem('gizliMod') === 'true')
+  const gizliModToggle = () => setGizliMod(prev => {
+    const yeni = !prev
+    localStorage.setItem('gizliMod', yeni.toString())
+    return yeni
+  })
 
   useEffect(() => { profilGetir() }, [])
 
@@ -115,6 +122,12 @@ const [menuAcik, setMenuAcik] = useState(false)
           ))}
         </nav>
 
+        <button
+          style={gizliMod ? styles.gizliBtnAktif : styles.gizliBtn}
+          onClick={gizliModToggle}
+        >
+          {gizliMod ? '👁️ Değerleri Göster' : '🙈 Değerleri Gizle'}
+        </button>
         <button style={styles.cikisBtn} onClick={handleCikis}>
           🚪 Çıkış Yap
         </button>
@@ -154,21 +167,23 @@ const [menuAcik, setMenuAcik] = useState(false)
 </div>
 
         <div style={styles.pageContent}>
-          {aktifSayfa === 'ozet' && <OzetSayfasi session={session} mobil={mobil} setAktifSayfa={setAktifSayfa} />}
-          {aktifSayfa === 'hesaplar' && <Hesaplar session={session} mobil={mobil} />}
-          {aktifSayfa === 'islemler' && <Islemler session={session} mobil={mobil} />}
-          {aktifSayfa === 'yatirimlar' && <Yatirimlar session={session} mobil={mobil} />}
-          {aktifSayfa === 'borclar' && <Borclar session={session} mobil={mobil} />}
-          {aktifSayfa === 'hedefler' && <Hedefler session={session} mobil={mobil} />}
-          {aktifSayfa === 'raporlar' && <Raporlar session={session} mobil={mobil} />}
+          {aktifSayfa === 'ozet' && <OzetSayfasi session={session} mobil={mobil} setAktifSayfa={setAktifSayfa} gizliMod={gizliMod} />}
+          {aktifSayfa === 'hesaplar' && <Hesaplar session={session} mobil={mobil} gizliMod={gizliMod} />}
+          {aktifSayfa === 'islemler' && <Islemler session={session} mobil={mobil} gizliMod={gizliMod} />}
+          {aktifSayfa === 'yatirimlar' && <Yatirimlar session={session} mobil={mobil} gizliMod={gizliMod} />}
+          {aktifSayfa === 'borclar' && <Borclar session={session} mobil={mobil} gizliMod={gizliMod} />}
+          {aktifSayfa === 'hedefler' && <Hedefler session={session} mobil={mobil} gizliMod={gizliMod} />}
+          {aktifSayfa === 'raporlar' && <Raporlar session={session} mobil={mobil} gizliMod={gizliMod} />}
           {aktifSayfa === 'hesabim' && <Hesabim session={session} mobil={mobil} onProfilGuncellendi={profilGetir} />}
         </div>
       </div>
+      <ChatBot session={session} onIslemEklendi={() => {}} />
     </div>
   )
 }
 
-function OzetSayfasi({ session, setAktifSayfa }) {
+function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
+  const pm = (val) => gizliMod ? '₺ ****' : '₺' + parseFloat(val || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
   const [ozet, setOzet] = useState({
     toplamNakit: 0,
     toplamYatirim: 0,
@@ -219,11 +234,11 @@ function OzetSayfasi({ session, setAktifSayfa }) {
   const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer' }
 
 const kartlar = [
-  { baslik: 'Toplam Varlık', deger: '₺' + (ozet.toplamVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#4ecca3', icon: '💎', sayfa: 'hesaplar' },
-  { baslik: 'Toplam Nakit', deger: '₺' + (ozet.toplamNakit || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#45b7d1', icon: '💵', sayfa: 'hesaplar' },
-  { baslik: 'Toplam Yatırım', deger: '₺' + (ozet.toplamYatirim || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ffd93d', icon: '📈', sayfa: 'yatirimlar' },
-  { baslik: 'Toplam Borç', deger: '₺' + (ozet.toplamBorc || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: '#ff6b6b', icon: '💳', sayfa: 'borclar' },
-  { baslik: 'Net Varlık', deger: '₺' + (ozet.netVarlik || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 }), renk: (ozet.netVarlik || 0) >= 0 ? '#4ecca3' : '#ff6b6b', icon: '⚖️', sayfa: null },
+  { baslik: 'Toplam Varlık', deger: pm(ozet.toplamVarlik), renk: '#4ecca3', icon: '💎', sayfa: 'hesaplar' },
+  { baslik: 'Toplam Nakit', deger: pm(ozet.toplamNakit), renk: '#45b7d1', icon: '💵', sayfa: 'hesaplar' },
+  { baslik: 'Toplam Yatırım', deger: pm(ozet.toplamYatirim), renk: '#ffd93d', icon: '📈', sayfa: 'yatirimlar' },
+  { baslik: 'Toplam Borç', deger: pm(ozet.toplamBorc), renk: '#ff6b6b', icon: '💳', sayfa: 'borclar' },
+  { baslik: 'Net Varlık', deger: pm(ozet.netVarlik), renk: (ozet.netVarlik || 0) >= 0 ? '#4ecca3' : '#ff6b6b', icon: '⚖️', sayfa: null },
 ]
 
   return (
@@ -262,7 +277,7 @@ const kartlar = [
                 <div style={styles.islemTarih}>{islem.tarih} · {islem.hesaplar?.ad}</div>
               </div>
               <div style={{ color: islem.tur === 'gelir' ? '#0d9488' : '#ef4444', fontWeight: 'bold', fontSize: '14px' }}>
-                {islem.tur === 'gelir' ? '+' : '-'}₺{parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : '-'}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
               </div>
             </div>
           ))}
@@ -277,8 +292,7 @@ const kartlar = [
               <div style={styles.hesapAd}>{hesap.ad}</div>
               <div style={styles.hesapTur}>{hesap.tur}</div>
               <div style={{ color: parseFloat(hesap.bakiye) < 0 ? '#ef4444' : '#0d9488', fontWeight: 'bold', fontSize: '14px' }}>
-                {hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '}
-                {parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                {gizliMod ? '****' : `${hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '}${parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
               </div>
             </div>
           ))}
@@ -418,6 +432,31 @@ wrapper: {
     fontWeight: 'bold',
   },
   menuIcon: { fontSize: '18px' },
+  gizliBtn: {
+    padding: '10px 12px',
+    background: 'rgba(100,116,139,0.06)',
+    border: '1px solid rgba(100,116,139,0.2)',
+    borderRadius: '10px',
+    color: '#64748b',
+    fontSize: '13px',
+    cursor: 'pointer',
+    marginBottom: '8px',
+    width: '100%',
+    textAlign: 'left',
+  },
+  gizliBtnAktif: {
+    padding: '10px 12px',
+    background: 'rgba(239,68,68,0.08)',
+    border: '1px solid rgba(239,68,68,0.35)',
+    borderRadius: '10px',
+    color: '#ef4444',
+    fontSize: '13px',
+    cursor: 'pointer',
+    marginBottom: '8px',
+    width: '100%',
+    textAlign: 'left',
+    fontWeight: '600',
+  },
   cikisBtn: {
     padding: '12px',
     background: 'rgba(239,68,68,0.06)',
