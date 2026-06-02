@@ -236,7 +236,7 @@ function App() {
                 <button
                   key={t}
                   style={mod === t ? styles.tabAktif : styles.tab}
-                  onClick={() => { setMod(t); setMesaj(''); setAd(''); setSoyad('') }}
+                  onClick={() => { setMod(t); setMesaj(''); setEmail(''); setSifre(''); setAd(''); setSoyad('') }}
                 >
                   {t === 'giris' ? 'Giriş Yap' : 'Kayıt Ol'}
                 </button>
@@ -320,7 +320,7 @@ function App() {
               {mod === 'giris' ? 'Hesabın yok mu? ' : 'Zaten hesabın var mı? '}
               <button
                 style={styles.linkBtn}
-                onClick={() => { setMod(mod === 'giris' ? 'kayit' : 'giris'); setMesaj('') }}
+                onClick={() => { setMod(mod === 'giris' ? 'kayit' : 'giris'); setMesaj(''); setEmail(''); setSifre(''); setAd(''); setSoyad('') }}
               >
                 {mod === 'giris' ? 'Kayıt ol' : 'Giriş yap'}
               </button>
@@ -422,7 +422,7 @@ const styles = {
   },
   adSoyadGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: '1fr',
     gap: '8px',
   },
   cardLogo: {
