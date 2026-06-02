@@ -578,7 +578,7 @@ Anlamazsan: { "anlasilan": "açıklama", "islem": null }`
               <span style={{ fontSize: '20px' }}>🤖</span>
               <div>
                 <div style={styles.baslikAd}>Finkod Asistan</div>
-                <div style={styles.baslikAlt}>Groq AI ile çalışıyor</div>
+
               </div>
             </div>
             <button style={styles.kapat} onClick={() => setAcik(false)}>✕</button>
