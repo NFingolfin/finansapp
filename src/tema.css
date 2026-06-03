@@ -1,0 +1,81 @@
+/* ═══════════════════════════════════════════
+   Finkod Cüzdan — Tema Değişkenleri
+   ═══════════════════════════════════════════ */
+
+/* ── Açık Mod ── */
+[data-tema="light"] {
+  --bg-primary:   #f1f5f9;
+  --bg-card:      #ffffff;
+  --bg-sidebar:   #ffffff;
+  --bg-input:     #f8fafc;
+  --bg-subtle:    #f1f5f9;
+  --bg-hover:     rgba(0,0,0,0.04);
+  --bg-overlay:   rgba(15,23,42,0.5);
+
+  --text-primary:   #0f172a;
+  --text-secondary: #64748b;
+  --text-muted:     #94a3b8;
+
+  --border:       #e2e8f0;
+  --border-light: #f1f5f9;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md:  0 20px 60px rgba(0,0,0,0.12);
+
+  --accent:     #0d9488;
+  --accent-2:   #0ea5e9;
+  --danger:     #ef4444;
+  --warning:    #eab308;
+  --success:    #0d9488;
+}
+
+/* ── Koyu Mod ── */
+[data-tema="dark"] {
+  --bg-primary:   #0f172a;
+  --bg-card:      #1e293b;
+  --bg-sidebar:   #0f172a;
+  --bg-input:     rgba(255,255,255,0.07);
+  --bg-subtle:    rgba(255,255,255,0.04);
+  --bg-hover:     rgba(255,255,255,0.05);
+  --bg-overlay:   rgba(0,0,0,0.75);
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: rgba(255,255,255,0.55);
+  --text-muted:     rgba(255,255,255,0.35);
+
+  --border:       rgba(255,255,255,0.1);
+  --border-light: rgba(255,255,255,0.06);
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md:  0 20px 60px rgba(0,0,0,0.5);
+
+  --accent:     #0d9488;
+  --accent-2:   #0ea5e9;
+  --danger:     #ef4444;
+  --warning:    #eab308;
+  --success:    #0d9488;
+}
+
+/* ── Global geçiş animasyonu ── */
+*, *::before, *::after {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+/* Geçişi form elementlerinde koru ama inputları dahil etme */
+input, select, textarea, button {
+  transition: background-color 0.25s ease, border-color 0.2s ease, color 0.25s ease,
+              box-shadow 0.2s ease;
+}
+
+html, body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Scrollbar dark mod uyumu */
+[data-tema="dark"] ::-webkit-scrollbar { width: 6px; height: 6px; }
+[data-tema="dark"] ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
+[data-tema="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+/* Select dark mod */
+[data-tema="dark"] select option { background: #1e293b; color: #f1f5f9; }

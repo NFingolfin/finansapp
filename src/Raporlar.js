@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { useLang } from './LangContext'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts'
 
 function Raporlar({ session, mobil, gizliMod }) {
+  const { t } = useLang()
   const [islemler, setIslemler] = useState([])
   const [yatirimlar, setYatirimlar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -155,11 +157,11 @@ function Raporlar({ session, mobil, gizliMod }) {
         ) : (
           <ResponsiveContainer width="100%" height={mobil ? 200 : 280}>
             <BarChart data={aylikGrafikVerisi} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
               <XAxis dataKey="ay" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ color: '#64748b', fontSize: '13px' }} />
+              <Legend wrapperStyle={{ color: 'var(--text-secondary)', fontSize: '13px' }} />
               <Bar dataKey="Gelir" fill="#0d9488" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Net" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
@@ -195,7 +197,7 @@ function Raporlar({ session, mobil, gizliMod }) {
                       <Cell key={i} fill={KATEGORI_RENK[i % KATEGORI_RENK.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a' }} />
+                  <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div style={styles.kategoriListe}>
@@ -250,13 +252,13 @@ function Raporlar({ session, mobil, gizliMod }) {
 
               {yatirimGrafikVerisi.length > 0 && (
                 <>
-                  <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px' }}>Türe göre dağılım (TL varlıklar)</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>Türe göre dağılım (TL varlıklar)</div>
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={yatirimGrafikVerisi} layout="vertical" barSize={18}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" horizontal={false} />
                       <XAxis type="number" tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
                       <YAxis type="category" dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} width={55} />
-                      <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a' }} />
+                      <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)' }} />
                       <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                         {yatirimGrafikVerisi.map((_, i) => (
                           <Cell key={i} fill={KATEGORI_RENK[i % KATEGORI_RENK.length]} />
@@ -297,48 +299,48 @@ function Raporlar({ session, mobil, gizliMod }) {
 
 function OzetKart({ baslik, deger, renk, icon }) {
   return (
-    <div style={{ background: '#ffffff', borderRadius: '14px', padding: '16px', border: '1px solid #f1f5f9', borderTop: `3px solid ${renk}`, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+    <div style={{ background: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-light)', borderTop: `3px solid ${renk}`, textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
       <div style={{ fontSize: '20px', marginBottom: '6px' }}>{icon}</div>
       <div style={{ color: renk, fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>{deger}</div>
-      <div style={{ color: '#94a3b8', fontSize: '11px' }}>{baslik}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{baslik}</div>
     </div>
   )
 }
 
 const styles = {
-  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '80px' },
+  yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '80px' },
   aySecici: {
     display: 'flex', alignItems: 'center', gap: '12px',
-    background: '#ffffff', border: '1px solid #e2e8f0',
+    background: 'var(--bg-card)', border: '1px solid var(--border)',
     borderRadius: '12px', padding: '12px 20px', marginBottom: '24px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+    boxShadow: 'var(--shadow-sm)'
   },
-  aySeciciLabel: { color: '#475569', fontSize: '14px', whiteSpace: 'nowrap' },
+  aySeciciLabel: { color: 'var(--text-secondary)', fontSize: '14px', whiteSpace: 'nowrap' },
   aySelect: {
-    background: '#f8fafc', border: '1px solid #e2e8f0',
-    borderRadius: '8px', color: '#0f172a', padding: '8px 12px', fontSize: '14px', cursor: 'pointer'
+    background: 'var(--bg-input)', border: '1px solid var(--border)',
+    borderRadius: '8px', color: 'var(--text-primary)', padding: '8px 12px', fontSize: '14px', cursor: 'pointer'
   },
-  aySeciciAlt: { color: '#94a3b8', fontSize: '12px' },
+  aySeciciAlt: { color: 'var(--text-muted)', fontSize: '12px' },
   ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' },
-  grafPanel: { background: '#ffffff', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.07)', border: '1px solid #f1f5f9' },
-  panelBaslik: { color: '#0f172a', fontSize: '15px', margin: '0 0 20px 0', fontWeight: '600' },
-  bosGraf: { color: '#94a3b8', textAlign: 'center', padding: '40px', fontSize: '14px' },
+  grafPanel: { background: 'var(--bg-card)', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' },
+  panelBaslik: { color: 'var(--text-primary)', fontSize: '15px', margin: '0 0 20px 0', fontWeight: '600' },
+  bosGraf: { color: 'var(--text-muted)', textAlign: 'center', padding: '40px', fontSize: '14px' },
   altGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
-  tooltip: { background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' },
-  tooltipBaslik: { color: '#94a3b8', fontSize: '12px', marginBottom: '6px' },
+  tooltip: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' },
+  tooltipBaslik: { color: 'var(--text-muted)', fontSize: '12px', marginBottom: '6px' },
   kategoriListe: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' },
-  kategoriSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' },
+  kategoriSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-light)' },
   kategoriAd: { color: '#475569', fontSize: '13px' },
   kategoriSag: { display: 'flex', gap: '12px', alignItems: 'center' },
-  kategoriTutar: { color: '#0f172a', fontSize: '13px', fontWeight: '500' },
-  kategoriYuzde: { color: '#94a3b8', fontSize: '12px', minWidth: '32px', textAlign: 'right' },
+  kategoriTutar: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500' },
+  kategoriYuzde: { color: 'var(--text-muted)', fontSize: '12px', minWidth: '32px', textAlign: 'right' },
   yatirimOzetGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' },
-  yatirimOzetKart: { background: '#f8fafc', borderRadius: '10px', padding: '14px', textAlign: 'center', border: '1px solid #e2e8f0' },
-  yatirimOzetLabel: { color: '#94a3b8', fontSize: '11px', marginBottom: '6px' },
+  yatirimOzetKart: { background: 'var(--bg-subtle)', borderRadius: '10px', padding: '14px', textAlign: 'center', border: '1px solid var(--border)' },
+  yatirimOzetLabel: { color: 'var(--text-muted)', fontSize: '11px', marginBottom: '6px' },
   yatirimOzetDeger: { fontSize: '15px', fontWeight: 'bold' },
-  yatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid #f1f5f9' },
-  yatirimAd: { color: '#0f172a', fontSize: '13px', fontWeight: '500', flex: 1 },
-  yatirimTur: { color: '#94a3b8', fontSize: '11px', minWidth: '50px' },
+  yatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border-light)' },
+  yatirimAd: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500', flex: 1 },
+  yatirimTur: { color: 'var(--text-muted)', fontSize: '11px', minWidth: '50px' },
 }
 
 export default Raporlar

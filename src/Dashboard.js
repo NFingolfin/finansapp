@@ -10,6 +10,8 @@ import Raporlar from './Raporlar'
 import Hesabim from './Hesabim'
 import FinkodLogo from './Logo'
 import ChatBot from './ChatBot'
+import { useTema } from './ThemeContext'
+import { useLang } from './LangContext'
 
 const useWindowSize = () => {
   const [width, setWidth] = useState(window.innerWidth)
@@ -27,6 +29,8 @@ function Dashboard({ session }) {
   const windowWidth = useWindowSize()
 const mobil = windowWidth < 768
 const [menuAcik, setMenuAcik] = useState(false)
+  const { tema, temaToggle } = useTema()
+  const { dil, dilDegistir, t } = useLang()
   const [gizliMod, setGizliMod] = useState(() => localStorage.getItem('gizliMod') === 'true')
   const gizliModToggle = () => setGizliMod(prev => {
     const yeni = !prev
@@ -62,14 +66,14 @@ const [menuAcik, setMenuAcik] = useState(false)
     : session.user.email.split('@')[0]
 
   const menuItems = [
-    { id: 'ozet', label: 'Genel Özet', icon: '📊' },
-    { id: 'hesaplar', label: 'Hesaplar', icon: '🏦' },
-    { id: 'islemler', label: 'İşlemler', icon: '💸' },
-    { id: 'yatirimlar', label: 'Yatırımlar', icon: '📈' },
-    { id: 'hedefler', label: 'Hedefler', icon: '🎯' },
-    { id: 'borclar', label: 'Borçlar', icon: '💳' },
-    { id: 'raporlar', label: 'Raporlar', icon: '📋' },
-    { id: 'hesabim', label: 'Hesabım', icon: '👤' },
+    { id: 'ozet',      label: t('genelOzet'),  icon: '📊' },
+    { id: 'hesaplar',  label: t('hesaplar'),   icon: '🏦' },
+    { id: 'islemler',  label: t('islemler'),   icon: '💸' },
+    { id: 'yatirimlar',label: t('yatirimlar'), icon: '📈' },
+    { id: 'hedefler',  label: t('hedefler'),   icon: '🎯' },
+    { id: 'borclar',   label: t('borclar'),    icon: '💳' },
+    { id: 'raporlar',  label: t('raporlar'),   icon: '📋' },
+    { id: 'hesabim',   label: t('hesabim'),    icon: '👤' },
   ]
 
   return (
@@ -126,10 +130,10 @@ const [menuAcik, setMenuAcik] = useState(false)
           style={gizliMod ? styles.gizliBtnAktif : styles.gizliBtn}
           onClick={gizliModToggle}
         >
-          {gizliMod ? '👁️ Değerleri Göster' : '🙈 Değerleri Gizle'}
+          {gizliMod ? t('degerleriGoster') : t('degerleriGizle')}
         </button>
         <button style={styles.cikisBtn} onClick={handleCikis}>
-          🚪 Çıkış Yap
+          🚪 {t('cikisYap')}
         </button>
         <div style={styles.nkodeBranding}>
           <div style={styles.nkodeDot} />
@@ -159,11 +163,33 @@ const [menuAcik, setMenuAcik] = useState(false)
       {menuItems.find(m => m.id === aktifSayfa)?.label}
     </h1>
   </div>
-  {!mobil && (
-    <div style={styles.tarih}>
-      {new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    {/* Dil seçici */}
+    <div style={{ display: 'flex', background: 'var(--bg-subtle)', borderRadius: '8px', padding: '2px', border: '1px solid var(--border)' }}>
+      {['tr', 'en'].map(d => (
+        <button key={d} onClick={() => dilDegistir(d)} style={{
+          padding: '4px 10px', border: 'none', borderRadius: '6px', cursor: 'pointer',
+          fontSize: '12px', fontWeight: 'bold',
+          background: dil === d ? 'var(--accent)' : 'transparent',
+          color: dil === d ? '#fff' : 'var(--text-secondary)',
+          transition: 'all 0.2s',
+        }}>{d.toUpperCase()}</button>
+      ))}
     </div>
-  )}
+    {/* Tema butonu */}
+    <button onClick={temaToggle} style={{
+      padding: '6px 10px', border: '1px solid var(--border)', borderRadius: '8px',
+      background: 'var(--bg-subtle)', color: 'var(--text-primary)',
+      cursor: 'pointer', fontSize: '16px', lineHeight: 1,
+    }}>
+      {tema === 'light' ? '🌙' : '☀️'}
+    </button>
+    {!mobil && (
+      <div style={styles.tarih}>
+        {new Date().toLocaleDateString(dil === 'en' ? 'en-GB' : 'tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      </div>
+    )}
+  </div>
 </div>
 
         <div style={styles.pageContent}>
@@ -184,6 +210,7 @@ const [menuAcik, setMenuAcik] = useState(false)
 
 function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
   const pm = (val) => gizliMod ? '₺ ****' : '₺' + parseFloat(val || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+  const { t } = useLang()
   const [ozet, setOzet] = useState({
     toplamNakit: 0,
     toplamYatirim: 0,
@@ -234,11 +261,11 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
   const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer' }
 
 const kartlar = [
-  { baslik: 'Toplam Varlık', deger: pm(ozet.toplamVarlik), renk: '#4ecca3', icon: '💎', sayfa: 'hesaplar' },
-  { baslik: 'Toplam Nakit', deger: pm(ozet.toplamNakit), renk: '#45b7d1', icon: '💵', sayfa: 'hesaplar' },
-  { baslik: 'Toplam Yatırım', deger: pm(ozet.toplamYatirim), renk: '#ffd93d', icon: '📈', sayfa: 'yatirimlar' },
-  { baslik: 'Toplam Borç', deger: pm(ozet.toplamBorc), renk: '#ff6b6b', icon: '💳', sayfa: 'borclar' },
-  { baslik: 'Net Varlık', deger: pm(ozet.netVarlik), renk: (ozet.netVarlik || 0) >= 0 ? '#4ecca3' : '#ff6b6b', icon: '⚖️', sayfa: null },
+  { baslik: t('toplamVarlik'),  deger: pm(ozet.toplamVarlik),  renk: '#0d9488', icon: '💎', sayfa: 'hesaplar' },
+  { baslik: t('toplamNakit'),   deger: pm(ozet.toplamNakit),   renk: '#0ea5e9', icon: '💵', sayfa: 'hesaplar' },
+  { baslik: t('toplamYatirim'), deger: pm(ozet.toplamYatirim), renk: '#eab308', icon: '📈', sayfa: 'yatirimlar' },
+  { baslik: t('toplamBorc'),    deger: pm(ozet.toplamBorc),    renk: '#ef4444', icon: '💳', sayfa: 'borclar' },
+  { baslik: t('netVarlik'),     deger: pm(ozet.netVarlik),     renk: (ozet.netVarlik || 0) >= 0 ? '#0d9488' : '#ef4444', icon: '⚖️', sayfa: null },
 ]
 
   return (
@@ -264,7 +291,7 @@ const kartlar = [
 
       <div style={styles.altGrid}>
         <div style={styles.panel}>
-          <h3 style={styles.panelBaslik}>Son İşlemler</h3>
+          <h3 style={styles.panelBaslik}>{t('sonIslemler')}</h3>
           {sonIslemler.length === 0 ? (
             <p style={styles.bosMetin}>Henüz işlem yok.</p>
           ) : sonIslemler.map(islem => (
@@ -284,7 +311,7 @@ const kartlar = [
         </div>
 
         <div style={styles.panel}>
-          <h3 style={styles.panelBaslik}>Hesap Bakiyeleri</h3>
+          <h3 style={styles.panelBaslik}>{t('hesapBakiyeleri')}</h3>
           {hesaplar.length === 0 ? (
             <p style={styles.bosMetin}>Henüz hesap yok.</p>
           ) : hesaplar.map(hesap => (
@@ -315,15 +342,15 @@ const styles = {
 wrapper: {
   display: 'flex',
   minHeight: '100vh',
-  background: '#f1f5f9',
+  background: 'var(--bg-primary)',
   fontFamily: "'Segoe UI', sans-serif",
   width: '100%',
   overflowX: 'hidden',
 },
   sidebar: {
     width: '240px',
-    background: '#ffffff',
-    borderRight: '1px solid #e2e8f0',
+    background: 'var(--bg-sidebar)',
+    borderRight: '1px solid var(--border)',
     display: 'flex',
     flexDirection: 'column',
     padding: '24px 16px',
@@ -347,13 +374,13 @@ wrapper: {
     flexShrink: 0,
   },
   logo: {
-    color: '#0d9488',
+    color: 'var(--accent)',
     fontSize: '14px',
     fontWeight: '700',
     lineHeight: 1.2,
   },
   logoAlt: {
-    color: 'rgba(13,148,136,0.55)',
+    color: 'var(--text-muted)',
     fontSize: '9px',
     letterSpacing: '0.5px',
     fontWeight: 500,
@@ -363,18 +390,18 @@ wrapper: {
     marginBottom: '24px',
     marginTop: '8px',
     padding: '10px 8px',
-    background: '#f8fafc',
+    background: 'var(--bg-subtle)',
     borderRadius: '10px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--border)',
   },
   kullaniciAd: {
-    color: '#1e293b',
+    color: 'var(--text-primary)',
     fontSize: '13px',
     fontWeight: '600',
     marginBottom: '2px',
   },
   kullaniciEmail: {
-    color: '#94a3b8',
+    color: 'var(--text-muted)',
     fontSize: '10px',
     letterSpacing: '0.2px',
     whiteSpace: 'nowrap',
@@ -387,7 +414,7 @@ wrapper: {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    color: '#94a3b8',
+    color: 'var(--text-muted)',
     fontSize: '10px',
     letterSpacing: '0.4px',
     marginTop: '12px',
@@ -411,7 +438,7 @@ wrapper: {
     background: 'transparent',
     border: 'none',
     borderRadius: '10px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
     fontSize: '14px',
     cursor: 'pointer',
     textAlign: 'left',
@@ -422,10 +449,10 @@ wrapper: {
     alignItems: 'center',
     gap: '10px',
     padding: '12px 16px',
-    background: 'rgba(13,148,136,0.08)',
+    background: 'rgba(13,148,136,0.1)',
     border: 'none',
     borderRadius: '10px',
-    color: '#0d9488',
+    color: 'var(--accent)',
     fontSize: '14px',
     cursor: 'pointer',
     textAlign: 'left',
@@ -434,10 +461,10 @@ wrapper: {
   menuIcon: { fontSize: '18px' },
   gizliBtn: {
     padding: '10px 12px',
-    background: 'rgba(100,116,139,0.06)',
-    border: '1px solid rgba(100,116,139,0.2)',
+    background: 'var(--bg-subtle)',
+    border: '1px solid var(--border)',
     borderRadius: '10px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
     fontSize: '13px',
     cursor: 'pointer',
     marginBottom: '8px',
@@ -484,7 +511,7 @@ header: {
   gap: '8px',
 },
 pageTitle: {
-  color: '#0f172a',
+  color: 'var(--text-primary)',
   fontSize: '20px',
   margin: 0,
   display: 'flex',
@@ -492,7 +519,7 @@ pageTitle: {
   gap: '8px',
 },
   tarih: {
-    color: '#94a3b8',
+    color: 'var(--text-muted)',
     fontSize: '14px',
   },
   pageContent: {},
@@ -503,12 +530,12 @@ kartGrid: {
   marginBottom: '24px',
 },
 kart: {
-  background: '#ffffff',
+  background: 'var(--bg-card)',
   borderRadius: '14px',
   padding: window.innerWidth < 768 ? '12px 10px' : '20px',
   textAlign: 'center',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-  border: '1px solid #f1f5f9',
+  boxShadow: 'var(--shadow-sm)',
+  border: '1px solid var(--border-light)',
 },
 kartIcon: {
   fontSize: window.innerWidth < 768 ? '18px' : '24px',
@@ -530,20 +557,20 @@ altGrid: {
   gap: '16px',
 },
   panel: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: '14px',
     padding: '20px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
-    border: '1px solid #f1f5f9',
+    boxShadow: 'var(--shadow-sm)',
+    border: '1px solid var(--border-light)',
   },
   panelBaslik: {
-    color: '#0f172a',
+    color: 'var(--text-primary)',
     fontSize: '15px',
     fontWeight: '600',
     margin: '0 0 16px 0',
   },
   bosMetin: {
-    color: '#94a3b8',
+    color: 'var(--text-muted)',
     fontSize: '14px',
     textAlign: 'center',
     padding: '24px 0',
@@ -574,13 +601,13 @@ hamburger: {
   padding: '4px 8px',
 },
 
-  islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #f1f5f9' },
+  islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid var(--border-light)' },
   badge: { padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' },
-  islemAd: { color: '#0f172a', fontSize: '13px', fontWeight: '500' },
-  islemTarih: { color: '#94a3b8', fontSize: '11px', marginTop: '2px' },
-  hesapSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #f1f5f9' },
-  hesapAd: { color: '#0f172a', fontSize: '13px', fontWeight: '500', flex: 1 },
-  hesapTur: { color: '#94a3b8', fontSize: '11px' },
+  islemAd: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500' },
+  islemTarih: { color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' },
+  hesapSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid var(--border-light)' },
+  hesapAd: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500', flex: 1 },
+  hesapTur: { color: 'var(--text-muted)', fontSize: '11px' },
 }
 
 export default Dashboard

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
 import Dashboard from './Dashboard'
 import FinkodLogo from './Logo'
+import GizlilikPolitikasi from './GizlilikPolitikasi'
+import KullanimSartlari from './KullanimSartlari'
 
 /* ---------- Animasyon için CSS (inline style injection) ---------- */
 const GLOBAL_CSS = `
@@ -113,6 +115,10 @@ function App() {
   const [mesaj, setMesaj] = useState('')
   const [mesajTur, setMesajTur] = useState('hata') // 'hata' | 'basari'
   const [yukleniyor, setYukleniyor] = useState(false)
+  const [kvkkOnay, setKvkkOnay] = useState(false)
+  const [sartlarOnay, setSartlarOnay] = useState(false)
+  const [gizlilikAcik, setGizlilikAcik] = useState(false)
+  const [sartlarAcik, setSartlarAcik] = useState(false)
   const emailRef = useRef(null)
 
   useEffect(() => {
@@ -147,6 +153,10 @@ function App() {
           ad: ad.trim(),
           soyad: soyad.trim(),
           updated_at: new Date().toISOString(),
+          kvkk_onay: true,
+          kvkk_onay_tarihi: new Date().toISOString(),
+          sartlar_onay: true,
+          sartlar_onay_tarihi: new Date().toISOString(),
         })
       }
       setMesajTur('basari')
@@ -161,8 +171,17 @@ function App() {
 
   if (session) return <Dashboard session={session} />
 
+  // Modal'ları session yokken da render et
+  const modals = (
+    <>
+      <GizlilikPolitikasi acik={gizlilikAcik} onKapat={() => setGizlilikAcik(false)} />
+      <KullanimSartlari acik={sartlarAcik} onKapat={() => setSartlarAcik(false)} />
+    </>
+  )
+
   return (
     <div style={styles.page}>
+      {modals}
       <Background />
 
       {/* ── İki sütunlu layout ── */}
@@ -236,7 +255,7 @@ function App() {
                 <button
                   key={t}
                   style={mod === t ? styles.tabAktif : styles.tab}
-                  onClick={() => { setMod(t); setMesaj(''); setEmail(''); setSifre(''); setAd(''); setSoyad('') }}
+                  onClick={() => { setMod(t); setMesaj(''); setEmail(''); setSifre(''); setAd(''); setSoyad(''); setKvkkOnay(false); setSartlarOnay(false) }}
                 >
                   {t === 'giris' ? 'Giriş Yap' : 'Kayıt Ol'}
                 </button>
@@ -300,6 +319,40 @@ function App() {
               />
             </div>
 
+            {/* Onay kutuları — sadece kayıt modunda */}
+            {mod === 'kayit' && (
+              <div style={styles.onayKutusu}>
+                <label style={styles.onayLabel}>
+                  <input
+                    type="checkbox"
+                    checked={kvkkOnay}
+                    onChange={e => setKvkkOnay(e.target.checked)}
+                    style={styles.checkbox}
+                  />
+                  <span style={styles.onayMetin}>
+                    <button style={styles.onayLink} onClick={() => setGizlilikAcik(true)}>
+                      Gizlilik Politikası
+                    </button>
+                    'nı ve KVKK kapsamında verilerimin işlenmesini okudum, anladım ve kabul ediyorum.
+                  </span>
+                </label>
+                <label style={styles.onayLabel}>
+                  <input
+                    type="checkbox"
+                    checked={sartlarOnay}
+                    onChange={e => setSartlarOnay(e.target.checked)}
+                    style={styles.checkbox}
+                  />
+                  <span style={styles.onayMetin}>
+                    <button style={styles.onayLink} onClick={() => setSartlarAcik(true)}>
+                      Kullanım Şartları
+                    </button>
+                    'nı okudum ve kabul ediyorum.
+                  </span>
+                </label>
+              </div>
+            )}
+
             {mesaj && (
               <div style={mesajTur === 'basari' ? styles.mesajBasari : styles.mesajHata}>
                 {mesajTur === 'basari' ? '✅ ' : '⚠ '}{mesaj}
@@ -307,9 +360,11 @@ function App() {
             )}
 
             <button
-              style={yukleniyor ? { ...styles.btn, opacity: 0.7 } : styles.btn}
+              style={(yukleniyor || (mod === 'kayit' && (!kvkkOnay || !sartlarOnay)))
+                ? { ...styles.btn, opacity: 0.5, cursor: 'not-allowed' }
+                : styles.btn}
               onClick={mod === 'giris' ? handleGiris : handleKayit}
-              disabled={yukleniyor}
+              disabled={yukleniyor || (mod === 'kayit' && (!kvkkOnay || !sartlarOnay))}
             >
               {yukleniyor
                 ? <span style={styles.btnSpinner}>⏳ Bekle...</span>
@@ -320,7 +375,7 @@ function App() {
               {mod === 'giris' ? 'Hesabın yok mu? ' : 'Zaten hesabın var mı? '}
               <button
                 style={styles.linkBtn}
-                onClick={() => { setMod(mod === 'giris' ? 'kayit' : 'giris'); setMesaj(''); setEmail(''); setSifre(''); setAd(''); setSoyad('') }}
+                onClick={() => { setMod(mod === 'giris' ? 'kayit' : 'giris'); setMesaj(''); setEmail(''); setSifre(''); setAd(''); setSoyad(''); setKvkkOnay(false); setSartlarOnay(false) }}
               >
                 {mod === 'giris' ? 'Kayıt ol' : 'Giriş yap'}
               </button>
@@ -499,6 +554,32 @@ const styles = {
   cardNkode: {
     textAlign: 'center', color: '#cbd5e1',
     fontSize: '11px', marginTop: '20px', letterSpacing: '0.4px',
+  },
+  onayKutusu: {
+    display: 'flex', flexDirection: 'column', gap: '10px',
+    marginBottom: '14px',
+    padding: '14px',
+    background: 'rgba(13,148,136,0.04)',
+    border: '1px solid rgba(13,148,136,0.15)',
+    borderRadius: '10px',
+  },
+  onayLabel: {
+    display: 'flex', alignItems: 'flex-start', gap: '10px',
+    cursor: 'pointer',
+  },
+  checkbox: {
+    marginTop: '2px', flexShrink: 0,
+    width: '16px', height: '16px',
+    accentColor: '#0d9488', cursor: 'pointer',
+  },
+  onayMetin: {
+    color: '#64748b', fontSize: '12px', lineHeight: 1.5,
+  },
+  onayLink: {
+    background: 'none', border: 'none',
+    color: '#0d9488', cursor: 'pointer',
+    fontSize: '12px', fontWeight: '600', padding: 0,
+    textDecoration: 'underline', textDecorationColor: 'rgba(13,148,136,0.4)',
   },
 }
 

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { useLang } from './LangContext'
 
 function Hedefler({ session, mobil, gizliMod }) {
+  const { t } = useLang()
   const pm = (val, opts = { minimumFractionDigits: 0 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [hedefler, setHedefler] = useState([])
@@ -221,7 +223,7 @@ if (guncelDeger !== null) {
       ) : hedefler.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-          <p style={{ color: '#94a3b8' }}>{aktifYil} yılı için henüz hedef eklenmemiş.</p>
+          <p style={{ color: 'var(--text-muted)' }}>{aktifYil} yılı için henüz hedef eklenmemiş.</p>
         </div>
       ) : (
         <div style={{ ...styles.tabloWrapper, fontSize: mobil ? '11px' : undefined }}>
@@ -254,12 +256,12 @@ if (guncelDeger !== null) {
                 ...styles.satir,
                 gridTemplateColumns: grid,
                 borderLeft: `3px solid ${renk}`,
-                background: idx % 2 === 0 ? '#fafafa' : 'transparent'
+                background: idx % 2 === 0 ? 'var(--bg-subtle)' : 'transparent'
               }}>
                 {/* Kategori */}
                 <div style={styles.kategoriHucre}>
-                  <div style={{ color: '#0f172a', fontSize: '13px', fontWeight: 'bold' }}>{hedef.kategori}</div>
-                  {hedef.aciklama && <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '2px' }}>{hedef.aciklama}</div>}
+                  <div style={{ color: 'var(--text-primary)', fontSize: '13px', fontWeight: 'bold' }}>{hedef.kategori}</div>
+                  {hedef.aciklama && <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>{hedef.aciklama}</div>}
                 </div>
 
                 {/* Aylık Inputlar */}
@@ -279,10 +281,10 @@ if (guncelDeger !== null) {
                         <input
                           style={{
                             width: mobil ? '55px' : '62px', padding: '4px 4px', textAlign: 'center',
-                            background: '#ffffff',
-                            border: `1px solid ${ayOran >= 100 ? '#0d9488' : ayOran >= 70 ? '#eab308' : '#e2e8f0'}`,
+                            background: 'var(--bg-card)',
+                            border: `1px solid ${ayOran >= 100 ? '#0d9488' : ayOran >= 70 ? '#eab308' : 'var(--border)'}`,
                             borderRadius: '6px',
-                            color: ayOran >= 100 ? '#0d9488' : ayOran >= 70 ? '#eab308' : '#0f172a',
+                            color: ayOran >= 100 ? '#0d9488' : ayOran >= 70 ? '#eab308' : 'var(--text-primary)',
                             fontSize: '12px'
                           }}
                           type="number"
@@ -345,7 +347,7 @@ onBlur={async e => {
                 })}
 
                 {/* Hedef Tutarı */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                   ₺{pm(hedefTutar)}
                 </div>
 
@@ -379,37 +381,37 @@ onBlur={async e => {
 const styles = {
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
   yilSecici: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  yilBtn: { padding: '9px 18px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer', fontSize: '14px' },
+  yilBtn: { padding: '9px 18px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px' },
   yilBtnAktif: { background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488', color: '#0d9488', fontWeight: 'bold' },
   ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#ffffff', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', boxSizing: 'border-box' },
-  modalBaslik: { color: '#0f172a', fontSize: '18px', margin: '0 0 20px 0' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: 'var(--bg-card)', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-md)', boxSizing: 'border-box' },
+  modalBaslik: { color: 'var(--text-primary)', fontSize: '18px', margin: '0 0 20px 0' },
   label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#0f172a', fontSize: '14px', boxSizing: 'border-box' },
+  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '11px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#64748b', cursor: 'pointer' },
+  iptalBtn: { flex: 1, padding: '11px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer' },
   kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
-  yukleniyor: { color: '#94a3b8', textAlign: 'center', padding: '48px' },
+  yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
   tabloWrapper: {
-    background: '#ffffff',
+    background: 'var(--bg-card)',
     borderRadius: '16px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--border)',
     overflowX: 'auto',
     width: '100%',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+    boxShadow: 'var(--shadow-sm)'
   },
   satir: {
     display: 'grid',
     padding: '10px 16px',
-    borderBottom: '1px solid #f1f5f9',
+    borderBottom: '1px solid var(--border-light)',
     alignItems: 'center',
     minWidth: '1400px',
     background: 'transparent'
   },
-  baslikSatir: { background: '#f8fafc', borderBottom: '1px solid #e2e8f0' },
-  baslikHucre: { color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  baslikSatir: { background: 'var(--bg-input)', borderBottom: '1px solid var(--border)' },
+  baslikHucre: { color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   kategoriHucre: { paddingRight: '8px' },
 }
 

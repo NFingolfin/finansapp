@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { useLang } from './LangContext'
 
 function Islemler({ session, mobil, gizliMod }) {
+  const { t } = useLang()
   const pm = (val, opts = { minimumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [islemler, setIslemler] = useState([])
@@ -284,7 +286,7 @@ function Islemler({ session, mobil, gizliMod }) {
 
             {/* Sıralama + Temizle + Sonuç Sayısı */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ color: 'rgba(0,0,0,0.4)', fontSize: '12px' }}>Sırala:</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Sırala:</span>
               {[
                 { alan: 'tarih', label: 'Tarih' },
                 { alan: 'tutar', label: 'Tutar' },
@@ -302,7 +304,7 @@ function Islemler({ session, mobil, gizliMod }) {
                   ✕ Temizle
                 </button>
               )}
-              <span style={{ marginLeft: 'auto', color: 'rgba(0,0,0,0.4)', fontSize: '12px' }}>
+              <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '12px' }}>
                 {filtreliIslemler.length} sonuç
               </span>
             </div>
@@ -369,7 +371,7 @@ function Islemler({ session, mobil, gizliMod }) {
                     </div>
                     <div style={styles.toggleSatir}>
                       <span style={styles.toggleLabel}>Taksitli mi?</span>
-                      <div style={{ ...styles.toggle, background: yeni.taksitli ? '#4ecca3' : 'rgba(0,0,0,0.1)' }}
+                      <div style={{ ...styles.toggle, background: yeni.taksitli ? '#4ecca3' : 'var(--border)' }}
                         onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '' })}>
                         <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
                       </div>
@@ -426,7 +428,7 @@ function Islemler({ session, mobil, gizliMod }) {
       ) : filtreliIslemler.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>💸</div>
-          <p style={{ color: 'rgba(0,0,0,0.3)' }}>
+          <p style={{ color: 'var(--text-muted)' }}>
             {filtreAktif ? 'Filtreyle eşleşen işlem bulunamadı.' : 'Henüz işlem yok.'}
           </p>
         </div>
@@ -456,47 +458,47 @@ function Islemler({ session, mobil, gizliMod }) {
 }
 
 const styles = {
-  ozetKart: { background: 'rgba(0,0,0,0.04)', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid rgba(0,0,0,0.06)' },
-  ozetLabel: { color: 'rgba(0,0,0,0.4)', fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' },
+  ozetKart: { background: 'var(--bg-card)', borderRadius: '12px', padding: '14px', textAlign: 'center', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' },
+  ozetLabel: { color: 'var(--text-muted)', fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase' },
   ozetDeger: { fontSize: '18px', fontWeight: 'bold', marginBottom: '2px' },
-  ozetAlt: { color: 'rgba(0,0,0,0.3)', fontSize: '11px' },
-  filtrePanel: { background: 'rgba(0,0,0,0.02)', borderRadius: '14px', padding: '14px', marginBottom: '16px', border: '1px solid rgba(0,0,0,0.06)' },
+  ozetAlt: { color: 'var(--text-muted)', fontSize: '11px' },
+  filtrePanel: { background: 'var(--bg-card)', borderRadius: '14px', padding: '14px', marginBottom: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' },
   filtreSatir: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' },
   filtreler: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
-  filtreBtn: { padding: '7px 14px', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '8px', color: 'rgba(0,0,0,0.5)', cursor: 'pointer', fontSize: '13px' },
-  filtreToggleBtn: { padding: '8px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#64748b', cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap' },
+  filtreBtn: { padding: '7px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
+  filtreToggleBtn: { padding: '8px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', fontWeight: '500', whiteSpace: 'nowrap' },
   filtreToggleBtnAktif: { background: 'rgba(13,148,136,0.08)', border: '1px solid #0d9488', color: '#0d9488', fontWeight: '600' },
   filtreOzet: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '8px 12px', background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '8px', color: '#0d9488', fontSize: '13px' },
   filtreBtnAktif: { background: 'rgba(78,204,163,0.15)', border: '1px solid #4ecca3', color: '#2a9d8f', fontWeight: 'bold' },
   ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  filterInput: { padding: '8px 12px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '8px', color: '#333', fontSize: '13px', outline: 'none' },
-  siralamaBtn: { padding: '5px 10px', background: 'transparent', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '6px', color: 'rgba(0,0,0,0.4)', cursor: 'pointer', fontSize: '12px' },
+  filterInput: { padding: '8px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' },
+  siralamaBtn: { padding: '5px 10px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' },
   siralamaBtnAktif: { background: 'rgba(78,204,163,0.1)', border: '1px solid #4ecca3', color: '#2a9d8f', fontWeight: 'bold' },
   temizleBtn: { padding: '5px 10px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '6px', color: '#ff6b6b', cursor: 'pointer', fontSize: '12px' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' },
-  modalBaslik: { color: '#1a1a2e', fontSize: '18px', margin: '0 0 20px 0' },
+  modal: { background: 'var(--bg-card)', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-md)' },
+  modalBaslik: { color: 'var(--text-primary)', fontSize: '18px', margin: '0 0 20px 0' },
   turSecici: { display: 'flex', gap: '8px', marginBottom: '16px' },
-  turBtn: { flex: 1, padding: '10px', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '8px', color: 'rgba(0,0,0,0.5)', cursor: 'pointer', fontSize: '13px' },
+  turBtn: { flex: 1, padding: '10px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
   bilgiMesaj: { background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '10px', padding: '12px', color: '#2a9d8f', fontSize: '13px', marginBottom: '14px' },
-  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: 'rgba(0,0,0,0.03)', borderRadius: '10px' },
-  toggleLabel: { color: 'rgba(0,0,0,0.6)', fontSize: '14px' },
+  toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '10px', border: '1px solid var(--border)' },
+  toggleLabel: { color: 'var(--text-secondary)', fontSize: '14px' },
   toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
   toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' },
   taksitBilgi: { background: 'rgba(78,204,163,0.1)', border: '1px solid rgba(78,204,163,0.3)', borderRadius: '10px', padding: '12px', color: '#2a9d8f', fontSize: '14px', marginBottom: '14px' },
-  label: { color: 'rgba(0,0,0,0.5)', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '10px 12px', marginBottom: '14px', background: '#f8f9fa', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '10px', color: '#333', fontSize: '14px', boxSizing: 'border-box' },
+  label: { color: 'var(--text-secondary)', fontSize: '13px', display: 'block', marginBottom: '6px' },
+  input: { width: '100%', padding: '10px 12px', marginBottom: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '12px', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'rgba(0,0,0,0.5)', cursor: 'pointer' },
+  iptalBtn: { flex: 1, padding: '12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer' },
   kaydetBtn: { flex: 1, padding: '12px', background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none', borderRadius: '10px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' },
-  yukleniyor: { color: 'rgba(0,0,0,0.3)', textAlign: 'center', padding: '48px' },
+  yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
   liste: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', borderRadius: '12px', padding: '14px 16px', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
+  islemSatir: { display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-card)', borderRadius: '12px', padding: '14px 16px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' },
   turBadge: { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' },
   islemBilgi: { flex: 1, minWidth: 0 },
-  islemAciklama: { color: '#1a1a2e', fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  islemDetay: { color: 'rgba(0,0,0,0.4)', fontSize: '12px', marginTop: '2px' },
+  islemAciklama: { color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  islemDetay: { color: 'var(--text-muted)', fontSize: '12px', marginTop: '2px' },
   islemTutar: { fontSize: '15px', fontWeight: 'bold', whiteSpace: 'nowrap' },
   silBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '15px', opacity: 0.4 },
 }
