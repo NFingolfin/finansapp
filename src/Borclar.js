@@ -16,6 +16,7 @@ function Borclar({ session, mobil, gizliMod }) {
   const [odemeHesapId, setOdemeHesapId] = useState('')
   const [acikGruplar, setAcikGruplar] = useState({})
   const [filtre, setFiltre] = useState('hepsi')
+  const [kkHesaplar, setKkHesaplar] = useState([])
   const [yeni, setYeni] = useState({
     ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '',
     minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '',
@@ -32,9 +33,9 @@ function Borclar({ session, mobil, gizliMod }) {
     'Konut Kredisi': '🏠', 'Taşıt Kredisi': '🚗', 'Diğer': '📋'
   }
 
-  useEffect(() => {
+useEffect(() => { 
   borclariGetir()
-  hesaplariGetir()
+  kkHesaplariGetir()
 }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const borclariGetir = async () => {
@@ -45,6 +46,16 @@ function Borclar({ session, mobil, gizliMod }) {
     if (!error) setBorclar(data)
     setYukleniyor(false)
   }
+
+  const kkHesaplariGetir = async () => {
+  const { data } = await supabase
+    .from('hesaplar')
+    .select('id, ad, tur, kesim_gunu')
+    .eq('user_id', session.user.id)
+    .ilike('tur', '%kredi%')
+  if (data) setKkHesaplar(data)
+}
+
   const hesaplariGetir = async () => {
   const { data } = await supabase
     .from('hesaplar')
@@ -62,6 +73,77 @@ function Borclar({ session, mobil, gizliMod }) {
   }
 
   const borcEkle = async () => {
+  if (yeni.tur === 'Kredi Kartı') {
+    if (!yeni.banka || !yeni.toplam_borc) return
+    setKaydediliyor(true)
+
+    const kkHesap = kkHesaplar.find(h => h.ad === yeni.banka)
+    if (!kkHesap) { setKaydediliyor(false); return }
+
+    const kesimGunu = kkHesap.kesim_gunu || 1
+    let donemBitis = new Date()
+    donemBitis.setDate(kesimGunu)
+    if (new Date().getDate() > kesimGunu) donemBitis.setMonth(donemBitis.getMonth() + 1)
+    let sonOdeme = new Date(donemBitis)
+    sonOdeme.setDate(sonOdeme.getDate() + 10)
+
+    // Gider işlemi ekle
+    await supabase.from('islemler').insert({
+      user_id: session.user.id,
+      hesap_id: kkHesap.id,
+      tarih: new Date().toISOString().split('T')[0],
+      tutar: parseFloat(yeni.toplam_borc),
+      tur: 'gider',
+      kategori: 'Diğer',
+      aciklama: yeni.ad || 'Kredi kartı harcaması'
+    })
+
+    // Borç kaydı ekle
+    if (yeni.taksitli && parseInt(yeni.taksit_sayisi) > 1) {
+      const aylikTaksit = parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)
+      await supabase.from('borclar').insert({
+        user_id: session.user.id,
+        ad: `${yeni.ad || 'Harcama'} (${yeni.taksit_sayisi} taksit)`,
+        tur: 'Kredi Kartı', banka: yeni.banka,
+        toplam_borc: parseFloat(yeni.toplam_borc),
+        kalan_borc: parseFloat(yeni.toplam_borc),
+        aylik_taksit: aylikTaksit, minimum_odeme: aylikTaksit,
+        taksit_sayisi: parseInt(yeni.taksit_sayisi), odenen_taksit: 0,
+        taksitli: true, son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+        aktif: true, odenen_tutar: 0
+      })
+    } else {
+      const borcAdi = `${yeni.banka} - ${String(donemBitis.getMonth() + 1).padStart(2, '0')}/${donemBitis.getFullYear()}`
+      const { data: mevcutBorc } = await supabase.from('borclar').select('*')
+        .eq('user_id', session.user.id).eq('ad', borcAdi).eq('aktif', true).single()
+
+      if (mevcutBorc) {
+        await supabase.from('borclar').update({
+          kalan_borc: parseFloat(mevcutBorc.kalan_borc) + parseFloat(yeni.toplam_borc),
+          toplam_borc: parseFloat(mevcutBorc.toplam_borc) + parseFloat(yeni.toplam_borc),
+          minimum_odeme: parseFloat(mevcutBorc.minimum_odeme) + parseFloat(yeni.toplam_borc),
+        }).eq('id', mevcutBorc.id)
+      } else {
+        await supabase.from('borclar').insert({
+          user_id: session.user.id, ad: borcAdi, tur: 'Kredi Kartı', banka: yeni.banka,
+          toplam_borc: parseFloat(yeni.toplam_borc), kalan_borc: parseFloat(yeni.toplam_borc),
+          minimum_odeme: parseFloat(yeni.toplam_borc), taksit_sayisi: 1, odenen_taksit: 0,
+          taksitli: false, son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+          aktif: true, odenen_tutar: 0, aylik_taksit: 0
+        })
+      }
+    }
+
+    setFormAcik(false)
+    setYeni({ ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '' })
+    borclariGetir()
+    setKaydediliyor(false)
+    return
+  }
+
+  // Diğer borç türleri — mevcut kod devam eder
+
+    
     if (!yeni.ad || (!yeni.kalan_borc && !yeni.toplam_borc)) return
     setKaydediliyor(true)
     let kayit = {
@@ -88,6 +170,23 @@ function Borclar({ session, mobil, gizliMod }) {
       kayit.aylik_taksit = 0
     }
     const { error } = await supabase.from('borclar').insert(kayit)
+
+    // Kredi kartı borcuysa otomatik gider işlemi oluştur
+if (!error && yeni.tur === 'Kredi Kartı' && yeni.banka) {
+  const kkHesap = kkHesaplar.find(h => h.ad === yeni.banka)
+  if (kkHesap) {
+    await supabase.from('islemler').insert({
+      user_id: session.user.id,
+      hesap_id: kkHesap.id,
+      tarih: yeni.son_odeme_tarihi || new Date().toISOString().split('T')[0],
+      tutar: parseFloat(yeni.kalan_borc) || parseFloat(yeni.toplam_borc),
+      tur: 'gider',
+      kategori: 'Borç Ödemesi',
+      aciklama: yeni.ad
+    })
+  }
+}
+
     if (!error) {
       setFormAcik(false)
       setYeni({ ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '', aylik_taksit: '' })
@@ -345,99 +444,119 @@ const odemeYap = async (borc) => {
       )}
 
       {/* Borç Ekle Formu */}
-      {formAcik && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modal, width: mobil ? '95vw' : '480px' }}>
-            <h3 style={styles.modalBaslik}>Yeni Borç Ekle</h3>
+{formAcik && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.modal}>
+      <h3 style={styles.modalBaslik}>Yeni Borç Ekle</h3>
 
-            <label style={styles.label}>Borç Adı</label>
-            <input style={styles.input} placeholder="örn. Yapı Kredi Platinum, Konut Kredisi"
-              value={yeni.ad} onChange={e => setYeni({ ...yeni, ad: e.target.value })} />
+      <label style={styles.label}>Tür</label>
+      <select style={styles.input} value={yeni.tur}
+        onChange={e => setYeni({ ...yeni, tur: e.target.value, banka: '', ad: '' })}>
+        {turler.map(t => <option key={t} value={t}>{t}</option>)}
+      </select>
 
-            <label style={styles.label}>Tür</label>
-            <select style={styles.input} value={yeni.tur}
-              onChange={e => setYeni({ ...yeni, tur: e.target.value })}>
-              {turler.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-
-            <label style={styles.label}>Banka / Kurum</label>
-            <input style={styles.input} placeholder="örn. Yapı Kredi, Garanti, Ziraat"
-              value={yeni.banka} onChange={e => setYeni({ ...yeni, banka: e.target.value })} />
-
-            <div style={styles.toggleSatir}>
-              <span style={styles.toggleLabel}>Taksitli Harcama mı?</span>
-              <div style={{ ...styles.toggle, background: yeni.taksitli ? '#0d9488' : 'var(--border)' }}
-                onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '' })}>
-                <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
-              </div>
+      {yeni.tur === 'Kredi Kartı' ? (
+        <>
+          <label style={styles.label}>Kredi Kartı Seç</label>
+          <select style={styles.input} value={yeni.banka}
+            onChange={e => setYeni({ ...yeni, banka: e.target.value })}>
+            <option value="">Kart seç</option>
+            {kkHesaplar.map(h => (
+              <option key={h.id} value={h.ad}>{h.ad}</option>
+            ))}
+          </select>
+          {kkHesaplar.length === 0 && (
+            <div style={{ color: '#ff6b6b', fontSize: '12px', marginBottom: '14px' }}>
+              ⚠️ Henüz kredi kartı hesabı eklenmemiş.
             </div>
+          )}
 
-            {yeni.taksitli ? (
-              <>
-                <label style={styles.label}>Toplam Tutar (₺)</label>
-                <input style={styles.input} type="number" placeholder="Toplam harcama tutarı"
-                  value={yeni.toplam_borc} onChange={e => {
-                    const t = e.target.value
-                    setYeni({ ...yeni, toplam_borc: t, aylik_taksit: aylikTaksitHesapla(t, yeni.taksit_sayisi) })
-                  }} />
-                <label style={styles.label}>Taksit Sayısı</label>
-                <input style={styles.input} type="number" placeholder="örn. 12, 24, 36"
-                  value={yeni.taksit_sayisi} onChange={e => {
-                    const s = e.target.value
-                    setYeni({ ...yeni, taksit_sayisi: s, aylik_taksit: aylikTaksitHesapla(yeni.toplam_borc, s) })
-                  }} />
-                {yeni.aylik_taksit && (
-                  <div style={styles.taksitBilgi}>
-                    💡 Aylık taksit: <strong>₺{parseFloat(yeni.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div style={{ ...styles.ikiliBolum, flexDirection: mobil ? 'column' : 'row' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>Toplam Borç (₺)</label>
-                    <input style={styles.input} type="number" placeholder="0.00"
-                      value={yeni.toplam_borc} onChange={e => setYeni({ ...yeni, toplam_borc: e.target.value })} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>Kalan Borç (₺)</label>
-                    <input style={styles.input} type="number" placeholder="0.00"
-                      value={yeni.kalan_borc} onChange={e => setYeni({ ...yeni, kalan_borc: e.target.value })} />
-                  </div>
-                </div>
-                <div style={{ ...styles.ikiliBolum, flexDirection: mobil ? 'column' : 'row' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>Min. Ödeme (₺)</label>
-                    <input style={styles.input} type="number" placeholder="0.00"
-                      value={yeni.minimum_odeme} onChange={e => setYeni({ ...yeni, minimum_odeme: e.target.value })} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>Faiz Oranı (%)</label>
-                    <input style={styles.input} type="number" placeholder="0.00"
-                      value={yeni.faiz_orani} onChange={e => setYeni({ ...yeni, faiz_orani: e.target.value })} />
-                  </div>
-                </div>
-              </>
-            )}
+          <label style={styles.label}>Tutar (₺)</label>
+          <input style={styles.input} type="number" placeholder="0.00"
+            value={yeni.toplam_borc}
+            onChange={e => setYeni({ ...yeni, toplam_borc: e.target.value, kalan_borc: e.target.value })} />
 
-            <label style={styles.label}>{yeni.taksitli ? 'İlk Taksit Tarihi' : 'Son Ödeme Tarihi'}</label>
-            <input style={styles.input} type="date"
-              value={yeni.son_odeme_tarihi} onChange={e => setYeni({ ...yeni, son_odeme_tarihi: e.target.value })} />
+          <label style={styles.label}>Açıklama</label>
+          <input style={styles.input} placeholder="örn. Ayakkabı, Market alışverişi"
+            value={yeni.ad} onChange={e => setYeni({ ...yeni, ad: e.target.value })} />
 
-            <label style={styles.label}>Notlar (isteğe bağlı)</label>
-            <input style={styles.input} placeholder="örn. TV alımı, otomatik ödeme aktif"
-              value={yeni.notlar} onChange={e => setYeni({ ...yeni, notlar: e.target.value })} />
-
-            <div style={styles.modalBtnler}>
-              <button style={styles.iptalBtn} onClick={() => setFormAcik(false)}>İptal</button>
-              <button style={styles.kaydetBtn} onClick={borcEkle} disabled={kaydediliyor}>
-                {kaydediliyor ? t('kaydediliyor') : t('kaydet')}
-              </button>
+          <div style={styles.toggleSatir}>
+            <span style={styles.toggleLabel}>Taksitli mi?</span>
+            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+              onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '' })}>
+              <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
           </div>
-        </div>
+
+          {yeni.taksitli && (
+            <>
+              <label style={styles.label}>Taksit Sayısı</label>
+              <input style={styles.input} type="number" placeholder="örn. 3, 6, 12"
+                value={yeni.taksit_sayisi}
+                onChange={e => setYeni({ ...yeni, taksit_sayisi: e.target.value })} />
+              {yeni.toplam_borc && yeni.taksit_sayisi && (
+                <div style={styles.taksitBilgi}>
+                  💡 Aylık taksit: <strong>₺{(parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          <label style={styles.label}>Borç Adı</label>
+          <input style={styles.input} placeholder="örn. Konut Kredisi, İhtiyaç Kredisi"
+            value={yeni.ad} onChange={e => setYeni({ ...yeni, ad: e.target.value })} />
+
+          <label style={styles.label}>Banka / Kurum</label>
+          <input style={styles.input} placeholder="örn. Ziraat, Garanti"
+            value={yeni.banka} onChange={e => setYeni({ ...yeni, banka: e.target.value })} />
+
+          <div style={styles.ikiliBolum}>
+            <div style={{ flex: 1 }}>
+              <label style={styles.label}>Toplam Borç (₺)</label>
+              <input style={styles.input} type="number" placeholder="0.00"
+                value={yeni.toplam_borc} onChange={e => setYeni({ ...yeni, toplam_borc: e.target.value })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={styles.label}>Kalan Borç (₺)</label>
+              <input style={styles.input} type="number" placeholder="0.00"
+                value={yeni.kalan_borc} onChange={e => setYeni({ ...yeni, kalan_borc: e.target.value })} />
+            </div>
+          </div>
+
+          <div style={styles.ikiliBolum}>
+            <div style={{ flex: 1 }}>
+              <label style={styles.label}>Min. Ödeme (₺)</label>
+              <input style={styles.input} type="number" placeholder="0.00"
+                value={yeni.minimum_odeme} onChange={e => setYeni({ ...yeni, minimum_odeme: e.target.value })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={styles.label}>Faiz Oranı (%)</label>
+              <input style={styles.input} type="number" placeholder="0.00"
+                value={yeni.faiz_orani} onChange={e => setYeni({ ...yeni, faiz_orani: e.target.value })} />
+            </div>
+          </div>
+
+          <label style={styles.label}>Son Ödeme Tarihi</label>
+          <input style={styles.input} type="date"
+            value={yeni.son_odeme_tarihi} onChange={e => setYeni({ ...yeni, son_odeme_tarihi: e.target.value })} />
+
+          <label style={styles.label}>Notlar (isteğe bağlı)</label>
+          <input style={styles.input} placeholder="örn. 12 taksit, otomatik ödeme aktif"
+            value={yeni.notlar} onChange={e => setYeni({ ...yeni, notlar: e.target.value })} />
+        </>
       )}
+
+      <div style={styles.modalBtnler}>
+        <button style={styles.iptalBtn} onClick={() => setFormAcik(false)}>İptal</button>
+        <button style={styles.kaydetBtn} onClick={borcEkle} disabled={kaydediliyor}>
+          {kaydediliyor ? 'Kaydediliyor...' : 'Kaydet'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Borç Listesi */}
       {yukleniyor ? (

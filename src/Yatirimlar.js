@@ -6,6 +6,7 @@ function Yatirimlar({ session, mobil, gizliMod }) {
   const { t } = useLang()
   const pm = (val, opts = { minimumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
+  const pbSembol = (pb) => ({ 'TRY': '₺', 'USD': '$', 'EUR': '€', 'GBP': '£' }[pb] || pb)
   const [yatirimlar, setYatirimlar] = useState([])
   const [hesaplar, setHesaplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -58,28 +59,69 @@ const [yeni, setYeni] = useState({
     if (data) setHesaplar(data)
   }
 
+const usdYatirimlarGuncelle = async () => {
+  const usdYatirimlar = yatirimlar.filter(y => y.para_birimi === 'USD' && parseFloat(y.miktar) > 0)
+  if (usdYatirimlar.length === 0) return
+  const sembolMap = { 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'XRP': 'ripple', 'ADA': 'cardano', 'DOGE': 'dogecoin', 'BNB': 'binancecoin', 'USDT': 'tether', 'USDC': 'usd-coin', 'AVAX': 'avalanche-2', 'MATIC': 'matic-network', 'DOT': 'polkadot', 'LINK': 'chainlink', 'LTC': 'litecoin' }
+  const kripto = usdYatirimlar.filter(y => y.tur === 'Kripto')
+  if (kripto.length > 0) {
+    const ids = [...new Set(kripto.map(y => sembolMap[y.ad.toUpperCase()]).filter(Boolean))].join(',')
+    if (ids) {
+      try {
+        const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`)
+        const d = await r.json()
+        for (const y of kripto) {
+          const coinId = sembolMap[y.ad.toUpperCase()]
+          if (coinId && d[coinId]?.usd) {
+            const yeniBirimFiyat = d[coinId].usd
+            await supabase.from('yatirimlar').update({
+              birim_fiyat: yeniBirimFiyat,
+              guncel_deger: yeniBirimFiyat * parseFloat(y.miktar)
+            }).eq('id', y.id)
+          }
+        }
+      } catch (e) { console.error('USD kripto fiyat hatası:', e) }
+    }
+  }
+  const hisse = usdYatirimlar.filter(y => y.tur === 'Hisse')
+  for (const y of hisse) {
+    try {
+      const r = await fetch(`https://api.twelvedata.com/price?symbol=${y.ad.toUpperCase()}&apikey=demo`)
+      const d = await r.json()
+      if (d.price) {
+        const yeniBirimFiyat = parseFloat(d.price)
+        await supabase.from('yatirimlar').update({
+          birim_fiyat: yeniBirimFiyat,
+          guncel_deger: yeniBirimFiyat * parseFloat(y.miktar)
+        }).eq('id', y.id)
+      }
+    } catch (e) {}
+  }
+}
+
 const fiyatlariGuncelle = async () => {
   setGuncelleniyor(true)
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session: authSession } } = await supabase.auth.getSession()
     const response = await fetch(
       `https://mkmejbkuvwhjqtowmvqu.supabase.co/functions/v1/update-prices`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${authSession.access_token}`,
           'Content-Type': 'application/json'
         }
       }
     )
     const result = await response.json()
     console.log('Güncellenen:', result.guncellenen)
-    await yatirimlariGetir()
   } catch (e) {
-    console.error('Güncelleme hatası:', e)
+    console.error('TRY güncelleme hatası:', e)
   }
+  await usdYatirimlarGuncelle()
+  await yatirimlariGetir()
   setGuncelleniyor(false)
-} 
+}
   const yatirimEkle = async () => {
   if (!yeni.ad || !yeni.miktar || !yeni.birim_maliyet) return
   setKaydediliyor(true)
@@ -106,10 +148,11 @@ const fiyatlariGuncelle = async () => {
       const sembolMap = { 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'XRP': 'ripple', 'ADA': 'cardano', 'DOGE': 'dogecoin' }
       const coinId = sembolMap[yeni.ad.toUpperCase()]
       if (coinId) {
-        const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=try`)
+        const apiPara = yeni.para_birimi === 'USD' ? 'usd' : yeni.para_birimi === 'EUR' ? 'eur' : 'try'
+        const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${apiPara}`)
         const d = await r.json()
-        if (d[coinId]?.try) {
-          birimFiyat = d[coinId].try
+        if (d[coinId]?.[apiPara]) {
+          birimFiyat = d[coinId][apiPara]
           guncelDeger = birimFiyat * miktar
         }
       }
@@ -300,21 +343,21 @@ const satisYap = async () => {
       <input style={styles.input} type="number" value={duzenleYatirim.miktar}
         onChange={e => setDuzenleYatirim({ ...duzenleYatirim, miktar: e.target.value })} />
 
-      <label style={styles.label}>Birim Alış Fiyatı (₺)</label>
+      <label style={styles.label}>Birim Alış Fiyatı ({pbSembol(duzenleYatirim.para_birimi)})</label>
       <input style={styles.input} type="number" value={duzenleYatirim.birim_maliyet}
         onChange={e => setDuzenleYatirim({ ...duzenleYatirim, birim_maliyet: e.target.value })} />
 
-      <label style={styles.label}>Toplam Maliyet (₺)</label>
+      <label style={styles.label}>Toplam Maliyet ({pbSembol(duzenleYatirim.para_birimi)})</label>
       <input style={styles.input} type="number" value={duzenleYatirim.maliyet}
         onChange={e => setDuzenleYatirim({ ...duzenleYatirim, maliyet: e.target.value })} />
 
-      <label style={styles.label}>Güncel Birim Fiyat (₺)</label>
+      <label style={styles.label}>Güncel Birim Fiyat ({pbSembol(duzenleYatirim.para_birimi)})</label>
       <input style={styles.input} type="number"
         placeholder="Birim fiyat girersen güncel değer otomatik hesaplanır"
         value={duzenleYatirim.birim_fiyat}
         onChange={e => setDuzenleYatirim({ ...duzenleYatirim, birim_fiyat: e.target.value })} />
 
-      <label style={styles.label}>Güncel Değer (₺)</label>
+      <label style={styles.label}>Güncel Değer ({pbSembol(duzenleYatirim.para_birimi)})</label>
       <input style={styles.input} type="number"
         placeholder="Birim fiyat girilmezse buraya direkt yazabilirsin"
         value={duzenleYatirim.guncel_deger}
@@ -323,7 +366,7 @@ const satisYap = async () => {
       {duzenleYatirim.miktar && duzenleYatirim.birim_fiyat && (
         <div style={styles.bilgiMesaj}>
           💡 Güncel değer: <strong>
-            ₺{(parseFloat(duzenleYatirim.miktar) * parseFloat(duzenleYatirim.birim_fiyat)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            {pbSembol(duzenleYatirim.para_birimi)}{(parseFloat(duzenleYatirim.miktar) * parseFloat(duzenleYatirim.birim_fiyat)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
           </strong>
         </div>
       )}
@@ -349,7 +392,7 @@ const satisYap = async () => {
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
       <h3 style={styles.modalBaslik}>📤 Satış Yap</h3>
       <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-        {satisYatirim.ad} — Güncel Değer: ₺{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+        {satisYatirim.ad} — Güncel Değer: {pbSembol(satisYatirim.para_birimi)}{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
         {parseFloat(satisYatirim.miktar) > 0 && ` · ${satisYatirim.miktar} adet`}
       </p>
 
@@ -363,7 +406,7 @@ const satisYap = async () => {
         </>
       )}
 
-      <label style={styles.label}>Satış Tutarı (₺)</label>
+      <label style={styles.label}>Satış Tutarı ({pbSembol(satisYatirim.para_birimi)})</label>
       <input style={styles.input} type="number" placeholder="Elde ettiğin tutar"
         value={satis.tutar}
         onChange={e => setSatis({ ...satis, tutar: e.target.value })} />
@@ -389,8 +432,8 @@ const satisYap = async () => {
           background: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(13,148,136,0.06)' : 'rgba(239,68,68,0.06)',
           border: `1px solid ${parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(13,148,136,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
           {parseFloat(satis.tutar) >= parseFloat(satisYatirim.maliyet)
-            ? `🟢 Kar: +₺${(parseFloat(satis.tutar) - parseFloat(satisYatirim.maliyet)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
-            : `🔴 Zarar: -₺${(parseFloat(satisYatirim.maliyet) - parseFloat(satis.tutar)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
+            ? `🟢 Kar: +${pbSembol(satisYatirim.para_birimi)}${(parseFloat(satis.tutar) - parseFloat(satisYatirim.maliyet)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
+            : `🔴 Zarar: -${pbSembol(satisYatirim.para_birimi)}${(parseFloat(satisYatirim.maliyet) - parseFloat(satis.tutar)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
           }
         </div>
       )}
@@ -425,19 +468,19 @@ const satisYap = async () => {
             <input style={styles.input} type="number" placeholder="örn. 100 adet, 0.5 BTC, 1000 USD"
               value={yeni.miktar} onChange={e => setYeni({ ...yeni, miktar: e.target.value })} />
 
-<label style={styles.label}>Birim Alış Fiyatı (₺)</label>
+<label style={styles.label}>Birim Alış Fiyatı ({pbSembol(yeni.para_birimi)})</label>
 <input style={styles.input} type="number" placeholder="Adet başına ödediğin fiyat"
   value={yeni.birim_maliyet}
   onChange={e => setYeni({ ...yeni, birim_maliyet: e.target.value })} />
 
-<label style={styles.label}>Komisyon (₺) — 0 bırakabilirsin</label>
+<label style={styles.label}>Komisyon ({pbSembol(yeni.para_birimi)}) — 0 bırakabilirsin</label>
 <input style={styles.input} type="number" placeholder="0"
   value={yeni.komisyon}
   onChange={e => setYeni({ ...yeni, komisyon: e.target.value })} />
 
 {yeni.miktar && yeni.birim_maliyet && (
   <div style={styles.bilgiMesaj}>
-    💡 Toplam maliyet: <strong>₺{((parseFloat(yeni.miktar) * parseFloat(yeni.birim_maliyet)) + (parseFloat(yeni.komisyon) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+    💡 Toplam maliyet: <strong>{pbSembol(yeni.para_birimi)}{((parseFloat(yeni.miktar) * parseFloat(yeni.birim_maliyet)) + (parseFloat(yeni.komisyon) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
     {' · '}Güncel fiyat kayıt sırasında otomatik çekilecek
   </div>
 )}
@@ -450,7 +493,10 @@ const satisYap = async () => {
 
           <label style={styles.label}>Yatırım Hesabı / Aracı Kurum (isteğe bağlı)</label>
 <select style={styles.input} value={yeni.hesap_id}
-  onChange={e => setYeni({ ...yeni, hesap_id: e.target.value })}>
+  onChange={e => {
+    const secili = hesaplar.find(h => h.id === e.target.value)
+    setYeni({ ...yeni, hesap_id: e.target.value, para_birimi: secili?.para_birimi || yeni.para_birimi })
+  }}>
   <option value="">Hesap seç</option>
   {hesaplar.map(h => (
     <option key={h.id} value={h.id}>{h.ad}</option>
@@ -531,7 +577,7 @@ const satisYap = async () => {
   <div style={styles.detayLabel}>Birim Maliyet</div>
   <div style={styles.detayDeger}>
     {y.birim_maliyet > 0
-      ? `₺${parseFloat(y.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
+      ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
       : '—'}
   </div>
 </div>
@@ -539,23 +585,23 @@ const satisYap = async () => {
   <div style={styles.detayLabel}>Güncel Fiyat</div>
   <div style={styles.detayDeger}>
     {y.birim_fiyat > 0 && parseFloat(y.miktar) > 0
-      ? `₺${parseFloat(y.birim_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
+      ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
       : '—'}
   </div>
 </div>
 <div style={styles.kartOrta}>
   <div style={styles.detayLabel}>Toplam Maliyet</div>
-  <div style={styles.detayDeger}>₺{pm(y.maliyet)}</div>
+  <div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.maliyet)}</div>
 </div>
 <div style={styles.kartOrta}>
   <div style={styles.detayLabel}>Güncel Değer</div>
-  <div style={styles.detayDeger}>₺{pm(y.guncel_deger)}</div>
+  <div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.guncel_deger)}</div>
 </div>
                 </div>
                 <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
                   <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
                     <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '18px', fontWeight: 'bold' }}>
-                      {gizliMod ? '₺ ****' : `${karZarar >= 0 ? '+' : ''}₺${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                      {gizliMod ? `${pbSembol(y.para_birimi)} ****` : `${karZarar >= 0 ? '+' : ''}${pbSembol(y.para_birimi)}${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
                     </div>
                     <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px' }}>
                       {gizliMod ? '***%' : `${getiri >= 0 ? '+' : ''}${getiri}%`}
