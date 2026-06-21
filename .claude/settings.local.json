@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx react-scripts *)",
       "Bash(set DISABLE_ESLINT_PLUGIN=true)",
-      "Bash(powershell -Command \"Select-String -Path 'C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Yatirimlar.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Borclar.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Hedefler.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Raporlar.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Hesabim.js' -Pattern 'function \\(Yatirimlar|Borclar|Hedefler|Raporlar|Hesabim\\)'\")"
+      "Bash(powershell -Command \"Select-String -Path 'C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Yatirimlar.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Borclar.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Hedefler.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Raporlar.js','C:\\\\Users\\\\nevzatk\\\\finansapp\\\\src\\\\Hesabim.js' -Pattern 'function \\(Yatirimlar|Borclar|Hedefler|Raporlar|Hesabim\\)'\")",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

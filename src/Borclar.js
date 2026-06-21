@@ -17,6 +17,8 @@ function Borclar({ session, mobil, gizliMod }) {
   const [acikGruplar, setAcikGruplar] = useState({})
   const [filtre, setFiltre] = useState('hepsi')
   const [kkHesaplar, setKkHesaplar] = useState([])
+  const [raporAcik, setRaporAcik] = useState(false)
+  const [raporOffset, setRaporOffset] = useState(0)
   const [yeni, setYeni] = useState({
     ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '',
     minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '',
@@ -33,9 +35,10 @@ function Borclar({ session, mobil, gizliMod }) {
     'Konut Kredisi': '🏠', 'Taşıt Kredisi': '🚗', 'Diğer': '📋'
   }
 
-useEffect(() => { 
+useEffect(() => {
   borclariGetir()
   kkHesaplariGetir()
+  hesaplariGetir()
 }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const borclariGetir = async () => {
@@ -57,15 +60,16 @@ useEffect(() => {
 }
 
   const hesaplariGetir = async () => {
-  const { data } = await supabase
-    .from('hesaplar')
-    .select('id, ad, tur')
-    .eq('user_id', session.user.id)
-  if (data) {
-    setHesaplar(data)
-    if (data.length > 0) setOdemeHesapId(data[0].id)
+    const { data } = await supabase
+      .from('hesaplar')
+      .select('id, ad, tur, bakiye, para_birimi')
+      .eq('user_id', session.user.id)
+    if (data) {
+      const odemeHesaplari = data.filter(h => h.tur !== 'Borç' && !h.tur?.toLowerCase().includes('kredi'))
+      setHesaplar(odemeHesaplari)
+      if (odemeHesaplari.length > 0) setOdemeHesapId(odemeHesaplari[0].id)
+    }
   }
-}
 
   const aylikTaksitHesapla = (toplam, sayi) => {
     if (!toplam || !sayi || sayi <= 0) return ''
@@ -196,23 +200,33 @@ if (!error && yeni.tur === 'Kredi Kartı' && yeni.banka) {
   }
 
 const odemeYap = async (borc) => {
-  const tutar = parseFloat(odemeFormTutar)
-  if (!tutar || tutar <= 0) return
-  if (!odemeHesapId) return
+  if (kaydediliyor) return
   setKaydediliyor(true)
+  const tutar = parseFloat(odemeFormTutar)
+  if (!tutar || tutar <= 0) { setKaydediliyor(false); return }
+  if (!odemeHesapId) { setKaydediliyor(false); return }
 
-  // Grup ödemesi ise her borcu güncelle
   if (borc._grup) {
+    // 1. Bakiyeleri EN BAŞTA oku (herhangi bir yazma işleminden önce)
+    const { data: kaynakVeri } = await supabase.from('hesaplar').select('bakiye').eq('id', odemeHesapId).maybeSingle()
+    const kaynakBakiye = parseFloat(kaynakVeri?.bakiye || 0)
+
+    const kartBanka = borc._kartBorclar?.[0]?.banka
+    const kkHesap = kkHesaplar.find(h => h.ad === kartBanka)
+    let kkBakiye = null
+    if (kkHesap) {
+      const { data: kkVeri } = await supabase.from('hesaplar').select('bakiye').eq('id', kkHesap.id).maybeSingle()
+      kkBakiye = parseFloat(kkVeri?.bakiye || 0)
+    }
+
+    // 2. Borçları güncelle
     for (const tekBorc of borc._kartBorclar) {
       const taksitTutar = parseFloat(tekBorc.minimum_odeme || tekBorc.aylik_taksit || 0)
       if (taksitTutar <= 0) continue
-
       const yeniOdenen = (parseFloat(tekBorc.odenen_tutar) || 0) + taksitTutar
       const yeniKalan = Math.max(0, parseFloat(tekBorc.kalan_borc) - taksitTutar)
       const bitti = yeniKalan <= 0
-
       let guncelleme = { odenen_tutar: yeniOdenen, kalan_borc: yeniKalan, aktif: !bitti }
-
       if (tekBorc.taksitli) {
         const odenenTaksit = Math.floor(yeniOdenen / parseFloat(tekBorc.aylik_taksit))
         guncelleme.odenen_taksit = Math.min(odenenTaksit, tekBorc.taksit_sayisi)
@@ -225,7 +239,7 @@ const odemeYap = async (borc) => {
       await supabase.from('borclar').update(guncelleme).eq('id', tekBorc.id)
     }
 
-    // Tek seferde toplam işlem ekle
+    // 3. Kaynak bankaya gider işlemi (silinince trigger otomatik geri alır)
     await supabase.from('islemler').insert({
       user_id: session.user.id,
       hesap_id: odemeHesapId,
@@ -236,20 +250,53 @@ const odemeYap = async (borc) => {
       aciklama: `${borc.ad} — aylık ödeme`
     })
 
+    // KK hesabına gelir işlemi (silinince trigger otomatik geri alır)
+    if (kkHesap) {
+      await supabase.from('islemler').insert({
+        user_id: session.user.id,
+        hesap_id: kkHesap.id,
+        tarih: new Date().toISOString().split('T')[0],
+        tutar: tutar,
+        tur: 'gelir',
+        kategori: 'Borç Ödemesi',
+        aciklama: `${borc.ad} — ödeme alındı`
+      })
+    }
+
+    // 4. Bakiyeleri manuel güncelle (trigger yoksa çalışır, varsa aynı değeri yazar)
+    await supabase.from('hesaplar').update({ bakiye: kaynakBakiye - tutar }).eq('id', odemeHesapId)
+    if (kkHesap && kkBakiye !== null) {
+      await supabase.from('hesaplar').update({ bakiye: kkBakiye + tutar }).eq('id', kkHesap.id)
+    }
+
     setOdemeFormAcik(null)
     setOdemeFormTutar('')
     borclariGetir()
+    hesaplariGetir()
     setKaydediliyor(false)
     return
   }
 
-  // Tekil ödeme — mevcut kod
+  // Tekil ödeme
+  // 1. Bakiyeleri EN BAŞTA oku
+  const { data: kaynakVeriTekil } = await supabase.from('hesaplar').select('bakiye').eq('id', odemeHesapId).maybeSingle()
+  const kaynakBakiyeTekil = parseFloat(kaynakVeriTekil?.bakiye || 0)
+
+  let kkHesapTekil = null
+  let kkBakiyeTekil = null
+  if (borc.tur === 'Kredi Kartı' && borc.banka) {
+    kkHesapTekil = kkHesaplar.find(h => h.ad === borc.banka)
+    if (kkHesapTekil) {
+      const { data: kkVeriTekil } = await supabase.from('hesaplar').select('bakiye').eq('id', kkHesapTekil.id).maybeSingle()
+      kkBakiyeTekil = parseFloat(kkVeriTekil?.bakiye || 0)
+    }
+  }
+
+  // 2. Borcu güncelle
   const yeniOdenen = (parseFloat(borc.odenen_tutar) || 0) + tutar
   const yeniKalan = Math.max(0, parseFloat(borc.kalan_borc) - tutar)
   const bitti = yeniKalan <= 0
-
   let guncelleme = { odenen_tutar: yeniOdenen, kalan_borc: yeniKalan, aktif: !bitti }
-
   if (borc.taksitli) {
     const odenenTaksit = Math.floor(yeniOdenen / parseFloat(borc.aylik_taksit))
     guncelleme.odenen_taksit = Math.min(odenenTaksit, borc.taksit_sayisi)
@@ -259,9 +306,9 @@ const odemeYap = async (borc) => {
       guncelleme.son_odeme_tarihi = t.toISOString().split('T')[0]
     }
   }
-
   await supabase.from('borclar').update(guncelleme).eq('id', borc.id)
 
+  // 3. Kaynak bankaya gider işlemi (silinince trigger otomatik geri alır)
   await supabase.from('islemler').insert({
     user_id: session.user.id,
     hesap_id: odemeHesapId,
@@ -272,9 +319,29 @@ const odemeYap = async (borc) => {
     aciklama: `${borc.ad} - borç ödemesi`
   })
 
+  // KK borcuysa KK hesabına gelir işlemi (silinince trigger otomatik geri alır)
+  if (kkHesapTekil) {
+    await supabase.from('islemler').insert({
+      user_id: session.user.id,
+      hesap_id: kkHesapTekil.id,
+      tarih: new Date().toISOString().split('T')[0],
+      tutar: tutar,
+      tur: 'gelir',
+      kategori: 'Borç Ödemesi',
+      aciklama: `${borc.ad} - ödeme alındı`
+    })
+  }
+
+  // 4. Bakiyeleri manuel güncelle (trigger yoksa çalışır, varsa aynı değeri yazar)
+  await supabase.from('hesaplar').update({ bakiye: kaynakBakiyeTekil - tutar }).eq('id', odemeHesapId)
+  if (kkHesapTekil && kkBakiyeTekil !== null) {
+    await supabase.from('hesaplar').update({ bakiye: kkBakiyeTekil + tutar }).eq('id', kkHesapTekil.id)
+  }
+
   setOdemeFormAcik(null)
   setOdemeFormTutar('')
   borclariGetir()
+  hesaplariGetir()
   setKaydediliyor(false)
 }
 
@@ -285,9 +352,14 @@ const odemeYap = async (borc) => {
   }
 
   const borcSil = async (id) => {
-    if (!window.confirm('Bu borcu silmek istediğine emin misin?')) return
-
     const borc = borclar.find(b => b.id === id)
+
+    if (borc?.tur === 'Kredi Kartı') {
+      alert('Kredi Kartı harcamalarını İşlemler bölümünden siliniz.')
+      return
+    }
+
+    if (!window.confirm('Bu borcu silmek istediğine emin misin?')) return
 
     if (borc?.tur === 'Kredi Kartı' && borc?.banka) {
       const kkHesap = kkHesaplar.find(h => h.ad === borc.banka)
@@ -385,6 +457,48 @@ const odemeYap = async (borc) => {
     return `${f} gün kaldı`
   }
 
+  const raporAylariOlustur = () => {
+    const today = new Date()
+    const aylar = []
+    for (let i = 0; i < 13; i++) {
+      aylar.push(new Date(today.getFullYear(), today.getMonth() + raporOffset + i, 1))
+    }
+    return aylar
+  }
+
+  const aylikBorcOdeme = (borc, ay) => {
+    if (!borc.son_odeme_tarihi || parseFloat(borc.kalan_borc) <= 0) return 0
+    const odemeD = new Date(borc.son_odeme_tarihi)
+    const targetD = new Date(ay.getFullYear(), ay.getMonth(), 1)
+    const odemeBaslangic = new Date(odemeD.getFullYear(), odemeD.getMonth(), 1)
+    if (borc.taksitli) {
+      const diff = (targetD.getFullYear() - odemeBaslangic.getFullYear()) * 12 +
+                   (targetD.getMonth() - odemeBaslangic.getMonth())
+      const kalan = (borc.taksit_sayisi || 1) - (borc.odenen_taksit || 0)
+      if (diff >= 0 && diff < kalan) return parseFloat(borc.aylik_taksit || 0)
+    } else {
+      if (targetD.getTime() === odemeBaslangic.getTime()) {
+        return parseFloat(borc.minimum_odeme || borc.aylik_taksit || borc.kalan_borc || 0)
+      }
+    }
+    return 0
+  }
+
+  const raporKolonlariOlustur = () => {
+    const kolonlar = []
+    const kkBankalar = {}
+    borclar.filter(b => b.tur === 'Kredi Kartı').forEach(b => {
+      const key = b.banka || b.ad
+      if (!kkBankalar[key]) kkBankalar[key] = { label: key, borclar: [] }
+      kkBankalar[key].borclar.push(b)
+    })
+    Object.values(kkBankalar).forEach(g => kolonlar.push(g))
+    borclar.filter(b => b.tur !== 'Kredi Kartı').forEach(b => {
+      kolonlar.push({ label: `${b.ad}${b.banka ? ` (${b.banka})` : ''}`, borclar: [b] })
+    })
+    return kolonlar
+  }
+
   return (
     <div>
       {/* Üst Özet */}
@@ -421,8 +535,102 @@ const odemeYap = async (borc) => {
           <button style={filtre === 'diger' ? { ...styles.filtreBtn, ...styles.filtreBtnAktif } : styles.filtreBtn}
             onClick={() => setFiltre('diger')}>📋 Diğer ({diger.length})</button>
         </div>
-        <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Yeni Borç Ekle</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button style={styles.raporBtn} onClick={() => setRaporAcik(true)}>📊 Mali Tablo</button>
+          <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Yeni Borç Ekle</button>
+        </div>
       </div>
+
+      {/* Mali Tablo Rapor Modal */}
+      {raporAcik && (() => {
+        const aylar = raporAylariOlustur()
+        const kolonlar = raporKolonlariOlustur()
+        const bugunBaslangic = new Date(bugun.getFullYear(), bugun.getMonth(), 1)
+        return (
+          <div style={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && setRaporAcik(false)}>
+            <div style={{ ...styles.modal, width: mobil ? '99vw' : '94vw', maxWidth: '1400px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+                <h3 style={{ ...styles.modalBaslik, margin: 0 }}>📊 Mali Tablo — Ödeme Takvimi</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button style={styles.navBtn} onClick={() => setRaporOffset(p => p - 6)}>◀ -6 Ay</button>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                    {aylar[0].toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' })} — {aylar[aylar.length - 1].toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' })}
+                  </span>
+                  <button style={styles.navBtn} onClick={() => setRaporOffset(p => p + 6)}>+6 Ay ▶</button>
+                  {raporOffset !== 0 && (
+                    <button style={{ ...styles.navBtn, color: '#0d9488', border: '1px solid #0d9488' }} onClick={() => setRaporOffset(0)}>Bugüne Dön</button>
+                  )}
+                  <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '20px', padding: '4px 8px', lineHeight: 1 }} onClick={() => setRaporAcik(false)}>✕</button>
+                </div>
+              </div>
+              <div style={{ overflowX: 'auto', overflowY: 'auto', flex: 1 }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: `${180 + kolonlar.length * 140 + 130}px` }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-card)' }}>
+                      <th style={styles.thAy}>Ay</th>
+                      {kolonlar.map(k => (
+                        <th key={k.label} style={styles.thKolon} title={k.label}>
+                          {k.label.length > 18 ? k.label.substring(0, 16) + '…' : k.label}
+                        </th>
+                      ))}
+                      <th style={{ ...styles.thKolon, color: '#ef4444', borderLeft: '2px solid var(--border)' }}>Toplam</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aylar.map(ay => {
+                      const ayBaslangic = new Date(ay.getFullYear(), ay.getMonth(), 1)
+                      const isCurrentMonth = ayBaslangic.getTime() === bugunBaslangic.getTime()
+                      const isPast = ayBaslangic < bugunBaslangic
+                      let rowTotal = 0
+                      const cells = kolonlar.map(k => {
+                        const amount = k.borclar.reduce((s, b) => s + aylikBorcOdeme(b, ay), 0)
+                        rowTotal += amount
+                        return { key: k.label, amount }
+                      })
+                      return (
+                        <tr key={ay.toISOString()} style={{
+                          background: isCurrentMonth ? 'rgba(13,148,136,0.07)' : 'transparent',
+                          borderLeft: isCurrentMonth ? '3px solid #0d9488' : '3px solid transparent'
+                        }}>
+                          <td style={{ ...styles.tdAy, color: isCurrentMonth ? '#0d9488' : isPast ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: isCurrentMonth ? '700' : '400' }}>
+                            {ay.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+                            {isCurrentMonth && <span style={{ fontSize: '10px', marginLeft: '6px', background: '#0d9488', color: '#fff', borderRadius: '4px', padding: '1px 5px' }}>Bu ay</span>}
+                          </td>
+                          {cells.map(c => (
+                            <td key={c.key} style={{ ...styles.tdTutar, color: isPast ? 'var(--text-muted)' : c.amount > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                              {c.amount > 0 ? `₺${c.amount.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                            </td>
+                          ))}
+                          <td style={{ ...styles.tdTutar, fontWeight: '700', color: isPast ? 'var(--text-muted)' : rowTotal > 0 ? '#ef4444' : 'var(--text-muted)', borderLeft: '2px solid var(--border)' }}>
+                            {rowTotal > 0 ? `₺${rowTotal.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                    <tr style={{ borderTop: '2px solid var(--border)', background: 'rgba(0,0,0,0.03)' }}>
+                      <td style={{ ...styles.tdAy, fontWeight: '700', color: 'var(--text-primary)' }}>Toplam</td>
+                      {kolonlar.map(k => {
+                        const total = aylar.reduce((sum, ay) => sum + k.borclar.reduce((s, b) => s + aylikBorcOdeme(b, ay), 0), 0)
+                        return (
+                          <td key={k.label} style={{ ...styles.tdTutar, fontWeight: '700', color: total > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                            {total > 0 ? `₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                          </td>
+                        )
+                      })}
+                      <td style={{ ...styles.tdTutar, fontWeight: '700', color: '#ef4444', borderLeft: '2px solid var(--border)' }}>
+                        ₺{kolonlar.reduce((sum, k) => sum + aylar.reduce((s, ay) => s + k.borclar.reduce((bs, b) => bs + aylikBorcOdeme(b, ay), 0), 0), 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              {kolonlar.length === 0 && (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>Aktif borç bulunamadı.</p>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Ödeme Formu Modal */}
       {odemeFormAcik && (
@@ -445,8 +653,10 @@ const odemeYap = async (borc) => {
                  onChange={e => setOdemeHesapId(e.target.value)}
 >
                       {hesaplar.map(h => (
-                      <option key={h.id} value={h.id}>{h.ad}</option>
-                         ))}
+                        <option key={h.id} value={h.id}>
+                          {h.ad} {!gizliMod ? `(${parseFloat(h.bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${h.para_birimi || '₺'})` : ''}
+                        </option>
+                      ))}
             </select>
 
             <label style={styles.label}>Ödenen Tutar (₺)</label>
@@ -864,6 +1074,12 @@ const styles = {
   filtreBtn: { padding: '7px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
   filtreBtnAktif: { background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', color: '#ef4444' },
   ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
+  raporBtn: { padding: '10px 16px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.35)', borderRadius: '10px', color: '#0ea5e9', fontWeight: '600', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  navBtn: { padding: '6px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' },
+  thAy: { padding: '10px 14px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid var(--border)', minWidth: '160px', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 },
+  thKolon: { padding: '10px 12px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid var(--border)', minWidth: '130px', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 },
+  tdAy: { padding: '10px 14px', whiteSpace: 'nowrap', fontSize: '13px', borderBottom: '1px solid var(--border-light)' },
+  tdTutar: { padding: '10px 12px', textAlign: 'right', fontSize: '13px', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-light)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
   modal: { background: 'var(--bg-card)', borderRadius: '20px', padding: '28px', width: '480px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-md)', boxSizing: 'border-box' },
   modalBaslik: { color: 'var(--text-primary)', fontSize: '18px', margin: '0 0 16px 0' },

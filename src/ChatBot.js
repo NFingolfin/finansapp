@@ -409,13 +409,30 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
       if (borcData && borcData.length > 0) {
         const borc = borcData[0]
-        const yeniKalan = Math.max(0, parseFloat(borc.kalan_borc) - parseFloat(onay.tutar))
-        const yeniOdenen = (parseFloat(borc.odenen_tutar) || 0) + parseFloat(onay.tutar)
-        await supabase.from('borclar').update({
-          kalan_borc: yeniKalan,
-          odenen_tutar: yeniOdenen,
-          aktif: yeniKalan > 0
-        }).eq('id', borc.id)
+        const odenecek = parseFloat(onay.tutar)
+        const yeniKalan = Math.max(0, parseFloat(borc.kalan_borc) - odenecek)
+        const yeniOdenen = (parseFloat(borc.odenen_tutar) || 0) + odenecek
+        const bitti = yeniKalan <= 0
+
+        const guncelleme = { kalan_borc: yeniKalan, odenen_tutar: yeniOdenen, aktif: !bitti }
+
+        if (borc.taksitli && borc.aylik_taksit) {
+          const odenenTaksit = Math.floor(yeniOdenen / parseFloat(borc.aylik_taksit))
+          guncelleme.odenen_taksit = Math.min(odenenTaksit, borc.taksit_sayisi)
+          if (!bitti && borc.son_odeme_tarihi) {
+            const t = new Date(borc.son_odeme_tarihi)
+            t.setMonth(t.getMonth() + 1)
+            guncelleme.son_odeme_tarihi = t.toISOString().split('T')[0]
+          }
+        }
+
+        await supabase.from('borclar').update(guncelleme).eq('id', borc.id)
+      }
+
+      // Kaynak hesap bakiyesinden düş
+      const { data: kaynakHesap } = await supabase.from('hesaplar').select('bakiye').eq('id', onay.hesap_id).maybeSingle()
+      if (kaynakHesap) {
+        await supabase.from('hesaplar').update({ bakiye: parseFloat(kaynakHesap.bakiye || 0) - parseFloat(onay.tutar) }).eq('id', onay.hesap_id)
       }
 
       if (!e1 && !e2) {

@@ -37,8 +37,8 @@ function Islemler({ session, mobil, gizliMod }) {
     transfer: ['Hesaplar Arası Transfer'],
   }
 
-  const turRenk = { gelir: '#4ecca3', gider: '#ff6b6b', transfer: '#45b7d1' }
-  const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer' }
+  const turRenk = { gelir: '#4ecca3', gider: '#ff6b6b', transfer: '#45b7d1', odeme: '#f97316' }
+  const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer', odeme: 'Ödeme' }
 
   useEffect(() => {
     islemleriGetir()
@@ -150,6 +150,77 @@ function Islemler({ session, mobil, gizliMod }) {
 
     const islem = islemler.find(i => i.id === id)
 
+    // Borç Ödemesi silme: borcları geri al + eşli kaydı sil
+    if (islem?.kategori === 'Borç Ödemesi') {
+      // Eşli kaydı bul (aynı tarih+tutar+kategori, farklı hesap)
+      const esliKayit = islemler.find(i =>
+        i.id !== id &&
+        i.kategori === 'Borç Ödemesi' &&
+        i.tarih === islem.tarih &&
+        parseFloat(i.tutar) === parseFloat(islem.tutar) &&
+        i.hesap_id !== islem.hesap_id
+      )
+
+      const aciklama = islem.aciklama || esliKayit?.aciklama || ''
+
+      if (aciklama.includes('Tüm Borçlar')) {
+        // Grup ödemesi: kartAdını çıkar ve o kartın tüm borçlarını geri al
+        const kartAdi = aciklama.split(' — ')[0].trim()
+        const { data: kartBorclar } = await supabase.from('borclar')
+          .select('*').eq('user_id', session.user.id).eq('banka', kartAdi)
+        for (const b of (kartBorclar || [])) {
+          const taksitTutar = parseFloat(b.minimum_odeme || b.aylik_taksit || 0)
+          if (taksitTutar <= 0) continue
+          const yeniOdenen = Math.max(0, (parseFloat(b.odenen_tutar) || 0) - taksitTutar)
+          const yeniKalan = Math.min(parseFloat(b.toplam_borc || 0), parseFloat(b.kalan_borc || 0) + taksitTutar)
+          const guncelleme = { odenen_tutar: yeniOdenen, kalan_borc: yeniKalan, aktif: true }
+          if (b.taksitli && b.aylik_taksit) {
+            guncelleme.odenen_taksit = Math.max(0, (b.odenen_taksit || 0) - 1)
+            if (b.son_odeme_tarihi) {
+              const t = new Date(b.son_odeme_tarihi)
+              t.setMonth(t.getMonth() - 1)
+              guncelleme.son_odeme_tarihi = t.toISOString().split('T')[0]
+            }
+          }
+          await supabase.from('borclar').update(guncelleme).eq('id', b.id)
+        }
+      } else {
+        // Tekil ödeme: borç adını çıkar
+        const borcAdi = aciklama
+          .replace(' - borç ödemesi', '')
+          .replace(' - ödeme alındı', '')
+          .replace(/\s*—\s*ödeme alındı$/, '')
+          .replace(/\s*—\s*aylık ödeme$/, '')
+          .trim()
+        if (borcAdi) {
+          const { data: hedefBorc } = await supabase.from('borclar').select('*')
+            .eq('user_id', session.user.id).eq('ad', borcAdi).maybeSingle()
+          if (hedefBorc) {
+            const yeniOdenen = Math.max(0, (parseFloat(hedefBorc.odenen_tutar) || 0) - parseFloat(islem.tutar))
+            const yeniKalan = Math.min(parseFloat(hedefBorc.toplam_borc || 0), parseFloat(hedefBorc.kalan_borc || 0) + parseFloat(islem.tutar))
+            const guncelleme = { odenen_tutar: yeniOdenen, kalan_borc: yeniKalan, aktif: yeniKalan > 0 }
+            if (hedefBorc.taksitli && hedefBorc.aylik_taksit) {
+              guncelleme.odenen_taksit = Math.max(0, (hedefBorc.odenen_taksit || 0) - 1)
+              if (hedefBorc.son_odeme_tarihi) {
+                const t = new Date(hedefBorc.son_odeme_tarihi)
+                t.setMonth(t.getMonth() - 1)
+                guncelleme.son_odeme_tarihi = t.toISOString().split('T')[0]
+              }
+            }
+            await supabase.from('borclar').update(guncelleme).eq('id', hedefBorc.id)
+          }
+        }
+      }
+
+      // Eşli kaydı sil (banka gideri veya KK geliri)
+      if (esliKayit) {
+        await supabase.from('islemler').delete().eq('id', esliKayit.id)
+      }
+      await supabase.from('islemler').delete().eq('id', id)
+      islemleriGetir()
+      return
+    }
+
     if (islem?.tur === 'gider') {
       const hesap = hesaplar.find(h => h.id === islem.hesap_id)
       if (hesap?.tur?.toLowerCase() === 'kredi kartı') {
@@ -217,11 +288,12 @@ function Islemler({ session, mobil, gizliMod }) {
       return aVal < bVal ? 1 : -1
     })
 
-  // Ara toplamlar
+  // Ara toplamlar — "Borç Ödemesi" gider/gelir sayılmaz, ayrı gösterilir
   const araToplam = {
-    gelir: filtreliIslemler.filter(i => i.tur === 'gelir').reduce((a, i) => a + parseFloat(i.tutar), 0),
-    gider: filtreliIslemler.filter(i => i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0),
+    gelir: filtreliIslemler.filter(i => i.tur === 'gelir' && i.kategori !== 'Borç Ödemesi').reduce((a, i) => a + parseFloat(i.tutar), 0),
+    gider: filtreliIslemler.filter(i => i.tur === 'gider' && i.kategori !== 'Borç Ödemesi').reduce((a, i) => a + parseFloat(i.tutar), 0),
     transfer: filtreliIslemler.filter(i => i.tur === 'transfer').reduce((a, i) => a + parseFloat(i.tutar), 0),
+    odeme: filtreliIslemler.filter(i => i.kategori === 'Borç Ödemesi' && i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0),
   }
   const net = araToplam.gelir - araToplam.gider
 
@@ -269,9 +341,9 @@ function Islemler({ session, mobil, gizliMod }) {
           <div style={styles.ozetAlt}>{filtreliIslemler.length} işlem</div>
         </div>
         <div style={styles.ozetKart}>
-          <div style={styles.ozetLabel}>Transfer</div>
-          <div style={{ ...styles.ozetDeger, color: '#45b7d1' }}>₺{pm(araToplam.transfer)}</div>
-          <div style={styles.ozetAlt}>{filtreliIslemler.filter(i => i.tur === 'transfer').length} işlem</div>
+          <div style={styles.ozetLabel}>Borç Ödemeleri</div>
+          <div style={{ ...styles.ozetDeger, color: '#f97316' }}>₺{pm(araToplam.odeme)}</div>
+          <div style={styles.ozetAlt}>{filtreliIslemler.filter(i => i.kategori === 'Borç Ödemesi').length} işlem</div>
         </div>
       </div>
 
@@ -478,23 +550,28 @@ function Islemler({ session, mobil, gizliMod }) {
         </div>
       ) : (
         <div style={styles.liste}>
-          {filtreliIslemler.map(islem => (
-            <div key={islem.id} style={styles.islemSatir}>
-              <div style={{ ...styles.turBadge, background: (turRenk[islem.tur] || '#a8a8b3') + '22', color: turRenk[islem.tur] || '#a8a8b3' }}>
-                {turLabel[islem.tur] || islem.tur}
-              </div>
-              <div style={styles.islemBilgi}>
-                <div style={styles.islemAciklama}>{islem.aciklama || islem.kategori}</div>
-                <div style={styles.islemDetay}>
-                  {islem.tarih} · {islem.hesaplar?.ad} · {islem.kategori}
+          {filtreliIslemler.map(islem => {
+            const isBorcOdeme = islem.kategori === 'Borç Ödemesi'
+            const gorselTur = isBorcOdeme ? 'odeme' : islem.tur
+            const renk = turRenk[gorselTur] || '#a8a8b3'
+            return (
+              <div key={islem.id} style={styles.islemSatir}>
+                <div style={{ ...styles.turBadge, background: renk + '22', color: renk }}>
+                  {turLabel[gorselTur] || islem.tur}
                 </div>
+                <div style={styles.islemBilgi}>
+                  <div style={styles.islemAciklama}>{islem.aciklama || islem.kategori}</div>
+                  <div style={styles.islemDetay}>
+                    {islem.tarih} · {islem.hesaplar?.ad} · {islem.kategori}
+                  </div>
+                </div>
+                <div style={{ ...styles.islemTutar, color: isBorcOdeme ? '#f97316' : islem.tur === 'gelir' ? '#4ecca3' : islem.tur === 'gider' ? '#ff6b6b' : '#45b7d1' }}>
+                  {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : islem.tur === 'gider' ? '-' : ''}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                </div>
+                <button style={styles.silBtn} onClick={() => islemSil(islem.id)}>🗑️</button>
               </div>
-              <div style={{ ...styles.islemTutar, color: islem.tur === 'gelir' ? '#4ecca3' : islem.tur === 'gider' ? '#ff6b6b' : '#45b7d1' }}>
-                {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : islem.tur === 'gider' ? '-' : ''}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
-              </div>
-              <button style={styles.silBtn} onClick={() => islemSil(islem.id)}>🗑️</button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
