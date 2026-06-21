@@ -286,6 +286,49 @@ const odemeYap = async (borc) => {
 
   const borcSil = async (id) => {
     if (!window.confirm('Bu borcu silmek istediğine emin misin?')) return
+
+    const borc = borclar.find(b => b.id === id)
+
+    if (borc?.tur === 'Kredi Kartı' && borc?.banka) {
+      const kkHesap = kkHesaplar.find(h => h.ad === borc.banka)
+      if (kkHesap) {
+        if (borc.taksitli) {
+          // Taksitli borç: addan " (X taksit)" kısmını çıkar, eşleşen işlemi bul ve sil
+          const aciklamaBase = borc.ad.replace(/ \(\d+ taksit\)$/, '')
+          let query = supabase.from('islemler').select('id')
+            .eq('user_id', session.user.id)
+            .eq('hesap_id', kkHesap.id)
+            .eq('tutar', parseFloat(borc.toplam_borc))
+            .eq('tur', 'gider')
+          if (aciklamaBase) query = query.ilike('aciklama', aciklamaBase)
+          const { data: ilgiliIslemler } = await query
+          if (ilgiliIslemler?.length > 0) {
+            await supabase.from('islemler').delete()
+              .in('id', ilgiliIslemler.map(i => i.id))
+          }
+        } else {
+          // Aylık birikim borcu: ad = "${banka} - MM/YYYY" — o döneme ait giderleri sil
+          const match = borc.ad.match(/(\d{2})\/(\d{4})$/)
+          if (match) {
+            const ay = parseInt(match[1]) - 1 // 0-indexed
+            const yil = parseInt(match[2])
+            const kesimGunu = kkHesap.kesim_gunu || 1
+            const donemBitis = new Date(yil, ay, kesimGunu)
+            const donemBaslangic = new Date(yil, ay - 1, kesimGunu + 1)
+            const basStr = donemBaslangic.toISOString().split('T')[0]
+            const bitStr = donemBitis.toISOString().split('T')[0]
+            await supabase.from('islemler').delete()
+              .eq('user_id', session.user.id)
+              .eq('hesap_id', kkHesap.id)
+              .eq('tur', 'gider')
+              .neq('kategori', 'Borç Ödemesi')
+              .gte('tarih', basStr)
+              .lte('tarih', bitStr)
+          }
+        }
+      }
+    }
+
     await supabase.from('borclar').delete().eq('id', id)
     borclariGetir()
   }

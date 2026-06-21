@@ -147,6 +147,50 @@ function Islemler({ session, mobil, gizliMod }) {
 
   const islemSil = async (id) => {
     if (!window.confirm('Bu işlemi silmek istediğine emin misin?')) return
+
+    const islem = islemler.find(i => i.id === id)
+
+    if (islem?.tur === 'gider') {
+      const hesap = hesaplar.find(h => h.id === islem.hesap_id)
+      if (hesap?.tur?.toLowerCase() === 'kredi kartı') {
+        // Hangi borç dönemine ait olduğunu hesapla
+        const kesimGunu = hesap.kesim_gunu || 1
+        const islemTarih = new Date(islem.tarih)
+        let donemBitis = new Date(islem.tarih)
+        donemBitis.setDate(kesimGunu)
+        if (islemTarih.getDate() > kesimGunu) donemBitis.setMonth(donemBitis.getMonth() + 1)
+        const borcAdi = `${hesap.ad} - ${String(donemBitis.getMonth() + 1).padStart(2, '0')}/${donemBitis.getFullYear()}`
+
+        // Önce aylık birikim borcunu ara
+        const { data: aggrBorc } = await supabase.from('borclar').select('*')
+          .eq('user_id', session.user.id).eq('ad', borcAdi).eq('aktif', true).maybeSingle()
+
+        if (aggrBorc) {
+          const yeniToplam = Math.max(0, parseFloat(aggrBorc.toplam_borc) - parseFloat(islem.tutar))
+          const yeniKalan = Math.max(0, parseFloat(aggrBorc.kalan_borc) - parseFloat(islem.tutar))
+          const yeniMin = Math.max(0, parseFloat(aggrBorc.minimum_odeme) - parseFloat(islem.tutar))
+          if (yeniToplam <= 0) {
+            await supabase.from('borclar').delete().eq('id', aggrBorc.id)
+          } else {
+            await supabase.from('borclar').update({
+              kalan_borc: yeniKalan, toplam_borc: yeniToplam, minimum_odeme: yeniMin
+            }).eq('id', aggrBorc.id)
+          }
+        } else {
+          // Taksitli borcu bul (toplam_borc = islem tutarı, aynı kart)
+          const { data: taksiBorclar } = await supabase.from('borclar').select('*')
+            .eq('user_id', session.user.id)
+            .eq('banka', hesap.ad)
+            .eq('toplam_borc', parseFloat(islem.tutar))
+            .eq('taksitli', true)
+            .eq('aktif', true)
+          if (taksiBorclar?.length > 0) {
+            await supabase.from('borclar').delete().eq('id', taksiBorclar[0].id)
+          }
+        }
+      }
+    }
+
     await supabase.from('islemler').delete().eq('id', id)
     islemleriGetir()
   }

@@ -226,12 +226,17 @@ const hesapDetayAc = async (hesap) => {
 }
 
 const toplamTRY = hesaplar
-  .filter(h => h.para_birimi === 'TRY' && h.tur !== 'Borç')
-  .reduce((acc, h) => acc + parseFloat(h.bakiye), 0)
+  .filter(h => h.tur !== 'Borç')
+  .reduce((acc, h) => {
+    const kur = h.kur || 1
+    const bakiyeTL = parseFloat(h.bakiye || 0) * kur
+    const yatirimTL = (h.yatirim_toplam || 0) * kur
+    return acc + bakiyeTL + yatirimTL
+  }, 0)
 
   const toplamBorc = hesaplar
     .filter(h => h.tur === 'Borç')
-    .reduce((acc, h) => acc + parseFloat(h.bakiye), 0)
+    .reduce((acc, h) => acc + parseFloat(h.bakiye || 0) * (h.kur || 1), 0)
 
   return (
     <div>

@@ -234,15 +234,30 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
     if (hesapData) setHesaplar(hesapData)
     if (islemData) setSonIslemler(islemData)
 
-    // Yatırım hesaplarındaki toplam yatırım değeri
-    const yatirimToplam = (yatirimData || [])
-      .filter(y => y.para_birimi === 'TRY')
-      .reduce((a, y) => a + parseFloat(y.guncel_deger), 0)
+    // Güncel döviz kurlarını çek
+    let kurlar = { TRY: 1, USD: 1, EUR: 1, GBP: 1 }
+    try {
+      const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      const dovizData = await res.json()
+      const usdTry = dovizData.rates?.TRY || 1
+      kurlar = {
+        TRY: 1,
+        USD: usdTry,
+        EUR: usdTry / (dovizData.rates?.EUR || 1),
+        GBP: usdTry / (dovizData.rates?.GBP || 1),
+      }
+    } catch (e) {}
 
-    // Nakit: yatırım hesabı olmayanların bakiyesi + yatırım hesaplarının nakit kısmı
+    const kur = (pb) => kurlar[pb] || 1
+
+    // Tüm yatırımlar TRY karşılığına çevrilmiş
+    const yatirimToplam = (yatirimData || [])
+      .reduce((a, y) => a + parseFloat(y.guncel_deger) * kur(y.para_birimi), 0)
+
+    // Nakit: tüm hesapların bakiyesi TRY'ye çevrilmiş (Kredi Kartı ve Borç türü hariç)
     const toplamNakit = (hesapData || [])
-      .filter(h => h.para_birimi === 'TRY' && h.tur !== 'Kredi Kartı')
-      .reduce((a, h) => a + parseFloat(h.bakiye), 0)
+      .filter(h => h.tur !== 'Kredi Kartı' && h.tur !== 'Borç')
+      .reduce((a, h) => a + parseFloat(h.bakiye) * kur(h.para_birimi), 0)
 
     // Toplam borç
     const toplamBorc = (borcData || [])
