@@ -17,6 +17,13 @@ function Yatirimlar({ session, mobil, gizliMod }) {
 const [satisYatirim, setSatisYatirim] = useState(null)
 const [duzenleModal, setDuzenleModal] = useState(false)
 const [duzenleYatirim, setDuzenleYatirim] = useState(null)
+const [kapaliGruplar, setKapaliGruplar] = useState(new Set())
+const toggleGrup = (ad) => setKapaliGruplar(prev => {
+  const next = new Set(prev)
+  if (next.has(ad)) next.delete(ad); else next.add(ad)
+  return next
+})
+const [gorunum, setGorunum] = useState('liste')
 const [satis, setSatis] = useState({ miktar: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
 const [yeni, setYeni] = useState({
   ad: '', tur: 'Hisse', miktar: '', birim_maliyet: '', komisyon: '0',
@@ -62,26 +69,28 @@ const [yeni, setYeni] = useState({
 const usdYatirimlarGuncelle = async () => {
   const usdYatirimlar = yatirimlar.filter(y => y.para_birimi === 'USD' && parseFloat(y.miktar) > 0)
   if (usdYatirimlar.length === 0) return
-  const sembolMap = { 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'XRP': 'ripple', 'ADA': 'cardano', 'DOGE': 'dogecoin', 'BNB': 'binancecoin', 'USDT': 'tether', 'USDC': 'usd-coin', 'AVAX': 'avalanche-2', 'MATIC': 'matic-network', 'DOT': 'polkadot', 'LINK': 'chainlink', 'LTC': 'litecoin' }
   const kripto = usdYatirimlar.filter(y => y.tur === 'Kripto')
   if (kripto.length > 0) {
-    const ids = [...new Set(kripto.map(y => sembolMap[y.ad.toUpperCase()]).filter(Boolean))].join(',')
-    if (ids) {
-      try {
-        const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`)
-        const d = await r.json()
-        for (const y of kripto) {
-          const coinId = sembolMap[y.ad.toUpperCase()]
-          if (coinId && d[coinId]?.usd) {
-            const yeniBirimFiyat = d[coinId].usd
-            await supabase.from('yatirimlar').update({
-              birim_fiyat: yeniBirimFiyat,
-              guncel_deger: yeniBirimFiyat * parseFloat(y.miktar)
-            }).eq('id', y.id)
-          }
+    try {
+      // Tüm Binance USDT çiftlerini çek — statik map'e gerek yok
+      const r = await fetch('https://api.binance.com/api/v3/ticker/price')
+      const tumFiyatlar = await r.json()
+      const fiyatMap = {}
+      for (const f of (Array.isArray(tumFiyatlar) ? tumFiyatlar : [])) {
+        if (f.symbol.endsWith('USDT')) {
+          fiyatMap[f.symbol.slice(0, -4)] = parseFloat(f.price)
         }
-      } catch (e) { console.error('USD kripto fiyat hatası:', e) }
-    }
+      }
+      for (const y of kripto) {
+        const fiyat = fiyatMap[y.ad.toUpperCase()]
+        if (fiyat && fiyat > 0) {
+          await supabase.from('yatirimlar').update({
+            birim_fiyat: fiyat,
+            guncel_deger: fiyat * parseFloat(y.miktar)
+          }).eq('id', y.id)
+        }
+      }
+    } catch (e) { console.error('USD kripto fiyat hatası:', e) }
   }
   const hisse = usdYatirimlar.filter(y => y.tur === 'Hisse')
   for (const y of hisse) {
@@ -293,6 +302,51 @@ const satisYap = async () => {
   const toplamKarZarar = toplamGuncel - toplamMaliyet
   const toplamGetiri = toplamMaliyet > 0 ? ((toplamKarZarar / toplamMaliyet) * 100).toFixed(2) : 0
 
+  const pieRenkler = ['#0d9488','#eab308','#0ea5e9','#a78bfa','#f59e0b','#34d399','#ef4444','#f97316','#ec4899','#6366f1']
+  const renderPieChart = (data, title) => {
+    const total = data.reduce((s, d) => s + d.value, 0)
+    if (total === 0) return null
+    const sorted = [...data].sort((a, b) => b.value - a.value)
+    let cumAngle = -Math.PI / 2
+    const slices = sorted.map((d, i) => {
+      const sweep = (d.value / total) * 2 * Math.PI
+      const start = cumAngle
+      cumAngle += sweep
+      const end = cumAngle
+      const r = 80, cx = 100, cy = 100
+      const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start)
+      const x2 = cx + r * Math.cos(end),   y2 = cy + r * Math.sin(end)
+      const large = sweep > Math.PI ? 1 : 0
+      const path = sweep >= 2 * Math.PI - 0.001
+        ? `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.001} ${cy - r} Z`
+        : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
+      return { path, color: pieRenkler[i % pieRenkler.length], label: d.label, value: d.value, pct: ((d.value / total) * 100).toFixed(1) }
+    })
+    return (
+      <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-light)', flex: 1, minWidth: mobil ? '100%' : '280px' }}>
+        <h3 style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>{title}</h3>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <svg viewBox="0 0 200 200" width="180" height="180">
+            {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="var(--bg-card)" strokeWidth="3" />)}
+            <circle cx="100" cy="100" r="48" fill="var(--bg-card)" />
+            <text x="100" y="96" textAnchor="middle" fill="var(--text-muted)" fontSize="11">{slices.length} kalem</text>
+          </svg>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {slices.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
+                <span style={{ color: 'var(--text-primary)' }}>{s.label}</span>
+              </div>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>{s.pct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
@@ -322,6 +376,10 @@ const satisYap = async () => {
         <button style={styles.guncelleBtn} onClick={fiyatlariGuncelle} disabled={guncelleniyor}>
           {guncelleniyor ? '⏳ Güncelleniyor...' : '🔄 Fiyatları Güncelle'}
         </button>
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', padding: '4px' }}>
+          <button style={{ ...styles.gorunumBtn, background: gorunum === 'liste' ? 'var(--bg-card)' : 'transparent', color: gorunum === 'liste' ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: gorunum === 'liste' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setGorunum('liste')}>☰ Liste</button>
+          <button style={{ ...styles.gorunumBtn, background: gorunum === 'grafik' ? 'var(--bg-card)' : 'transparent', color: gorunum === 'grafik' ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: gorunum === 'grafik' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setGorunum('grafik')}>📊 Grafik</button>
+        </div>
         <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Yeni Yatırım Ekle</button>
       </div>
 {duzenleModal && duzenleYatirim && (
@@ -454,6 +512,18 @@ const satisYap = async () => {
           <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
             <h3 style={styles.modalBaslik}>Yeni Yatırım Ekle</h3>
 
+            <label style={styles.label}>Yatırım Hesabı / Aracı Kurum (isteğe bağlı)</label>
+            <select style={styles.input} value={yeni.hesap_id}
+              onChange={e => {
+                const secili = hesaplar.find(h => h.id === e.target.value)
+                setYeni({ ...yeni, hesap_id: e.target.value, para_birimi: secili?.para_birimi || yeni.para_birimi })
+              }}>
+              <option value="">Hesap seç</option>
+              {hesaplar.map(h => (
+                <option key={h.id} value={h.id}>{h.ad}</option>
+              ))}
+            </select>
+
             <label style={styles.label}>Yatırım Adı</label>
             <input style={styles.input} placeholder="örn. THYAO, BTC, USD, Altın"
               value={yeni.ad} onChange={e => setYeni({ ...yeni, ad: e.target.value })} />
@@ -464,44 +534,32 @@ const satisYap = async () => {
               {turler.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
 
-            <label style={styles.label}>Miktar / Adet</label>
-            <input style={styles.input} type="number" placeholder="örn. 100 adet, 0.5 BTC, 1000 USD"
-              value={yeni.miktar} onChange={e => setYeni({ ...yeni, miktar: e.target.value })} />
-
-<label style={styles.label}>Birim Alış Fiyatı ({pbSembol(yeni.para_birimi)})</label>
-<input style={styles.input} type="number" placeholder="Adet başına ödediğin fiyat"
-  value={yeni.birim_maliyet}
-  onChange={e => setYeni({ ...yeni, birim_maliyet: e.target.value })} />
-
-<label style={styles.label}>Komisyon ({pbSembol(yeni.para_birimi)}) — 0 bırakabilirsin</label>
-<input style={styles.input} type="number" placeholder="0"
-  value={yeni.komisyon}
-  onChange={e => setYeni({ ...yeni, komisyon: e.target.value })} />
-
-{yeni.miktar && yeni.birim_maliyet && (
-  <div style={styles.bilgiMesaj}>
-    💡 Toplam maliyet: <strong>{pbSembol(yeni.para_birimi)}{((parseFloat(yeni.miktar) * parseFloat(yeni.birim_maliyet)) + (parseFloat(yeni.komisyon) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
-    {' · '}Güncel fiyat kayıt sırasında otomatik çekilecek
-  </div>
-)}
-
             <label style={styles.label}>Para Birimi</label>
             <select style={styles.input} value={yeni.para_birimi}
               onChange={e => setYeni({ ...yeni, para_birimi: e.target.value })}>
               {paraBirimleri.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
 
-          <label style={styles.label}>Yatırım Hesabı / Aracı Kurum (isteğe bağlı)</label>
-<select style={styles.input} value={yeni.hesap_id}
-  onChange={e => {
-    const secili = hesaplar.find(h => h.id === e.target.value)
-    setYeni({ ...yeni, hesap_id: e.target.value, para_birimi: secili?.para_birimi || yeni.para_birimi })
-  }}>
-  <option value="">Hesap seç</option>
-  {hesaplar.map(h => (
-    <option key={h.id} value={h.id}>{h.ad}</option>
-  ))}
-</select>
+            <label style={styles.label}>Miktar / Adet</label>
+            <input style={styles.input} type="number" placeholder="örn. 100 adet, 0.5 BTC, 1000 USD"
+              value={yeni.miktar} onChange={e => setYeni({ ...yeni, miktar: e.target.value })} />
+
+            <label style={styles.label}>Birim Alış Fiyatı ({pbSembol(yeni.para_birimi)})</label>
+            <input style={styles.input} type="number" placeholder="Adet başına ödediğin fiyat"
+              value={yeni.birim_maliyet}
+              onChange={e => setYeni({ ...yeni, birim_maliyet: e.target.value })} />
+
+            <label style={styles.label}>Komisyon ({pbSembol(yeni.para_birimi)}) — 0 bırakabilirsin</label>
+            <input style={styles.input} type="number" placeholder="0"
+              value={yeni.komisyon}
+              onChange={e => setYeni({ ...yeni, komisyon: e.target.value })} />
+
+            {yeni.miktar && yeni.birim_maliyet && (
+              <div style={styles.bilgiMesaj}>
+                💡 Toplam maliyet: <strong>{pbSembol(yeni.para_birimi)}{((parseFloat(yeni.miktar) * parseFloat(yeni.birim_maliyet)) + (parseFloat(yeni.komisyon) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                {' · '}Güncel fiyat kayıt sırasında otomatik çekilecek
+              </div>
+            )}
 
 <div style={styles.toggleSatir}>
   <span style={styles.toggleLabel}>Başka hesaptan para düşsün mü?</span>
@@ -542,89 +600,104 @@ const satisYap = async () => {
         </div>
       )}
 
-      {yukleniyor ? (
+      {gorunum === 'grafik' && !yukleniyor && yatirimlar.length > 0 && (() => {
+        const turGruplar = {}, hesapGruplar = {}
+        for (const y of yatirimlar) {
+          const deger = parseFloat(y.guncel_deger || 0)
+          turGruplar[y.tur] = (turGruplar[y.tur] || 0) + deger
+          const ad = y.hesaplar?.ad || 'Hesapsız'
+          hesapGruplar[ad] = (hesapGruplar[ad] || 0) + deger
+        }
+        const turData = Object.entries(turGruplar).map(([label, value]) => ({ label, value }))
+        const hesapData = Object.entries(hesapGruplar).map(([label, value]) => ({ label, value }))
+        return (
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+            {renderPieChart(turData, 'Yatırım Türüne Göre Dağılım')}
+            {renderPieChart(hesapData, 'Hesaba Göre Dağılım')}
+          </div>
+        )
+      })()}
+
+      {gorunum === 'liste' && (yukleniyor ? (
         <div style={styles.yukleniyor}>{t('yukleniyor')}</div>
       ) : yatirimlar.length === 0 ? (
         <div style={styles.bos}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📈</div>
           <p style={{ color: 'var(--text-muted)' }}>Henüz yatırım eklenmemiş.</p>
         </div>
-      ) : (
-        <div style={styles.liste}>
-          {yatirimlar.map(y => {
-            const karZarar = parseFloat(y.guncel_deger) - parseFloat(y.maliyet)
-            const getiri = parseFloat(y.maliyet) > 0 ? ((karZarar / parseFloat(y.maliyet)) * 100).toFixed(2) : 0
-            return (
-              <div key={y.id} style={{ ...styles.kart, borderLeft: `4px solid ${turRenk[y.tur] || '#a8a8b3'}`, flexDirection: mobil ? 'column' : 'row', alignItems: mobil ? 'stretch' : 'center', gap: mobil ? '12px' : '20px' }}>
-                <div style={styles.kartSol}>
-                  <span style={styles.ikon}>{turIkon[y.tur] || '💼'}</span>
-                  <div>
-                    <div style={styles.ad}>{y.ad}</div>
-                    <div style={styles.tur}>
-                      {y.tur}{parseFloat(y.miktar) > 0 ? ` · ${y.miktar} adet` : ''}
-                      {y.hesaplar?.ad && (
-                        <span style={styles.hesapTag}>📂 {y.hesaplar.ad}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div style={mobil ? { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' } : { display: 'contents' }}>
-<div style={styles.kartOrta}>
-  <div style={styles.detayLabel}>Miktar</div>
-  <div style={styles.detayDeger}>{parseFloat(y.miktar) > 0 ? `${y.miktar} adet` : '—'}</div>
-</div>
-<div style={styles.kartOrta}>
-  <div style={styles.detayLabel}>Birim Maliyet</div>
-  <div style={styles.detayDeger}>
-    {y.birim_maliyet > 0
-      ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
-      : '—'}
-  </div>
-</div>
-<div style={styles.kartOrta}>
-  <div style={styles.detayLabel}>Güncel Fiyat</div>
-  <div style={styles.detayDeger}>
-    {y.birim_fiyat > 0 && parseFloat(y.miktar) > 0
-      ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
-      : '—'}
-  </div>
-</div>
-<div style={styles.kartOrta}>
-  <div style={styles.detayLabel}>Toplam Maliyet</div>
-  <div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.maliyet)}</div>
-</div>
-<div style={styles.kartOrta}>
-  <div style={styles.detayLabel}>Güncel Değer</div>
-  <div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.guncel_deger)}</div>
-</div>
-                </div>
-                <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
-                  <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
-                    <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '18px', fontWeight: 'bold' }}>
-                      {gizliMod ? `${pbSembol(y.para_birimi)} ****` : `${karZarar >= 0 ? '+' : ''}${pbSembol(y.para_birimi)}${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
-                    </div>
-                    <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px' }}>
-                      {gizliMod ? '***%' : `${getiri >= 0 ? '+' : ''}${getiri}%`}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button style={styles.duzenleBtn} onClick={() => {
-  setDuzenleYatirim(y)
-  setDuzenleModal(true)
-}}>✏️</button>
-                    <button style={styles.satisBtn} onClick={() => {
-  setSatisYatirim(y)
-  setSatis({ miktar: '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
-  setSatisFormAcik(true)
-}}>📤 Sat</button>
-<button style={styles.silBtn} onClick={() => yatirimSil(y.id)}>🗑️</button>
-                  </div>
+      ) : (() => {
+        const gruplar = {}
+        for (const y of yatirimlar) {
+          const ad = y.hesaplar?.ad || 'Hesapsız'
+          if (!gruplar[ad]) gruplar[ad] = []
+          gruplar[ad].push(y)
+        }
+        const renderKart = (y) => {
+          const karZarar = parseFloat(y.guncel_deger) - parseFloat(y.maliyet)
+          const getiri = parseFloat(y.maliyet) > 0 ? ((karZarar / parseFloat(y.maliyet)) * 100).toFixed(2) : 0
+          return (
+            <div key={y.id} style={{ ...styles.kart, borderLeft: `4px solid ${turRenk[y.tur] || '#a8a8b3'}`, flexDirection: mobil ? 'column' : 'row', alignItems: mobil ? 'stretch' : 'center', gap: mobil ? '12px' : '20px' }}>
+              <div style={styles.kartSol}>
+                <span style={styles.ikon}>{turIkon[y.tur] || '💼'}</span>
+                <div>
+                  <div style={styles.ad}>{y.ad}</div>
+                  <div style={styles.tur}>{y.tur}{parseFloat(y.miktar) > 0 ? ` · ${y.miktar} adet` : ''}</div>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+              <div style={mobil ? { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' } : { display: 'contents' }}>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Miktar</div><div style={styles.detayDeger}>{parseFloat(y.miktar) > 0 ? `${y.miktar} adet` : '—'}</div></div>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Birim Maliyet</div><div style={styles.detayDeger}>{y.birim_maliyet > 0 ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '—'}</div></div>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Güncel Fiyat</div><div style={styles.detayDeger}>{y.birim_fiyat > 0 && parseFloat(y.miktar) > 0 ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '—'}</div></div>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Toplam Maliyet</div><div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.maliyet)}</div></div>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Güncel Değer</div><div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.guncel_deger)}</div></div>
+              </div>
+              <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
+                <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
+                  <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '18px', fontWeight: 'bold' }}>
+                    {gizliMod ? `${pbSembol(y.para_birimi)} ****` : `${karZarar >= 0 ? '+' : ''}${pbSembol(y.para_birimi)}${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                  </div>
+                  <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px' }}>
+                    {gizliMod ? '***%' : `${getiri >= 0 ? '+' : ''}${getiri}%`}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button style={styles.duzenleBtn} onClick={() => { setDuzenleYatirim(y); setDuzenleModal(true) }}>✏️</button>
+                  <button style={styles.satisBtn} onClick={() => { setSatisYatirim(y); setSatis({ miktar: '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] }); setSatisFormAcik(true) }}>📤 Sat</button>
+                  <button style={styles.silBtn} onClick={() => yatirimSil(y.id)}>🗑️</button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+        return (
+          <div style={styles.liste}>
+            {Object.entries(gruplar).map(([hesapAdi, grup]) => {
+              const acik = !kapaliGruplar.has(hesapAdi)
+              const grupDeger = grup.reduce((s, y) => s + parseFloat(y.guncel_deger || 0), 0)
+              return (
+                <div key={hesapAdi}>
+                  <div style={styles.grupBaslik} onClick={() => toggleGrup(hesapAdi)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span>📂</span>
+                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{hesapAdi}</span>
+                      <span style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488', borderRadius: '20px', padding: '2px 10px', fontSize: '12px' }}>{grup.length} yatırım</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Toplam: {grupDeger.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{acik ? '▲' : '▼'}</span>
+                    </div>
+                  </div>
+                  {acik && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                      {grup.map(renderKart)}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })())}
     </div>
   )
 }
@@ -666,6 +739,8 @@ const styles = {
   kartSag: { textAlign: 'right', minWidth: '120px' },
   satisBtn: { padding: '6px 14px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', color: '#f97316', fontSize: '13px', cursor: 'pointer' },
   silBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.4 },
+  grupBaslik: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '12px 16px', cursor: 'pointer', userSelect: 'none', fontSize: '14px' },
+  gorunumBtn: { padding: '6px 14px', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' },
 }
 
 export default Yatirimlar
