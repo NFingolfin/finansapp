@@ -555,38 +555,77 @@ const odemeYap = async (borc) => {
           <input style={styles.input} placeholder="örn. Ziraat, Garanti"
             value={yeni.banka} onChange={e => setYeni({ ...yeni, banka: e.target.value })} />
 
-          <div style={styles.ikiliBolum}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Toplam Borç (₺)</label>
-              <input style={styles.input} type="number" placeholder="0.00"
-                value={yeni.toplam_borc} onChange={e => setYeni({ ...yeni, toplam_borc: e.target.value })} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Kalan Borç (₺)</label>
-              <input style={styles.input} type="number" placeholder="0.00"
-                value={yeni.kalan_borc} onChange={e => setYeni({ ...yeni, kalan_borc: e.target.value })} />
+          <label style={styles.label}>Toplam Borç (₺)</label>
+          <input style={styles.input} type="number" placeholder="0.00"
+            value={yeni.toplam_borc} onChange={e => setYeni({ ...yeni, toplam_borc: e.target.value, kalan_borc: e.target.value })} />
+
+          <div style={styles.toggleSatir}>
+            <span style={styles.toggleLabel}>Taksitli mi?</span>
+            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#0d9488' : 'rgba(255,255,255,0.1)' }}
+              onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '', minimum_odeme: '' })}>
+              <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
           </div>
 
-          <div style={styles.ikiliBolum}>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Min. Ödeme (₺)</label>
-              <input style={styles.input} type="number" placeholder="0.00"
-                value={yeni.minimum_odeme} onChange={e => setYeni({ ...yeni, minimum_odeme: e.target.value })} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={styles.label}>Faiz Oranı (%)</label>
-              <input style={styles.input} type="number" placeholder="0.00"
-                value={yeni.faiz_orani} onChange={e => setYeni({ ...yeni, faiz_orani: e.target.value })} />
-            </div>
-          </div>
+          {yeni.taksitli ? (
+            <>
+              <label style={styles.label}>Taksit Sayısı</label>
+              <input style={styles.input} type="number" placeholder="örn. 12, 24, 36"
+                value={yeni.taksit_sayisi}
+                onChange={e => setYeni({ ...yeni, taksit_sayisi: e.target.value })} />
 
-          <label style={styles.label}>Son Ödeme Tarihi</label>
-          <input style={styles.input} type="date"
-            value={yeni.son_odeme_tarihi} onChange={e => setYeni({ ...yeni, son_odeme_tarihi: e.target.value })} />
+              {yeni.toplam_borc && yeni.taksit_sayisi && parseInt(yeni.taksit_sayisi) > 0 && (
+                <div style={styles.taksitBilgi}>
+                  💡 Aylık taksit: <strong>₺{(parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                  {' · '}{yeni.taksit_sayisi} ay
+                </div>
+              )}
+
+              <div style={styles.ikiliBolum}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>İlk Ödeme Tarihi</label>
+                  <input style={styles.input} type="date"
+                    value={yeni.son_odeme_tarihi} onChange={e => setYeni({ ...yeni, son_odeme_tarihi: e.target.value })} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Faiz Oranı (%)</label>
+                  <input style={styles.input} type="number" placeholder="0.00"
+                    value={yeni.faiz_orani} onChange={e => setYeni({ ...yeni, faiz_orani: e.target.value })} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={styles.ikiliBolum}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Kalan Borç (₺)</label>
+                  <input style={styles.input} type="number" placeholder="0.00"
+                    value={yeni.kalan_borc} onChange={e => setYeni({ ...yeni, kalan_borc: e.target.value })} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Min. Ödeme (₺)</label>
+                  <input style={styles.input} type="number" placeholder="0.00"
+                    value={yeni.minimum_odeme} onChange={e => setYeni({ ...yeni, minimum_odeme: e.target.value })} />
+                </div>
+              </div>
+
+              <div style={styles.ikiliBolum}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Faiz Oranı (%)</label>
+                  <input style={styles.input} type="number" placeholder="0.00"
+                    value={yeni.faiz_orani} onChange={e => setYeni({ ...yeni, faiz_orani: e.target.value })} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Son Ödeme Tarihi</label>
+                  <input style={styles.input} type="date"
+                    value={yeni.son_odeme_tarihi} onChange={e => setYeni({ ...yeni, son_odeme_tarihi: e.target.value })} />
+                </div>
+              </div>
+            </>
+          )}
 
           <label style={styles.label}>Notlar (isteğe bağlı)</label>
-          <input style={styles.input} placeholder="örn. 12 taksit, otomatik ödeme aktif"
+          <input style={styles.input} placeholder="örn. otomatik ödeme aktif, değişken faizli"
             value={yeni.notlar} onChange={e => setYeni({ ...yeni, notlar: e.target.value })} />
         </>
       )}
