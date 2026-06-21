@@ -217,8 +217,11 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
     toplamBorc: 0,
     yatirimDeger: 0,
   })
-  const [sonIslemler, setSonIslemler] = useState([])
   const [hesaplar, setHesaplar] = useState([])
+  const [yatirimlar, setYatirimlar] = useState([])
+  const [dovizKurlar, setDovizKurlar] = useState({ TRY: 1, USD: 1, EUR: 1, GBP: 1 })
+  const [hoveredPortfoy, setHoveredPortfoy] = useState(null)
+  const [pinnedPortfoy, setPinnedPortfoy] = useState(null)
 
   useEffect(() => {
     verileriGetir()
@@ -226,13 +229,18 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
 
   const verileriGetir = async () => {
     const { data: hesapData } = await supabase.from('hesaplar').select('*').eq('user_id', session.user.id)
-    const { data: islemData } = await supabase.from('islemler').select('*, hesaplar(ad)')
-      .eq('user_id', session.user.id).order('tarih', { ascending: false }).limit(5)
     const { data: yatirimData } = await supabase.from('yatirimlar').select('*').eq('user_id', session.user.id)
     const { data: borcData } = await supabase.from('borclar').select('*').eq('user_id', session.user.id).eq('aktif', true)
 
-    if (hesapData) setHesaplar(hesapData)
-    if (islemData) setSonIslemler(islemData)
+    // yatirim_toplam DB'de yok, yatirimlar üzerinden hesapla
+    const hesaplarWithYatirim = (hesapData || []).map(h => {
+      const yatirimToplam = (yatirimData || [])
+        .filter(y => y.hesap_id === h.id)
+        .reduce((a, y) => a + parseFloat(y.guncel_deger || 0), 0)
+      return { ...h, yatirim_toplam: yatirimToplam }
+    })
+    if (hesapData) setHesaplar(hesaplarWithYatirim)
+    if (yatirimData) setYatirimlar(yatirimData)
 
     // Güncel döviz kurlarını çek
     let kurlar = { TRY: 1, USD: 1, EUR: 1, GBP: 1 }
@@ -246,6 +254,7 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
         EUR: usdTry / (dovizData.rates?.EUR || 1),
         GBP: usdTry / (dovizData.rates?.GBP || 1),
       }
+      setDovizKurlar(kurlar)
     } catch (e) {}
 
     const kur = (pb) => kurlar[pb] || 1
@@ -272,8 +281,11 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
     setOzet({ toplamNakit, toplamYatirim: yatirimToplam, toplamBorc, toplamVarlik, netVarlik })
   }
 
-  const turRenk = { gelir: '#0d9488', gider: '#ef4444', transfer: '#0ea5e9' }
-  const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer' }
+  const turRenkMap = {
+    'Hisse': '#0d9488', 'Kripto': '#eab308', 'Fon': '#0ea5e9',
+    'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399', 'Diğer': '#94a3b8',
+    'Nakit': '#38bdf8',
+  }
 
 const kartlar = [
   { baslik: t('toplamVarlik'),  deger: pm(ozet.toplamVarlik),  renk: '#0d9488', icon: '💎', sayfa: 'hesaplar' },
@@ -305,39 +317,153 @@ const kartlar = [
       </div>
 
       <div style={styles.altGrid}>
-        <div style={styles.panel}>
-          <h3 style={styles.panelBaslik}>{t('sonIslemler')}</h3>
-          {sonIslemler.length === 0 ? (
-            <p style={styles.bosMetin}>Henüz işlem yok.</p>
-          ) : sonIslemler.map(islem => (
-            <div key={islem.id} style={styles.islemSatir}>
-              <div style={{ ...styles.badge, background: (turRenk[islem.tur] || '#a8a8b3') + '22', color: turRenk[islem.tur] || '#a8a8b3' }}>
-                {turLabel[islem.tur] || islem.tur}
+        <div style={styles.panel} onClick={() => setPinnedPortfoy(null)}>
+          <h3 style={styles.panelBaslik}>Portföy Dağılımı</h3>
+          {(() => {
+            const turGruplar = {}
+            const detailsMap = {}
+            // Nakit detayı
+            detailsMap['Nakit'] = hesaplar
+              .filter(h => h.tur !== 'Kredi Kartı' && h.tur !== 'Borç' && !h.yatirim_hesabi)
+              .map(h => {
+                const kur = dovizKurlar[h.para_birimi] || 1
+                const gosterilen = (h.yatirim_hesabi && parseFloat(h.yatirim_toplam) > 0)
+                  ? parseFloat(h.bakiye) + parseFloat(h.yatirim_toplam)
+                  : parseFloat(h.bakiye)
+                return { ad: h.ad, deger: gosterilen * kur, karPct: null }
+              })
+              .filter(h => h.deger > 0)
+
+            for (const y of yatirimlar) {
+              const kur = dovizKurlar[y.para_birimi] || 1
+              const deger = parseFloat(y.guncel_deger || 0) * kur
+              if (deger <= 0) continue
+              const maliyet = parseFloat(y.maliyet || 0) * kur
+              const kar = deger - maliyet
+              const karPct = maliyet > 0 ? ((kar / maliyet) * 100).toFixed(1) : null
+              turGruplar[y.tur] = (turGruplar[y.tur] || 0) + deger
+              if (!detailsMap[y.tur]) detailsMap[y.tur] = []
+              detailsMap[y.tur].push({ ad: y.ad, deger, karPct })
+            }
+
+            const pieData = [
+              ...(ozet.toplamNakit > 0 ? [{ label: 'Nakit', value: ozet.toplamNakit }] : []),
+              ...Object.entries(turGruplar).map(([label, value]) => ({ label, value })),
+            ].sort((a, b) => b.value - a.value)
+            const total = pieData.reduce((s, d) => s + d.value, 0)
+            if (total === 0) return <p style={styles.bosMetin}>Henüz varlık yok.</p>
+
+            let cumAngle = -Math.PI / 2
+            const slices = pieData.map((d) => {
+              const sweep = (d.value / total) * 2 * Math.PI
+              const start = cumAngle; cumAngle += sweep; const end = cumAngle
+              const r = 80, cx = 100, cy = 100
+              const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start)
+              const x2 = cx + r * Math.cos(end),   y2 = cy + r * Math.sin(end)
+              const large = sweep > Math.PI ? 1 : 0
+              const path = sweep >= 2 * Math.PI - 0.001
+                ? `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.001} ${cy - r} Z`
+                : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
+              return { ...d, path, color: turRenkMap[d.label] || '#94a3b8', pct: ((d.value / total) * 100).toFixed(1) }
+            })
+
+            const activeLabel = pinnedPortfoy || hoveredPortfoy
+            const activeSlice = slices.find(s => s.label === activeLabel)
+            const activeDetails = activeLabel ? (detailsMap[activeLabel] || []) : []
+
+            const handleClick = (e, label) => {
+              e.stopPropagation()
+              setPinnedPortfoy(prev => prev === label ? null : label)
+            }
+
+            return (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                  <svg viewBox="0 0 200 200" width="170" height="170">
+                    {slices.map((s, i) => (
+                      <path key={i} d={s.path} fill={s.color} stroke="var(--bg-card)" strokeWidth="3"
+                        style={{ opacity: activeLabel && activeLabel !== s.label ? 0.35 : 1, transition: 'opacity 0.18s', cursor: 'pointer' }}
+                        onMouseEnter={() => setHoveredPortfoy(s.label)}
+                        onMouseLeave={() => setHoveredPortfoy(null)}
+                        onClick={(e) => handleClick(e, s.label)} />
+                    ))}
+                    <circle cx="100" cy="100" r="48" fill="var(--bg-card)" style={{ pointerEvents: 'none' }} />
+                    <text x="100" y="93" textAnchor="middle" fill="var(--text-muted)" fontSize="10" style={{ pointerEvents: 'none' }}>
+                      {activeLabel || 'Toplam'}
+                    </text>
+                    <text x="100" y="108" textAnchor="middle" fill={activeSlice?.color || 'var(--text-primary)'} fontSize="11" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+                      {activeSlice ? `${activeSlice.pct}%` : (gizliMod ? '₺ ****' : `₺${Math.round(total).toLocaleString('tr-TR')}`)}
+                    </text>
+                  </svg>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                  {slices.map((s, i) => (
+                    <div key={i}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', padding: '5px 7px', borderRadius: '8px', cursor: 'pointer', background: activeLabel === s.label ? `${s.color}18` : 'transparent', outline: pinnedPortfoy === s.label ? `1.5px solid ${s.color}60` : 'none', transition: 'background 0.15s' }}
+                      onMouseEnter={() => setHoveredPortfoy(s.label)}
+                      onMouseLeave={() => setHoveredPortfoy(null)}
+                      onClick={(e) => handleClick(e, s.label)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
+                        <span style={{ color: 'var(--text-primary)', fontWeight: activeLabel === s.label ? '600' : '400' }}>{s.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{gizliMod ? '₺ ****' : `₺${Math.round(s.value).toLocaleString('tr-TR')}`}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: '600', minWidth: '40px', textAlign: 'right' }}>{s.pct}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {activeLabel && activeDetails.length > 0 && (
+                  <div style={{ marginTop: '10px', padding: '10px', background: 'var(--bg-input)', borderRadius: '10px', border: `1px solid ${activeSlice?.color || 'var(--border)'}40` }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{activeLabel} · Detay</span>
+                      {pinnedPortfoy === activeLabel && (
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '13px', padding: '0 2px' }}
+                          onClick={(e) => { e.stopPropagation(); setPinnedPortfoy(null) }}>✕</button>
+                      )}
+                    </div>
+                    {activeDetails.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', padding: '4px 0', borderBottom: i < activeDetails.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{item.ad}</span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>{gizliMod ? '₺ ****' : `₺${Math.round(item.deger).toLocaleString('tr-TR')}`}</span>
+                          {item.karPct !== null && (
+                            <span style={{ color: parseFloat(item.karPct) >= 0 ? '#0d9488' : '#ef4444', minWidth: '44px', textAlign: 'right' }}>
+                              {parseFloat(item.karPct) >= 0 ? '+' : ''}{item.karPct}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={styles.islemAd}>{islem.aciklama || islem.kategori}</div>
-                <div style={styles.islemTarih}>{islem.tarih} · {islem.hesaplar?.ad}</div>
-              </div>
-              <div style={{ color: islem.tur === 'gelir' ? '#0d9488' : '#ef4444', fontWeight: 'bold', fontSize: '14px' }}>
-                {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : '-'}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
-              </div>
-            </div>
-          ))}
+            )
+          })()}
         </div>
 
         <div style={styles.panel}>
           <h3 style={styles.panelBaslik}>{t('hesapBakiyeleri')}</h3>
           {hesaplar.length === 0 ? (
             <p style={styles.bosMetin}>Henüz hesap yok.</p>
-          ) : hesaplar.map(hesap => (
-            <div key={hesap.id} style={styles.hesapSatir}>
-              <div style={styles.hesapAd}>{hesap.ad}</div>
-              <div style={styles.hesapTur}>{hesap.tur}</div>
-              <div style={{ color: parseFloat(hesap.bakiye) < 0 ? '#ef4444' : '#0d9488', fontWeight: 'bold', fontSize: '14px' }}>
-                {gizliMod ? '****' : `${hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '}${parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+          ) : hesaplar.map(hesap => {
+            const yatirimToplam = parseFloat(hesap.yatirim_toplam || 0)
+            const bakiye = parseFloat(hesap.bakiye || 0)
+            const gosterilen = (hesap.yatirim_hesabi && yatirimToplam > 0) ? bakiye + yatirimToplam : bakiye
+            const sembol = hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' '
+            return (
+              <div key={hesap.id} style={styles.hesapSatir}>
+                <div style={styles.hesapAd}>{hesap.ad}</div>
+                <div style={styles.hesapTur}>{hesap.tur}</div>
+                <div style={{ color: gosterilen < 0 ? '#ef4444' : '#0d9488', fontWeight: 'bold', fontSize: '14px' }}>
+                  {gizliMod ? '****' : `${sembol}${gosterilen.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

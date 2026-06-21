@@ -27,6 +27,8 @@ const [gorunum, setGorunum] = useState('liste')
 const [kurlar, setKurlar] = useState({ TRY: 1, USD: 1, EUR: 1, GBP: 1 })
 const [hoveredTur, setHoveredTur] = useState(null)
 const [hoveredHesap, setHoveredHesap] = useState(null)
+const [pinnedTur, setPinnedTur] = useState(null)
+const [pinnedHesap, setPinnedHesap] = useState(null)
 const [satis, setSatis] = useState({ miktar: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
 const [yeni, setYeni] = useState({
   ad: '', tur: 'Hisse', miktar: '', birim_maliyet: '', komisyon: '0',
@@ -317,7 +319,7 @@ const satisYap = async () => {
   const toplamGetiri = toplamMaliyet > 0 ? ((toplamKarZarar / toplamMaliyet) * 100).toFixed(2) : 0
 
   const pieRenkler = ['#0d9488','#eab308','#0ea5e9','#a78bfa','#f59e0b','#34d399','#ef4444','#f97316','#ec4899','#6366f1']
-  const renderPieChart = (data, title, detailsMap, hovered, setHovered) => {
+  const renderPieChart = (data, title, detailsMap, hovered, setHovered, pinned, setPinned) => {
     const total = data.reduce((s, d) => s + d.value, 0)
     if (total === 0) return null
     const sorted = [...data].sort((a, b) => b.value - a.value)
@@ -336,40 +338,52 @@ const satisYap = async () => {
         : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
       return { path, color: pieRenkler[i % pieRenkler.length], label: d.label, value: d.value, pct: ((d.value / total) * 100).toFixed(1) }
     })
-    const hovSlice = slices.find(s => s.label === hovered)
-    const hovDetails = hovered ? (detailsMap[hovered] || []) : []
+    // pinned öncelikli, yoksa hover
+    const activeLabel = pinned || hovered
+    const activeSlice = slices.find(s => s.label === activeLabel)
+    const activeDetails = activeLabel ? (detailsMap[activeLabel] || []) : []
+
+    const handleSliceClick = (e, label) => {
+      e.stopPropagation()
+      setPinned(prev => prev === label ? null : label)
+    }
+
     return (
-      <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-light)', flex: 1, minWidth: mobil ? '100%' : '280px' }}>
+      <div
+        style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-light)', flex: 1, minWidth: mobil ? '100%' : '280px' }}
+        onClick={() => setPinned(null)}>
         <h3 style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>{title}</h3>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <svg viewBox="0 0 200 200" width="180" height="180">
             {slices.map((s, i) => (
               <path key={i} d={s.path} fill={s.color} stroke="var(--bg-card)" strokeWidth="3"
-                style={{ opacity: hovered && hovered !== s.label ? 0.35 : 1, transition: 'opacity 0.18s', cursor: 'pointer' }}
+                style={{ opacity: activeLabel && activeLabel !== s.label ? 0.35 : 1, transition: 'opacity 0.18s', cursor: 'pointer' }}
                 onMouseEnter={() => setHovered(s.label)}
-                onMouseLeave={() => setHovered(null)} />
+                onMouseLeave={() => setHovered(null)}
+                onClick={(e) => handleSliceClick(e, s.label)} />
             ))}
             <circle cx="100" cy="100" r="48" fill="var(--bg-card)" style={{ pointerEvents: 'none' }} />
             <text x="100" y="93" textAnchor="middle" fill="var(--text-muted)" fontSize="10" style={{ pointerEvents: 'none' }}>
-              {hovered ? hovered : `${slices.length} kalem`}
+              {activeLabel || `${slices.length} kalem`}
             </text>
-            {hovSlice && (
-              <text x="100" y="108" textAnchor="middle" fill={hovSlice.color} fontSize="12" fontWeight="bold" style={{ pointerEvents: 'none' }}>
-                {hovSlice.pct}%
+            {activeSlice && (
+              <text x="100" y="108" textAnchor="middle" fill={activeSlice.color} fontSize="12" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+                {activeSlice.pct}%
               </text>
             )}
           </svg>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }} onClick={e => e.stopPropagation()}>
           {slices.map((s, i) => (
             <div key={i}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', padding: '6px 8px', borderRadius: '8px', cursor: 'pointer', background: hovered === s.label ? `${s.color}12` : 'transparent', transition: 'background 0.15s' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', padding: '6px 8px', borderRadius: '8px', cursor: 'pointer', background: activeLabel === s.label ? `${s.color}18` : 'transparent', outline: pinned === s.label ? `1.5px solid ${s.color}60` : 'none', transition: 'background 0.15s' }}
               onMouseEnter={() => setHovered(s.label)}
-              onMouseLeave={() => setHovered(null)}>
+              onMouseLeave={() => setHovered(null)}
+              onClick={(e) => handleSliceClick(e, s.label)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
-                <span style={{ color: 'var(--text-primary)', fontWeight: hovered === s.label ? '600' : '400' }}>{s.label}</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: activeLabel === s.label ? '600' : '400' }}>{s.label}</span>
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
@@ -381,11 +395,17 @@ const satisYap = async () => {
           ))}
         </div>
 
-        {hovered && hovDetails.length > 0 && (
-          <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-input)', borderRadius: '10px', border: `1px solid ${hovSlice?.color || 'var(--border)'}30` }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{hovered} · Detay</div>
-            {hovDetails.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '5px 0', borderBottom: i < hovDetails.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+        {activeLabel && activeDetails.length > 0 && (
+          <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-input)', borderRadius: '10px', border: `1px solid ${activeSlice?.color || 'var(--border)'}40` }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{activeLabel} · Detay</div>
+              {pinned === activeLabel && (
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}
+                  onClick={(e) => { e.stopPropagation(); setPinned(null) }}>✕</button>
+              )}
+            </div>
+            {activeDetails.map((item, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '5px 0', borderBottom: i < activeDetails.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                 <span style={{ color: 'var(--text-primary)' }}>{item.ad}</span>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>₺{gizliMod ? '****' : item.deger.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}</span>
@@ -676,8 +696,8 @@ const satisYap = async () => {
         const hesapData = Object.entries(hesapGruplar).map(([label, value]) => ({ label, value }))
         return (
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            {renderPieChart(turData, 'Yatırım Türüne Göre Dağılım', turDetailsMap, hoveredTur, setHoveredTur)}
-            {renderPieChart(hesapData, 'Hesaba Göre Dağılım', hesapDetailsMap, hoveredHesap, setHoveredHesap)}
+            {renderPieChart(turData, 'Yatırım Türüne Göre Dağılım', turDetailsMap, hoveredTur, setHoveredTur, pinnedTur, setPinnedTur)}
+            {renderPieChart(hesapData, 'Hesaba Göre Dağılım', hesapDetailsMap, hoveredHesap, setHoveredHesap, pinnedHesap, setPinnedHesap)}
           </div>
         )
       })()}
