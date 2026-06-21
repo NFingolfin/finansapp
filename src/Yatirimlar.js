@@ -24,6 +24,9 @@ const toggleGrup = (ad) => setKapaliGruplar(prev => {
   return next
 })
 const [gorunum, setGorunum] = useState('liste')
+const [kurlar, setKurlar] = useState({ TRY: 1, USD: 1, EUR: 1, GBP: 1 })
+const [hoveredTur, setHoveredTur] = useState(null)
+const [hoveredHesap, setHoveredHesap] = useState(null)
 const [satis, setSatis] = useState({ miktar: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
 const [yeni, setYeni] = useState({
   ad: '', tur: 'Hisse', miktar: '', birim_maliyet: '', komisyon: '0',
@@ -45,6 +48,17 @@ const [yeni, setYeni] = useState({
   useEffect(() => {
     yatirimlariGetir()
     hesaplariGetir()
+    fetch('https://api.exchangerate-api.com/v4/latest/TRY')
+      .then(r => r.json())
+      .then(d => {
+        if (d.rates) setKurlar({
+          TRY: 1,
+          USD: 1 / (d.rates.USD || 1),
+          EUR: 1 / (d.rates.EUR || 1),
+          GBP: 1 / (d.rates.GBP || 1),
+        })
+      })
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const yatirimlariGetir = async () => {
@@ -297,13 +311,13 @@ const satisYap = async () => {
   yatirimlariGetir()
   setKaydediliyor(false)
 }
-  const toplamMaliyet = yatirimlar.filter(y => y.para_birimi === 'TRY').reduce((a, y) => a + parseFloat(y.maliyet), 0)
-  const toplamGuncel = yatirimlar.filter(y => y.para_birimi === 'TRY').reduce((a, y) => a + parseFloat(y.guncel_deger), 0)
+  const toplamMaliyet = yatirimlar.reduce((a, y) => a + parseFloat(y.maliyet || 0) * (kurlar[y.para_birimi] || 1), 0)
+  const toplamGuncel = yatirimlar.reduce((a, y) => a + parseFloat(y.guncel_deger || 0) * (kurlar[y.para_birimi] || 1), 0)
   const toplamKarZarar = toplamGuncel - toplamMaliyet
   const toplamGetiri = toplamMaliyet > 0 ? ((toplamKarZarar / toplamMaliyet) * 100).toFixed(2) : 0
 
   const pieRenkler = ['#0d9488','#eab308','#0ea5e9','#a78bfa','#f59e0b','#34d399','#ef4444','#f97316','#ec4899','#6366f1']
-  const renderPieChart = (data, title) => {
+  const renderPieChart = (data, title, detailsMap, hovered, setHovered) => {
     const total = data.reduce((s, d) => s + d.value, 0)
     if (total === 0) return null
     const sorted = [...data].sort((a, b) => b.value - a.value)
@@ -322,27 +336,65 @@ const satisYap = async () => {
         : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`
       return { path, color: pieRenkler[i % pieRenkler.length], label: d.label, value: d.value, pct: ((d.value / total) * 100).toFixed(1) }
     })
+    const hovSlice = slices.find(s => s.label === hovered)
+    const hovDetails = hovered ? (detailsMap[hovered] || []) : []
     return (
       <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-light)', flex: 1, minWidth: mobil ? '100%' : '280px' }}>
         <h3 style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>{title}</h3>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <svg viewBox="0 0 200 200" width="180" height="180">
-            {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="var(--bg-card)" strokeWidth="3" />)}
-            <circle cx="100" cy="100" r="48" fill="var(--bg-card)" />
-            <text x="100" y="96" textAnchor="middle" fill="var(--text-muted)" fontSize="11">{slices.length} kalem</text>
+            {slices.map((s, i) => (
+              <path key={i} d={s.path} fill={s.color} stroke="var(--bg-card)" strokeWidth="3"
+                style={{ opacity: hovered && hovered !== s.label ? 0.35 : 1, transition: 'opacity 0.18s', cursor: 'pointer' }}
+                onMouseEnter={() => setHovered(s.label)}
+                onMouseLeave={() => setHovered(null)} />
+            ))}
+            <circle cx="100" cy="100" r="48" fill="var(--bg-card)" style={{ pointerEvents: 'none' }} />
+            <text x="100" y="93" textAnchor="middle" fill="var(--text-muted)" fontSize="10" style={{ pointerEvents: 'none' }}>
+              {hovered ? hovered : `${slices.length} kalem`}
+            </text>
+            {hovSlice && (
+              <text x="100" y="108" textAnchor="middle" fill={hovSlice.color} fontSize="12" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+                {hovSlice.pct}%
+              </text>
+            )}
           </svg>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {slices.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
+            <div key={i}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', padding: '6px 8px', borderRadius: '8px', cursor: 'pointer', background: hovered === s.label ? `${s.color}12` : 'transparent', transition: 'background 0.15s' }}
+              onMouseEnter={() => setHovered(s.label)}
+              onMouseLeave={() => setHovered(null)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color, flexShrink: 0 }} />
-                <span style={{ color: 'var(--text-primary)' }}>{s.label}</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: hovered === s.label ? '600' : '400' }}>{s.label}</span>
               </div>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: '600' }}>{s.pct}%</span>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                  ₺{gizliMod ? '****' : s.value.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                </span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: '600', minWidth: '42px', textAlign: 'right' }}>{s.pct}%</span>
+              </div>
             </div>
           ))}
         </div>
+
+        {hovered && hovDetails.length > 0 && (
+          <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-input)', borderRadius: '10px', border: `1px solid ${hovSlice?.color || 'var(--border)'}30` }}>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{hovered} · Detay</div>
+            {hovDetails.map((item, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '5px 0', borderBottom: i < hovDetails.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                <span style={{ color: 'var(--text-primary)' }}>{item.ad}</span>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>₺{gizliMod ? '****' : item.deger.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}</span>
+                  <span style={{ color: item.kar >= 0 ? '#0d9488' : '#ef4444', fontSize: '12px', minWidth: '48px', textAlign: 'right' }}>{item.kar >= 0 ? '+' : ''}{item.karPct}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
@@ -602,18 +654,30 @@ const satisYap = async () => {
 
       {gorunum === 'grafik' && !yukleniyor && yatirimlar.length > 0 && (() => {
         const turGruplar = {}, hesapGruplar = {}
+        const turDetailsMap = {}, hesapDetailsMap = {}
         for (const y of yatirimlar) {
-          const deger = parseFloat(y.guncel_deger || 0)
+          const kur = kurlar[y.para_birimi] || 1
+          const deger = parseFloat(y.guncel_deger || 0) * kur
+          const maliyet = parseFloat(y.maliyet || 0) * kur
+          const kar = deger - maliyet
+          const karPct = maliyet > 0 ? ((kar / maliyet) * 100).toFixed(1) : '0.0'
+          const item = { ad: y.ad, deger, kar, karPct }
+          // tur grupları
           turGruplar[y.tur] = (turGruplar[y.tur] || 0) + deger
+          if (!turDetailsMap[y.tur]) turDetailsMap[y.tur] = []
+          turDetailsMap[y.tur].push(item)
+          // hesap grupları
           const ad = y.hesaplar?.ad || 'Hesapsız'
           hesapGruplar[ad] = (hesapGruplar[ad] || 0) + deger
+          if (!hesapDetailsMap[ad]) hesapDetailsMap[ad] = []
+          hesapDetailsMap[ad].push({ ...item, tur: y.tur })
         }
         const turData = Object.entries(turGruplar).map(([label, value]) => ({ label, value }))
         const hesapData = Object.entries(hesapGruplar).map(([label, value]) => ({ label, value }))
         return (
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            {renderPieChart(turData, 'Yatırım Türüne Göre Dağılım')}
-            {renderPieChart(hesapData, 'Hesaba Göre Dağılım')}
+            {renderPieChart(turData, 'Yatırım Türüne Göre Dağılım', turDetailsMap, hoveredTur, setHoveredTur)}
+            {renderPieChart(hesapData, 'Hesaba Göre Dağılım', hesapDetailsMap, hoveredHesap, setHoveredHesap)}
           </div>
         )
       })()}
