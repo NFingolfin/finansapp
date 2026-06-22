@@ -29,7 +29,7 @@ const [hoveredTur, setHoveredTur] = useState(null)
 const [hoveredHesap, setHoveredHesap] = useState(null)
 const [pinnedTur, setPinnedTur] = useState(null)
 const [pinnedHesap, setPinnedHesap] = useState(null)
-const [satis, setSatis] = useState({ miktar: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
+const [satis, setSatis] = useState({ miktar: '', birimFiyat: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
 const [yeni, setYeni] = useState({
   ad: '', tur: 'Hisse', miktar: '', birim_maliyet: '', komisyon: '0',
   guncel_deger: '', para_birimi: 'TRY', hesap_id: '', hesaptan_duş: false, odeme_hesap_id: ''
@@ -281,13 +281,12 @@ const satisYap = async () => {
   const mevcutMaliyet = parseFloat(satisYatirim.maliyet)
   const mevcutDeger = parseFloat(satisYatirim.guncel_deger)
 
-  const tamSatis = satılanMiktar >= mevcutMiktar || mevcutMiktar === 0
+  // Miktar girilmemişse veya mevcut miktara eşit/büyükse tam satış
+  const tamSatis = mevcutMiktar === 0 || satılanMiktar <= 0 || satılanMiktar >= mevcutMiktar
 
   if (tamSatis) {
-    // Yatırımı sil
     await supabase.from('yatirimlar').delete().eq('id', satisYatirim.id)
   } else {
-    // Kısmen sat — oransal güncelle
     const kalaanOran = (mevcutMiktar - satılanMiktar) / mevcutMiktar
     await supabase.from('yatirimlar').update({
       miktar: mevcutMiktar - satılanMiktar,
@@ -296,7 +295,7 @@ const satisYap = async () => {
     }).eq('id', satisYatirim.id)
   }
 
-  // Seçilen hesaba satış geliri ekle
+  // İşlem kaydı ekle
   await supabase.from('islemler').insert({
     user_id: session.user.id,
     hesap_id: satis.hesap_id,
@@ -304,12 +303,20 @@ const satisYap = async () => {
     tutar: satisTutar,
     tur: 'gelir',
     kategori: 'Yatırım Getirisi',
-    aciklama: `${satisYatirim.ad} satışı`
+    aciklama: `${satisYatirim.ad} satışı${satılanMiktar > 0 ? ` (${satılanMiktar} adet)` : ''}`
   })
+
+  // Hedef hesap bakiyesini artır
+  const hedefHesap = hesaplar.find(h => h.id === satis.hesap_id)
+  if (hedefHesap) {
+    await supabase.from('hesaplar').update({
+      bakiye: parseFloat(hedefHesap.bakiye) + satisTutar
+    }).eq('id', satis.hesap_id)
+  }
 
   setSatisFormAcik(false)
   setSatisYatirim(null)
-  setSatis({ miktar: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
+  setSatis({ miktar: '', birimFiyat: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
   yatirimlariGetir()
   setKaydediliyor(false)
 }
@@ -532,12 +539,28 @@ const satisYap = async () => {
           <input style={styles.input} type="number"
             placeholder={`Max: ${satisYatirim.miktar} adet`}
             value={satis.miktar}
-            onChange={e => setSatis({ ...satis, miktar: e.target.value })} />
+            onChange={e => {
+              const m = e.target.value
+              const b = parseFloat(satis.birimFiyat)
+              const autoTutar = m && b > 0 ? (parseFloat(m) * b).toFixed(2) : satis.tutar
+              setSatis({ ...satis, miktar: m, tutar: autoTutar })
+            }} />
+
+          <label style={styles.label}>Birim Satış Fiyatı ({pbSembol(satisYatirim.para_birimi)})</label>
+          <input style={styles.input} type="number"
+            placeholder="Adet başına satış fiyatı"
+            value={satis.birimFiyat}
+            onChange={e => {
+              const b = e.target.value
+              const m = parseFloat(satis.miktar)
+              const autoTutar = b && m > 0 ? (parseFloat(b) * m).toFixed(2) : satis.tutar
+              setSatis({ ...satis, birimFiyat: b, tutar: autoTutar })
+            }} />
         </>
       )}
 
-      <label style={styles.label}>Satış Tutarı ({pbSembol(satisYatirim.para_birimi)})</label>
-      <input style={styles.input} type="number" placeholder="Elde ettiğin tutar"
+      <label style={styles.label}>Toplam Satış Tutarı ({pbSembol(satisYatirim.para_birimi)})</label>
+      <input style={styles.input} type="number" placeholder="Elde ettiğin toplam tutar"
         value={satis.tutar}
         onChange={e => setSatis({ ...satis, tutar: e.target.value })} />
 
@@ -552,21 +575,33 @@ const satisYap = async () => {
         <option value="">Hesap seç</option>
         {hesaplar.map(h => (
           <option key={h.id} value={h.id}>
-            {h.ad} (₺{parseFloat(h.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
+            {h.ad} ({h.para_birimi === 'TRY' ? '₺' : h.para_birimi + ' '}{parseFloat(h.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
           </option>
         ))}
       </select>
 
-      {satis.tutar && satisYatirim.maliyet && (
-        <div style={{ ...styles.bilgiMesaj, color: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? '#0d9488' : '#ef4444',
-          background: parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(13,148,136,0.06)' : 'rgba(239,68,68,0.06)',
-          border: `1px solid ${parseFloat(satis.tutar) >= parseFloat(satisYatirim.guncel_deger) ? 'rgba(13,148,136,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-          {parseFloat(satis.tutar) >= parseFloat(satisYatirim.maliyet)
-            ? `🟢 Kar: +${pbSembol(satisYatirim.para_birimi)}${(parseFloat(satis.tutar) - parseFloat(satisYatirim.maliyet)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
-            : `🔴 Zarar: -${pbSembol(satisYatirim.para_birimi)}${(parseFloat(satisYatirim.maliyet) - parseFloat(satis.tutar)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
-          }
-        </div>
-      )}
+      {satis.tutar && satisYatirim.maliyet && (() => {
+        const satMiktar = parseFloat(satis.miktar) || 0
+        const mevcutMiktar = parseFloat(satisYatirim.miktar) || 0
+        const oran = (satMiktar > 0 && mevcutMiktar > 0) ? Math.min(satMiktar / mevcutMiktar, 1) : 1
+        const ilgiliMaliyet = parseFloat(satisYatirim.maliyet) * oran
+        const kar = parseFloat(satis.tutar) - ilgiliMaliyet
+        const karPct = ilgiliMaliyet > 0 ? Math.abs((kar / ilgiliMaliyet) * 100).toFixed(1) : '0.0'
+        const pozitif = kar >= 0
+        return (
+          <div style={{ ...styles.bilgiMesaj, color: pozitif ? '#0d9488' : '#ef4444', background: pozitif ? 'rgba(13,148,136,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${pozitif ? 'rgba(13,148,136,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+            {pozitif
+              ? `🟢 Kar: +${pbSembol(satisYatirim.para_birimi)}${kar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} (+${karPct}%)`
+              : `🔴 Zarar: ${pbSembol(satisYatirim.para_birimi)}${kar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} (-${karPct}%)`
+            }
+            {satMiktar > 0 && mevcutMiktar > 0 && satMiktar < mevcutMiktar && (
+              <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.8 }}>
+                Kısmi satış · Maliyet payı: {pbSembol(satisYatirim.para_birimi)}{ilgiliMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       <div style={styles.modalBtnler}>
         <button style={styles.iptalBtn} onClick={() => { setSatisFormAcik(false); setSatisYatirim(null) }}>İptal</button>
@@ -746,7 +781,7 @@ const satisYap = async () => {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button style={styles.duzenleBtn} onClick={() => { setDuzenleYatirim(y); setDuzenleModal(true) }}>✏️</button>
-                  <button style={styles.satisBtn} onClick={() => { setSatisYatirim(y); setSatis({ miktar: '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] }); setSatisFormAcik(true) }}>📤 Sat</button>
+                  <button style={styles.satisBtn} onClick={() => { setSatisYatirim(y); setSatis({ miktar: '', birimFiyat: parseFloat(y.birim_fiyat) > 0 ? String(y.birim_fiyat) : '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] }); setSatisFormAcik(true) }}>📤 Sat</button>
                   <button style={styles.silBtn} onClick={() => yatirimSil(y.id)}>🗑️</button>
                 </div>
               </div>

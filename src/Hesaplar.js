@@ -566,8 +566,10 @@ const toplamTRY = hesaplar
 )}
 {hesap.yatirim_hesabi && hesap.yatirim_toplam > 0 && !gizliMod && (
   <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
-    Nakit: ₺{parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })} +
-    Yatırım: ₺{hesap.yatirim_toplam.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
+    {(() => {
+      const s = { TRY: '₺', USD: '$', EUR: '€', GBP: '£' }[hesap.para_birimi] || hesap.para_birimi + ' '
+      return `Nakit: ${s}${parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })} + Yatırım: ${s}${hesap.yatirim_toplam.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`
+    })()}
   </div>
 )}
             </div>

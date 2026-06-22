@@ -324,13 +324,11 @@ const kartlar = [
             const detailsMap = {}
             // Nakit detayı
             detailsMap['Nakit'] = hesaplar
-              .filter(h => h.tur !== 'Kredi Kartı' && h.tur !== 'Borç' && !h.yatirim_hesabi)
+              .filter(h => h.tur !== 'Kredi Kartı' && h.tur !== 'Borç')
               .map(h => {
                 const kur = dovizKurlar[h.para_birimi] || 1
-                const gosterilen = (h.yatirim_hesabi && parseFloat(h.yatirim_toplam) > 0)
-                  ? parseFloat(h.bakiye) + parseFloat(h.yatirim_toplam)
-                  : parseFloat(h.bakiye)
-                return { ad: h.ad, deger: gosterilen * kur, karPct: null }
+                // Yatırım hesapları için sadece nakit bakiye (yatirim_toplam hariç)
+                return { ad: h.ad, deger: parseFloat(h.bakiye) * kur, karPct: null }
               })
               .filter(h => h.deger > 0)
 
