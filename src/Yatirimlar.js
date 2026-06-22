@@ -17,6 +17,9 @@ function Yatirimlar({ session, mobil, gizliMod }) {
 const [satisYatirim, setSatisYatirim] = useState(null)
 const [duzenleModal, setDuzenleModal] = useState(false)
 const [duzenleYatirim, setDuzenleYatirim] = useState(null)
+const [realizasyonlar, setRealizasyonlar] = useState([])
+const [performansAcik, setPerformansAcik] = useState(false)
+const [performansFiltre, setPerformansFiltre] = useState('tum')
 const [kapaliGruplar, setKapaliGruplar] = useState(new Set())
 const toggleGrup = (ad) => setKapaliGruplar(prev => {
   const next = new Set(prev)
@@ -47,9 +50,19 @@ const [yeni, setYeni] = useState({
     'Döviz': '💱', 'Altın': '🥇', 'BES': '🏛️', 'Diğer': '💼'
   }
 
+  const realizasyonlariGetir = async () => {
+    const { data } = await supabase
+      .from('realizasyonlar')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('tarih', { ascending: false })
+    if (data) setRealizasyonlar(data)
+  }
+
   useEffect(() => {
     yatirimlariGetir()
     hesaplariGetir()
+    realizasyonlariGetir()
     fetch('https://api.exchangerate-api.com/v4/latest/TRY')
       .then(r => r.json())
       .then(d => {
@@ -215,13 +228,12 @@ const fiyatlariGuncelle = async () => {
     hesap_id: yeni.hesap_id || null
   })
 
-  if (!error && yeni.maliyet) {
-    let odemeHesapId = null
-    if (yeni.hesaptan_duş && yeni.odeme_hesap_id) {
-      odemeHesapId = yeni.odeme_hesap_id
-    } else if (yeni.hesap_id) {
-      odemeHesapId = yeni.hesap_id
-    }
+  if (!error && toplamMaliyet > 0) {
+    // Toggle kapalı → yatırım hesabının nakitinden düş, açık → seçilen hesaptan düş
+    const odemeHesapId = (yeni.hesaptan_duş && yeni.odeme_hesap_id)
+      ? yeni.odeme_hesap_id
+      : (yeni.hesap_id || null)
+
     if (odemeHesapId) {
       await supabase.from('islemler').insert({
         user_id: session.user.id,
@@ -232,6 +244,13 @@ const fiyatlariGuncelle = async () => {
         kategori: 'Yatırım',
         aciklama: `${yeni.ad} alımı (${miktar} adet)`
       })
+      // Hesap bakiyesini düş
+      const odemeHesap = hesaplar.find(h => h.id === odemeHesapId)
+      if (odemeHesap) {
+        await supabase.from('hesaplar').update({
+          bakiye: parseFloat(odemeHesap.bakiye) - toplamMaliyet
+        }).eq('id', odemeHesapId)
+      }
     }
   }
 
@@ -314,10 +333,31 @@ const satisYap = async () => {
     }).eq('id', satis.hesap_id)
   }
 
+  // Realizasyon kaydı
+  const oran = tamSatis ? 1 : (mevcutMiktar > 0 ? satılanMiktar / mevcutMiktar : 1)
+  const ilgiliMaliyet = mevcutMaliyet * oran
+  const karZarar = satisTutar - ilgiliMaliyet
+  const karYuzde = ilgiliMaliyet > 0 ? (karZarar / ilgiliMaliyet) * 100 : 0
+  await supabase.from('realizasyonlar').insert({
+    user_id: session.user.id,
+    tarih: satis.tarih,
+    yatirim_adi: satisYatirim.ad,
+    tur: satisYatirim.tur,
+    para_birimi: satisYatirim.para_birimi,
+    satilan_miktar: tamSatis ? mevcutMiktar : satılanMiktar,
+    satis_fiyati: parseFloat(satis.birimFiyat) || 0,
+    satis_tutari: satisTutar,
+    maliyet: ilgiliMaliyet,
+    kar_zarar: karZarar,
+    kar_yuzde: karYuzde,
+    hesap_id: satis.hesap_id || null,
+  })
+
   setSatisFormAcik(false)
   setSatisYatirim(null)
   setSatis({ miktar: '', birimFiyat: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
   yatirimlariGetir()
+  realizasyonlariGetir()
   setKaydediliyor(false)
 }
   const toplamMaliyet = yatirimlar.reduce((a, y) => a + parseFloat(y.maliyet || 0) * (kurlar[y.para_birimi] || 1), 0)
@@ -459,8 +499,109 @@ const satisYap = async () => {
           <button style={{ ...styles.gorunumBtn, background: gorunum === 'liste' ? 'var(--bg-card)' : 'transparent', color: gorunum === 'liste' ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: gorunum === 'liste' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setGorunum('liste')}>☰ Liste</button>
           <button style={{ ...styles.gorunumBtn, background: gorunum === 'grafik' ? 'var(--bg-card)' : 'transparent', color: gorunum === 'grafik' ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: gorunum === 'grafik' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setGorunum('grafik')}>📊 Grafik</button>
         </div>
+        <button style={{ ...styles.ekleBtn, background: performansAcik ? 'linear-gradient(135deg,#6366f1,#a78bfa)' : 'linear-gradient(135deg,#0d9488,#0ea5e9)' }}
+          onClick={() => setPerformansAcik(p => !p)}>
+          📊 Yatırım Performansı
+        </button>
         <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Yeni Yatırım Ekle</button>
       </div>
+
+      {performansAcik && (() => {
+        const pb = (r) => ({ TRY: '₺', USD: '$', EUR: '€', GBP: '£' }[r.para_birimi] || r.para_birimi + ' ')
+        const filtreler = [
+          { key: '1ay',  label: 'Son 1 Ay',   ay: 1  },
+          { key: '3ay',  label: 'Son 3 Ay',   ay: 3  },
+          { key: '6ay',  label: 'Son 6 Ay',   ay: 6  },
+          { key: '1yil', label: 'Son 1 Yıl',  ay: 12 },
+          { key: 'tum',  label: 'Tüm Zamanlar', ay: null },
+        ]
+        const bugun = new Date()
+        const seciliFil = filtreler.find(f => f.key === performansFiltre)
+        const filtreliRealizasyonlar = realizasyonlar.filter(r => {
+          if (!seciliFil?.ay) return true
+          const sinir = new Date(bugun)
+          sinir.setMonth(sinir.getMonth() - seciliFil.ay)
+          return new Date(r.tarih) >= sinir
+        })
+        const toplamKar = filtreliRealizasyonlar.reduce((s, r) => s + parseFloat(r.kar_zarar) * (kurlar[r.para_birimi] || 1), 0)
+        const toplamSatis = filtreliRealizasyonlar.reduce((s, r) => s + parseFloat(r.satis_tutari) * (kurlar[r.para_birimi] || 1), 0)
+        const toplamMaliyet = filtreliRealizasyonlar.reduce((s, r) => s + parseFloat(r.maliyet) * (kurlar[r.para_birimi] || 1), 0)
+        const karliIslem = filtreliRealizasyonlar.filter(r => parseFloat(r.kar_zarar) >= 0).length
+        const ortKarYuzde = toplamMaliyet > 0 ? ((toplamKar / toplamMaliyet) * 100).toFixed(1) : '0.0'
+        return (
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '16px', padding: '24px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <h3 style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', margin: 0 }}>📊 Yatırım Performansı — Gerçekleşen Kar/Zarar</h3>
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', padding: '4px' }}>
+                {filtreler.map(f => (
+                  <button key={f.key}
+                    style={{ padding: '5px 12px', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s',
+                      background: performansFiltre === f.key ? 'linear-gradient(135deg,#6366f1,#a78bfa)' : 'transparent',
+                      color: performansFiltre === f.key ? '#fff' : 'var(--text-muted)' }}
+                    onClick={() => setPerformansFiltre(f.key)}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
+              {[
+                { label: 'Toplam Gerçekleşen K/Z', deger: `${toplamKar >= 0 ? '+' : ''}₺${Math.abs(toplamKar).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`, renk: toplamKar >= 0 ? '#0d9488' : '#ef4444' },
+                { label: 'Toplam Satış Tutarı', deger: `₺${Math.round(toplamSatis).toLocaleString('tr-TR')}`, renk: '#0ea5e9' },
+                { label: 'Ortalama Getiri', deger: `${parseFloat(ortKarYuzde) >= 0 ? '+' : ''}${ortKarYuzde}%`, renk: parseFloat(ortKarYuzde) >= 0 ? '#0d9488' : '#ef4444' },
+                { label: 'İşlem Sayısı', deger: `${realizasyonlar.length} (${karliIslem} karlı)`, renk: '#a78bfa' },
+              ].map((k, i) => (
+                <div key={i} style={{ background: 'var(--bg-input)', borderRadius: '12px', padding: '14px', border: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginBottom: '6px' }}>{k.label}</div>
+                  <div style={{ color: k.renk, fontSize: '16px', fontWeight: '700' }}>{gizliMod ? '****' : k.deger}</div>
+                </div>
+              ))}
+            </div>
+
+            {filtreliRealizasyonlar.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                {realizasyonlar.length === 0 ? 'Henüz satış işlemi yapılmamış.' : 'Bu dönemde satış işlemi yok.'}
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                      {['Tarih', 'Varlık', 'Tür', 'Miktar', 'Maliyet', 'Satış', 'Kar / Zarar', '%'].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: '600', textAlign: h === 'Tarih' || h === 'Varlık' || h === 'Tür' ? 'left' : 'right', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtreliRealizasyonlar.map((r, i) => {
+                      const kz = parseFloat(r.kar_zarar)
+                      const pct = parseFloat(r.kar_yuzde)
+                      const s = pb(r)
+                      return (
+                        <tr key={r.id} style={{ borderBottom: '1px solid var(--border-light)', background: i % 2 === 0 ? 'transparent' : 'var(--bg-input)' }}>
+                          <td style={{ padding: '9px 10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.tarih}</td>
+                          <td style={{ padding: '9px 10px', color: 'var(--text-primary)', fontWeight: '600' }}>{r.yatirim_adi}</td>
+                          <td style={{ padding: '9px 10px', color: 'var(--text-secondary)' }}>{r.tur}</td>
+                          <td style={{ padding: '9px 10px', color: 'var(--text-secondary)', textAlign: 'right' }}>{parseFloat(r.satilan_miktar) > 0 ? parseFloat(r.satilan_miktar).toLocaleString('tr-TR') : '—'}</td>
+                          <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{gizliMod ? '****' : `${s}${parseFloat(r.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}</td>
+                          <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{gizliMod ? '****' : `${s}${parseFloat(r.satis_tutari).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}</td>
+                          <td style={{ padding: '9px 10px', textAlign: 'right', color: kz >= 0 ? '#0d9488' : '#ef4444', fontWeight: '600' }}>
+                            {gizliMod ? '****' : `${kz >= 0 ? '+' : ''}${s}${kz.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                          </td>
+                          <td style={{ padding: '9px 10px', textAlign: 'right', color: pct >= 0 ? '#0d9488' : '#ef4444', fontWeight: '600' }}>
+                            {`${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 {duzenleModal && duzenleYatirim && (
   <div style={styles.modalOverlay}>
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>

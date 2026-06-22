@@ -235,8 +235,8 @@ const toplamTRY = hesaplar
   }, 0)
 
   const toplamBorc = hesaplar
-    .filter(h => h.tur === 'Borç')
-    .reduce((acc, h) => acc + parseFloat(h.bakiye || 0) * (h.kur || 1), 0)
+    .filter(h => h.tur === 'Borç' || (h.tur === 'Kredi Kartı' && parseFloat(h.bakiye || 0) < 0))
+    .reduce((acc, h) => acc + Math.abs(parseFloat(h.bakiye || 0)) * (h.kur || 1), 0)
 
   return (
     <div>
