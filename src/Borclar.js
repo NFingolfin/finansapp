@@ -864,7 +864,40 @@ const odemeYap = async (borc) => {
 {/* Kredi Kartı Grupları */}
 {(filtre === 'hepsi' || filtre === 'kredi') && Object.entries(gruplar).map(([kartAdi, kartBorclar]) => {
   const toplamKalanKart = kartBorclar.reduce((a, b) => a + parseFloat(b.kalan_borc), 0)
-  const buAyKart = kartBorclar.reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
+  const _bugun = new Date()
+  _bugun.setHours(0, 0, 0, 0)
+  // Bu karta ait hesap kaydından kesim gününü bul
+  const _kkHesap = kkHesaplar.find(h => h.ad === kartAdi)
+  const _kesimGunu = _kkHesap?.kesim_gunu || 1
+  // Aktif dönemin kesim tarihini hesapla:
+  // En yakın gelecekteki (veya bugünkü) son ödeme tarihini bul
+  const _enYakinSonOdeme = kartBorclar
+    .filter(b => b.son_odeme_tarihi)
+    .map(b => new Date(b.son_odeme_tarihi))
+    .sort((a, b) => a - b)
+    .find(t => t >= _bugun)
+  // Son ödeme tarihi geçmemişse bu dönemin kesim tarihini, geçmişse bir sonrakini kullan
+  let _aktifKesimTarihi
+  if (_enYakinSonOdeme) {
+    // Son ödeme tarihi olan ayda, kesim günü bu ayın kesim tarihidir
+    _aktifKesimTarihi = new Date(_enYakinSonOdeme.getFullYear(), _enYakinSonOdeme.getMonth() - 1, _kesimGunu)
+  } else {
+    // Tüm ödemeler geçmişse bir sonraki kesim tarihini hesapla
+    const _gecenAy = new Date(_bugun.getFullYear(), _bugun.getMonth() - 1, _kesimGunu)
+    _aktifKesimTarihi = _gecenAy
+  }
+  // "Bu Ay Ödenecek": kesim tarihine kadar (dahil) son ödeme tarihi olan borçlar
+  // Borç adındaki MM/YYYY'yi kullanarak dönem karşılaştırması yap
+  const buAyKart = kartBorclar
+    .filter(b => {
+      if (!b.son_odeme_tarihi) return true
+      const t = new Date(b.son_odeme_tarihi)
+      t.setHours(0, 0, 0, 0)
+      // Aktif kesim tarihinden sonraki aya ait borçları hariç tut
+      const _kesimSonrasiAyBasi = new Date(_aktifKesimTarihi.getFullYear(), _aktifKesimTarihi.getMonth() + 2, 1)
+      return t < _kesimSonrasiAyBasi
+    })
+    .reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
   const enYakinTarih = kartBorclar.filter(b => b.son_odeme_tarihi).sort((a, b) => new Date(a.son_odeme_tarihi) - new Date(b.son_odeme_tarihi))[0]?.son_odeme_tarihi
   const renk = odemeRengi(enYakinTarih)
   const acik = acikGruplar[kartAdi] || false
