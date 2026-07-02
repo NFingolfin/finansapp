@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { useLang } from './LangContext'
+import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 
 function Islemler({ session, mobil, gizliMod }) {
   const { t } = useLang()
@@ -94,24 +95,10 @@ function Islemler({ session, mobil, gizliMod }) {
         const seciliHesapObj = hesaplar.find(h => h.id === yeni.hesap_id)
         if (seciliHesapObj?.tur?.toLowerCase() === 'kredi kartı') {
           const kesimGunu = seciliHesapObj.kesim_gunu || 1
-          const islemTarih = new Date(yeni.tarih)
-          // Kesim tarihi: bu ay mı sonraki ay mı?
-          let kesimTarihi = new Date(islemTarih)
-          kesimTarihi.setDate(kesimGunu)
-          // Eğer işlem kesim gününden önce ise bu ayın kesim dönemine girer,
-          // kesim günü veya sonrasıysa bir sonraki ayın kesim dönemine girer
-          // Kesim günü dahil aynı aya, kesim gününden sonrası bir sonraki aya
-          if (islemTarih.getDate() > kesimGunu) {
-            kesimTarihi.setMonth(kesimTarihi.getMonth() + 1)
-          }
-          // Son ödeme tarihi: kesim tarihinden sonraki ayın 10'u
-          let sonOdeme = new Date(kesimTarihi)
-          sonOdeme.setMonth(sonOdeme.getMonth() + 1)
-          sonOdeme.setDate(10)
-          // Borç adı: kesim tarihinden sonraki ay (ödeme ayı)
-          const odemeAyi = new Date(kesimTarihi)
-          odemeAyi.setMonth(odemeAyi.getMonth() + 1)
-          const borcAdi = `${seciliHesapObj.ad} - ${String(odemeAyi.getMonth() + 1).padStart(2, '0')}/${odemeAyi.getFullYear()}`
+          const kesimTarihi = kesimTarihiHesapla(yeni.tarih, kesimGunu)
+          const sonOdeme = sonOdemeHesapla(kesimTarihi)
+          const sonOdemeStr = tarihStr(sonOdeme)
+          const borcAdi = borcAdiOlustur(seciliHesapObj.ad, sonOdeme)
 
           if (yeni.taksitli && parseInt(yeni.taksit_sayisi) > 1) {
             const aylikTaksit = parseFloat(yeni.tutar) / parseInt(yeni.taksit_sayisi)
@@ -122,12 +109,13 @@ function Islemler({ session, mobil, gizliMod }) {
               toplam_borc: parseFloat(yeni.tutar), kalan_borc: parseFloat(yeni.tutar),
               aylik_taksit: aylikTaksit, minimum_odeme: aylikTaksit,
               taksit_sayisi: parseInt(yeni.taksit_sayisi), odenen_taksit: 0,
-              taksitli: true, son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+              taksitli: true, son_odeme_tarihi: sonOdemeStr,
               aktif: true, odenen_tutar: 0
             })
           } else {
             const { data: mevcutBorc } = await supabase.from('borclar').select('*')
-              .eq('user_id', session.user.id).eq('ad', borcAdi).eq('aktif', true).single()
+              .eq('user_id', session.user.id).eq('banka', seciliHesapObj.ad)
+              .eq('son_odeme_tarihi', sonOdemeStr).eq('taksitli', false).eq('aktif', true).maybeSingle()
             if (mevcutBorc) {
               await supabase.from('borclar').update({
                 kalan_borc: parseFloat(mevcutBorc.kalan_borc) + parseFloat(yeni.tutar),
@@ -139,7 +127,7 @@ function Islemler({ session, mobil, gizliMod }) {
                 user_id: session.user.id, ad: borcAdi, tur: 'Kredi Kartı', banka: seciliHesapObj.ad,
                 toplam_borc: parseFloat(yeni.tutar), kalan_borc: parseFloat(yeni.tutar),
                 minimum_odeme: parseFloat(yeni.tutar), taksit_sayisi: 1, odenen_taksit: 0,
-                taksitli: false, son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+                taksitli: false, son_odeme_tarihi: sonOdemeStr,
                 aktif: true, odenen_tutar: 0, aylik_taksit: 0
               })
             }
@@ -238,19 +226,14 @@ function Islemler({ session, mobil, gizliMod }) {
       if (hesap?.tur?.toLowerCase() === 'kredi kartı') {
         // Hangi borç dönemine ait olduğunu hesapla
         const kesimGunu = hesap.kesim_gunu || 1
-        const islemTarih = new Date(islem.tarih)
-        let kesimTarihi = new Date(islem.tarih)
-        kesimTarihi.setDate(kesimGunu)
-        if (islemTarih.getDate() > kesimGunu) {
-          kesimTarihi.setMonth(kesimTarihi.getMonth() + 1)
-        }
-        const odemeAyi = new Date(kesimTarihi)
-        odemeAyi.setMonth(odemeAyi.getMonth() + 1)
-        const borcAdi = `${hesap.ad} - ${String(odemeAyi.getMonth() + 1).padStart(2, '0')}/${odemeAyi.getFullYear()}`
+        const kesimTarihi = kesimTarihiHesapla(islem.tarih, kesimGunu)
+        const sonOdeme = sonOdemeHesapla(kesimTarihi)
+        const sonOdemeStr = tarihStr(sonOdeme)
 
-        // Önce aylık birikim borcunu ara
+        // Önce aylık birikim borcunu ara (son ödeme tarihine göre)
         const { data: aggrBorc } = await supabase.from('borclar').select('*')
-          .eq('user_id', session.user.id).eq('ad', borcAdi).eq('aktif', true).maybeSingle()
+          .eq('user_id', session.user.id).eq('banka', hesap.ad)
+          .eq('son_odeme_tarihi', sonOdemeStr).eq('taksitli', false).eq('aktif', true).maybeSingle()
 
         if (aggrBorc) {
           const yeniToplam = Math.max(0, parseFloat(aggrBorc.toplam_borc) - parseFloat(islem.tutar))

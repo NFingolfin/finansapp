@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { useLang } from './LangContext'
+import { kesimTarihiHesapla, sonOdemeHesapla, donemAraligiHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 
 function Borclar({ session, mobil, gizliMod }) {
   const { t } = useLang()
@@ -85,11 +86,9 @@ useEffect(() => {
     if (!kkHesap) { setKaydediliyor(false); return }
 
     const kesimGunu = kkHesap.kesim_gunu || 1
-    let donemBitis = new Date()
-    donemBitis.setDate(kesimGunu)
-    if (new Date().getDate() > kesimGunu) donemBitis.setMonth(donemBitis.getMonth() + 1)
-    let sonOdeme = new Date(donemBitis)
-    sonOdeme.setDate(sonOdeme.getDate() + 10)
+    const kesimTarihi = kesimTarihiHesapla(new Date(), kesimGunu)
+    const sonOdeme = sonOdemeHesapla(kesimTarihi)
+    const sonOdemeStr = tarihStr(sonOdeme)
 
     // Gider işlemi ekle
     await supabase.from('islemler').insert({
@@ -113,13 +112,14 @@ useEffect(() => {
         kalan_borc: parseFloat(yeni.toplam_borc),
         aylik_taksit: aylikTaksit, minimum_odeme: aylikTaksit,
         taksit_sayisi: parseInt(yeni.taksit_sayisi), odenen_taksit: 0,
-        taksitli: true, son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+        taksitli: true, son_odeme_tarihi: sonOdemeStr,
         aktif: true, odenen_tutar: 0
       })
     } else {
-      const borcAdi = `${yeni.banka} - ${String(donemBitis.getMonth() + 1).padStart(2, '0')}/${donemBitis.getFullYear()}`
+      const borcAdi = borcAdiOlustur(yeni.banka, sonOdeme)
       const { data: mevcutBorc } = await supabase.from('borclar').select('*')
-        .eq('user_id', session.user.id).eq('ad', borcAdi).eq('aktif', true).single()
+        .eq('user_id', session.user.id).eq('banka', yeni.banka)
+        .eq('son_odeme_tarihi', sonOdemeStr).eq('taksitli', false).eq('aktif', true).maybeSingle()
 
       if (mevcutBorc) {
         await supabase.from('borclar').update({
@@ -132,7 +132,7 @@ useEffect(() => {
           user_id: session.user.id, ad: borcAdi, tur: 'Kredi Kartı', banka: yeni.banka,
           toplam_borc: parseFloat(yeni.toplam_borc), kalan_borc: parseFloat(yeni.toplam_borc),
           minimum_odeme: parseFloat(yeni.toplam_borc), taksit_sayisi: 1, odenen_taksit: 0,
-          taksitli: false, son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+          taksitli: false, son_odeme_tarihi: sonOdemeStr,
           aktif: true, odenen_tutar: 0, aylik_taksit: 0
         })
       }
@@ -354,12 +354,7 @@ const odemeYap = async (borc) => {
   const borcSil = async (id) => {
     const borc = borclar.find(b => b.id === id)
 
-    if (borc?.tur === 'Kredi Kartı') {
-      alert('Kredi Kartı harcamalarını İşlemler bölümünden siliniz.')
-      return
-    }
-
-    if (!window.confirm('Bu borcu silmek istediğine emin misin?')) return
+    if (!window.confirm('Bu borcu silmek istediğine emin misin? İlgili kredi kartı harcaması da silinecek.')) return
 
     if (borc?.tur === 'Kredi Kartı' && borc?.banka) {
       const kkHesap = kkHesaplar.find(h => h.ad === borc.banka)
@@ -378,25 +373,18 @@ const odemeYap = async (borc) => {
             await supabase.from('islemler').delete()
               .in('id', ilgiliIslemler.map(i => i.id))
           }
-        } else {
-          // Aylık birikim borcu: ad = "${banka} - MM/YYYY" — o döneme ait giderleri sil
-          const match = borc.ad.match(/(\d{2})\/(\d{4})$/)
-          if (match) {
-            const ay = parseInt(match[1]) - 1 // 0-indexed
-            const yil = parseInt(match[2])
-            const kesimGunu = kkHesap.kesim_gunu || 1
-            const donemBitis = new Date(yil, ay, kesimGunu)
-            const donemBaslangic = new Date(yil, ay - 1, kesimGunu + 1)
-            const basStr = donemBaslangic.toISOString().split('T')[0]
-            const bitStr = donemBitis.toISOString().split('T')[0]
-            await supabase.from('islemler').delete()
-              .eq('user_id', session.user.id)
-              .eq('hesap_id', kkHesap.id)
-              .eq('tur', 'gider')
-              .neq('kategori', 'Borç Ödemesi')
-              .gte('tarih', basStr)
-              .lte('tarih', bitStr)
-          }
+        } else if (borc.son_odeme_tarihi) {
+          // Aylık birikim borcu: son_odeme_tarihi üzerinden dönem aralığını bul, o döneme ait giderleri sil
+          const { donemBaslangic, donemBitis } = donemAraligiHesapla(borc.son_odeme_tarihi)
+          const basStr = tarihStr(donemBaslangic)
+          const bitStr = tarihStr(donemBitis)
+          await supabase.from('islemler').delete()
+            .eq('user_id', session.user.id)
+            .eq('hesap_id', kkHesap.id)
+            .eq('tur', 'gider')
+            .neq('kategori', 'Borç Ödemesi')
+            .gte('tarih', basStr)
+            .lte('tarih', bitStr)
         }
       }
     }
@@ -421,6 +409,24 @@ const odemeYap = async (borc) => {
     }
   })
 
+  // Her kredi kartı için "aktif dönem": son_odeme_tarihi en erken olan borç(lar).
+  // Bu, takvim ayından bağımsız çalışır — sadece kayıtlı son ödeme tarihlerine bakar.
+  // Aktif dönem ödenip kapanana kadar (aktif:false) sonraki dönemin borçları
+  // gösterilmez ve "Bu Ayı Öde" ile ödenmez.
+  const aktifBorcIdSeti = new Set()
+  Object.values(gruplar).forEach(kartBorclar => {
+    const tarihler = kartBorclar
+      .filter(b => b.son_odeme_tarihi)
+      .map(b => new Date(b.son_odeme_tarihi).getTime())
+    if (tarihler.length === 0) return
+    const minTarih = Math.min(...tarihler)
+    kartBorclar.forEach(b => {
+      if (b.son_odeme_tarihi && new Date(b.son_odeme_tarihi).getTime() === minTarih) {
+        aktifBorcIdSeti.add(b.id)
+      }
+    })
+  })
+
   const toplamKalan = borclar.reduce((a, b) => a + parseFloat(b.kalan_borc), 0)
   const toplamAylik = borclar.reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
   const kritikBorclar = borclar.filter(b => {
@@ -430,9 +436,8 @@ const odemeYap = async (borc) => {
   }).length
 
   const buAyOdeme = borclar.filter(b => {
-    if (!b.son_odeme_tarihi) return false
-    const t = new Date(b.son_odeme_tarihi)
-    return t.getMonth() === bugun.getMonth() && t.getFullYear() === bugun.getFullYear()
+    if (b.tur === 'Kredi Kartı') return aktifBorcIdSeti.has(b.id)
+    return true // diğer borç türlerinde (kredi vb) tek kayıt var, her zaman güncel taksit sayılır
   }).reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
 
   const gunFarki = (tarih) => {
@@ -864,40 +869,11 @@ const odemeYap = async (borc) => {
 {/* Kredi Kartı Grupları */}
 {(filtre === 'hepsi' || filtre === 'kredi') && Object.entries(gruplar).map(([kartAdi, kartBorclar]) => {
   const toplamKalanKart = kartBorclar.reduce((a, b) => a + parseFloat(b.kalan_borc), 0)
-  const _bugun = new Date()
-  _bugun.setHours(0, 0, 0, 0)
-  // Bu karta ait hesap kaydından kesim gününü bul
-  const _kkHesap = kkHesaplar.find(h => h.ad === kartAdi)
-  const _kesimGunu = _kkHesap?.kesim_gunu || 1
-  // Aktif dönemin kesim tarihini hesapla:
-  // En yakın gelecekteki (veya bugünkü) son ödeme tarihini bul
-  const _enYakinSonOdeme = kartBorclar
-    .filter(b => b.son_odeme_tarihi)
-    .map(b => new Date(b.son_odeme_tarihi))
-    .sort((a, b) => a - b)
-    .find(t => t >= _bugun)
-  // Son ödeme tarihi geçmemişse bu dönemin kesim tarihini, geçmişse bir sonrakini kullan
-  let _aktifKesimTarihi
-  if (_enYakinSonOdeme) {
-    // Son ödeme tarihi olan ayda, kesim günü bu ayın kesim tarihidir
-    _aktifKesimTarihi = new Date(_enYakinSonOdeme.getFullYear(), _enYakinSonOdeme.getMonth() - 1, _kesimGunu)
-  } else {
-    // Tüm ödemeler geçmişse bir sonraki kesim tarihini hesapla
-    const _gecenAy = new Date(_bugun.getFullYear(), _bugun.getMonth() - 1, _kesimGunu)
-    _aktifKesimTarihi = _gecenAy
-  }
-  // "Bu Ay Ödenecek": kesim tarihine kadar (dahil) son ödeme tarihi olan borçlar
-  // Borç adındaki MM/YYYY'yi kullanarak dönem karşılaştırması yap
-  const buAyKart = kartBorclar
-    .filter(b => {
-      if (!b.son_odeme_tarihi) return true
-      const t = new Date(b.son_odeme_tarihi)
-      t.setHours(0, 0, 0, 0)
-      // Aktif kesim tarihinden sonraki aya ait borçları hariç tut
-      const _kesimSonrasiAyBasi = new Date(_aktifKesimTarihi.getFullYear(), _aktifKesimTarihi.getMonth() + 2, 1)
-      return t < _kesimSonrasiAyBasi
-    })
-    .reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
+  // Aktif dönem: son_odeme_tarihi en erken olan borç(lar). Sadece bunlar "Bu Ay Ödenecek"e
+  // girer ve "Bu Ayı Öde" ile ödenir. Kesim tarihi geçmemiş yeni harcamalar (bir sonraki
+  // dönem) buraya dahil edilmez; bu ayrım işlem eklenirken (Islemler.js) zaten belirlenmiştir.
+  const aktifKartBorclari = kartBorclar.filter(b => aktifBorcIdSeti.has(b.id))
+  const buAyKart = aktifKartBorclari.reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
   const enYakinTarih = kartBorclar.filter(b => b.son_odeme_tarihi).sort((a, b) => new Date(a.son_odeme_tarihi) - new Date(b.son_odeme_tarihi))[0]?.son_odeme_tarihi
   const renk = odemeRengi(enYakinTarih)
   const acik = acikGruplar[kartAdi] || false
@@ -948,12 +924,12 @@ const odemeYap = async (borc) => {
               e.stopPropagation()
               setOdemeFormAcik({ 
                 id: 'grup_' + kartAdi, 
-                ad: kartAdi + ' — Tüm Borçlar', 
+                ad: kartAdi + ' — Bu Dönem Borcu', 
                 kalan_borc: toplamKalanKart, 
                 minimum_odeme: buAyKart,
                 taksitli: false,
                 _grup: true,
-                _kartBorclar: kartBorclar
+                _kartBorclar: aktifKartBorclari
               })
               setOdemeFormTutar(buAyKart.toString())
             }}>
