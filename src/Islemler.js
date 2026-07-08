@@ -69,30 +69,56 @@ function Islemler({ session, mobil, gizliMod }) {
     }
   }
 
-  const islemEkle = async () => {
-    if (!yeni.tutar || !yeni.hesap_id || !yeni.tarih) return
-    if (yeni.tur === 'transfer' && !yeni.hedef_hesap_id) return
-    setKaydediliyor(true)
+const islemEkle = async () => {
+  if (!yeni.tutar || !yeni.hesap_id || !yeni.tarih) return
+  if (yeni.tur === 'transfer' && !yeni.hedef_hesap_id) return
+
+  setKaydediliyor(true)
+
+  try {
+    const tutar = parseFloat(yeni.tutar)
 
     if (yeni.tur === 'transfer') {
       await supabase.from('islemler').insert({
-        user_id: session.user.id, hesap_id: yeni.hesap_id, tarih: yeni.tarih,
-        tutar: parseFloat(yeni.tutar), tur: 'gider', kategori: 'Hesaplar Arası Transfer',
+        user_id: session.user.id,
+        hesap_id: yeni.hesap_id,
+        tarih: yeni.tarih,
+        tutar,
+        tur: 'gider',
+        kategori: 'Hesaplar Arası Transfer',
         aciklama: yeni.aciklama || `Transfer → ${hesaplar.find(h => h.id === yeni.hedef_hesap_id)?.ad}`
       })
+
       await supabase.from('islemler').insert({
-        user_id: session.user.id, hesap_id: yeni.hedef_hesap_id, tarih: yeni.tarih,
-        tutar: parseFloat(yeni.tutar), tur: 'gelir', kategori: 'Hesaplar Arası Transfer',
+        user_id: session.user.id,
+        hesap_id: yeni.hedef_hesap_id,
+        tarih: yeni.tarih,
+        tutar,
+        tur: 'gelir',
+        kategori: 'Hesaplar Arası Transfer',
         aciklama: yeni.aciklama || `Transfer ← ${hesaplar.find(h => h.id === yeni.hesap_id)?.ad}`
       })
     } else {
-      await supabase.from('islemler').insert({
-        user_id: session.user.id, hesap_id: yeni.hesap_id, tarih: yeni.tarih,
-        tutar: parseFloat(yeni.tutar), tur: yeni.tur, kategori: yeni.kategori, aciklama: yeni.aciklama
-      })
+      const { data: yeniIslem, error: islemError } = await supabase
+        .from('islemler')
+        .insert({
+          user_id: session.user.id,
+          hesap_id: yeni.hesap_id,
+          tarih: yeni.tarih,
+          tutar,
+          tur: yeni.tur,
+          kategori: yeni.kategori,
+          aciklama: yeni.aciklama,
+          is_borc_odeme: yeni.kategori === 'Borç Ödemesi'
+        })
+        .select('id')
+        .single()
+
+      if (islemError) throw islemError
 
       if (yeni.tur === 'gider') {
         const seciliHesapObj = hesaplar.find(h => h.id === yeni.hesap_id)
+
         if (seciliHesapObj?.tur?.toLowerCase() === 'kredi kartı') {
           const kesimGunu = seciliHesapObj.kesim_gunu || 1
           const kesimTarihi = kesimTarihiHesapla(yeni.tarih, kesimGunu)
@@ -100,50 +126,126 @@ function Islemler({ session, mobil, gizliMod }) {
           const sonOdemeStr = tarihStr(sonOdeme)
           const borcAdi = borcAdiOlustur(seciliHesapObj.ad, sonOdeme)
 
+          let baglanacakBorcId = null
+
           if (yeni.taksitli && parseInt(yeni.taksit_sayisi) > 1) {
-            const aylikTaksit = parseFloat(yeni.tutar) / parseInt(yeni.taksit_sayisi)
-            await supabase.from('borclar').insert({
-              user_id: session.user.id,
-              ad: `${yeni.aciklama || yeni.kategori} (${yeni.taksit_sayisi} taksit)`,
-              tur: 'Kredi Kartı', banka: seciliHesapObj.ad,
-              toplam_borc: parseFloat(yeni.tutar), kalan_borc: parseFloat(yeni.tutar),
-              aylik_taksit: aylikTaksit, minimum_odeme: aylikTaksit,
-              taksit_sayisi: parseInt(yeni.taksit_sayisi), odenen_taksit: 0,
-              taksitli: true, son_odeme_tarihi: sonOdemeStr,
-              aktif: true, odenen_tutar: 0
-            })
-          } else {
-            const { data: mevcutBorc } = await supabase.from('borclar').select('*')
-              .eq('user_id', session.user.id).eq('banka', seciliHesapObj.ad)
-              .eq('son_odeme_tarihi', sonOdemeStr).eq('taksitli', false).eq('aktif', true).maybeSingle()
-            if (mevcutBorc) {
-              await supabase.from('borclar').update({
-                kalan_borc: parseFloat(mevcutBorc.kalan_borc) + parseFloat(yeni.tutar),
-                toplam_borc: parseFloat(mevcutBorc.toplam_borc) + parseFloat(yeni.tutar),
-                minimum_odeme: parseFloat(mevcutBorc.minimum_odeme) + parseFloat(yeni.tutar),
-              }).eq('id', mevcutBorc.id)
-            } else {
-              await supabase.from('borclar').insert({
-                user_id: session.user.id, ad: borcAdi, tur: 'Kredi Kartı', banka: seciliHesapObj.ad,
-                toplam_borc: parseFloat(yeni.tutar), kalan_borc: parseFloat(yeni.tutar),
-                minimum_odeme: parseFloat(yeni.tutar), taksit_sayisi: 1, odenen_taksit: 0,
-                taksitli: false, son_odeme_tarihi: sonOdemeStr,
-                aktif: true, odenen_tutar: 0, aylik_taksit: 0
+            const taksitSayisi = parseInt(yeni.taksit_sayisi)
+            const aylikTaksit = tutar / taksitSayisi
+
+            const { data: yeniBorc, error: borcError } = await supabase
+              .from('borclar')
+              .insert({
+                user_id: session.user.id,
+                ad: `${yeni.aciklama || yeni.kategori} (${taksitSayisi} taksit)`,
+                tur: 'Kredi Kartı',
+                banka: seciliHesapObj.ad,
+                toplam_borc: tutar,
+                kalan_borc: tutar,
+                aylik_taksit: aylikTaksit,
+                minimum_odeme: aylikTaksit,
+                taksit_sayisi: taksitSayisi,
+                odenen_taksit: 0,
+                taksitli: true,
+                son_odeme_tarihi: sonOdemeStr,
+                aktif: true,
+                odenen_tutar: 0
               })
+              .select('id')
+              .single()
+
+            if (borcError) throw borcError
+
+            baglanacakBorcId = yeniBorc?.id
+          } else {
+            const { data: mevcutBorc, error: mevcutBorcError } = await supabase
+              .from('borclar')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .eq('banka', seciliHesapObj.ad)
+              .eq('son_odeme_tarihi', sonOdemeStr)
+              .eq('taksitli', false)
+              .eq('aktif', true)
+              .maybeSingle()
+
+            if (mevcutBorcError) throw mevcutBorcError
+
+            if (mevcutBorc) {
+              const { error: borcUpdateError } = await supabase
+                .from('borclar')
+                .update({
+                  kalan_borc: parseFloat(mevcutBorc.kalan_borc || 0) + tutar,
+                  toplam_borc: parseFloat(mevcutBorc.toplam_borc || 0) + tutar,
+                  minimum_odeme: parseFloat(mevcutBorc.minimum_odeme || 0) + tutar
+                })
+                .eq('id', mevcutBorc.id)
+
+              if (borcUpdateError) throw borcUpdateError
+
+              baglanacakBorcId = mevcutBorc.id
+            } else {
+              const { data: yeniBorc, error: borcInsertError } = await supabase
+                .from('borclar')
+                .insert({
+                  user_id: session.user.id,
+                  ad: borcAdi,
+                  tur: 'Kredi Kartı',
+                  banka: seciliHesapObj.ad,
+                  toplam_borc: tutar,
+                  kalan_borc: tutar,
+                  minimum_odeme: tutar,
+                  taksit_sayisi: 1,
+                  odenen_taksit: 0,
+                  taksitli: false,
+                  son_odeme_tarihi: sonOdemeStr,
+                  aktif: true,
+                  odenen_tutar: 0,
+                  aylik_taksit: 0
+                })
+                .select('id')
+                .single()
+
+              if (borcInsertError) throw borcInsertError
+
+              baglanacakBorcId = yeniBorc?.id
             }
+          }
+
+          if (baglanacakBorcId && yeniIslem?.id) {
+            const { error: islemBaglaError } = await supabase
+              .from('islemler')
+              .update({
+                borc_id: baglanacakBorcId
+              })
+              .eq('id', yeniIslem.id)
+
+            if (islemBaglaError) throw islemBaglaError
           }
         }
       }
     }
 
     setFormAcik(false)
+
     setYeni({
-      tarih: new Date().toISOString().split('T')[0], hesap_id: hesaplar[0]?.id || '',
-      hedef_hesap_id: '', tutar: '', tur: 'gider', kategori: 'Zaruri', aciklama: '', taksitli: false, taksit_sayisi: ''
+      tarih: new Date().toISOString().split('T')[0],
+      hesap_id: hesaplar[0]?.id || '',
+      hedef_hesap_id: '',
+      tutar: '',
+      tur: 'gider',
+      kategori: 'Zaruri',
+      aciklama: '',
+      taksitli: false,
+      taksit_sayisi: ''
     })
+
     islemleriGetir()
+  } catch (error) {
+    console.error('İşlem eklenirken hata oluştu:', error)
+    alert('İşlem eklenirken bir hata oluştu. Konsolu kontrol et.')
+  } finally {
     setKaydediliyor(false)
   }
+}
 
   const islemSil = async (id) => {
     if (!window.confirm('Bu işlemi silmek istediğine emin misin?')) return
@@ -220,46 +322,82 @@ function Islemler({ session, mobil, gizliMod }) {
       islemleriGetir()
       return
     }
+if (islem?.tur === 'gider') {
+  const hesap = hesaplar.find(h => h.id === islem.hesap_id)
 
-    if (islem?.tur === 'gider') {
-      const hesap = hesaplar.find(h => h.id === islem.hesap_id)
-      if (hesap?.tur?.toLowerCase() === 'kredi kartı') {
-        // Hangi borç dönemine ait olduğunu hesapla
-        const kesimGunu = hesap.kesim_gunu || 1
-        const kesimTarihi = kesimTarihiHesapla(islem.tarih, kesimGunu)
-        const sonOdeme = sonOdemeHesapla(kesimTarihi)
-        const sonOdemeStr = tarihStr(sonOdeme)
+  if (hesap?.tur?.toLowerCase() === 'kredi kartı') {
+    const borcEtkisiniGeriAl = async (borc) => {
+      if (!borc) return
 
-        // Önce aylık birikim borcunu ara (son ödeme tarihine göre)
-        const { data: aggrBorc } = await supabase.from('borclar').select('*')
-          .eq('user_id', session.user.id).eq('banka', hesap.ad)
-          .eq('son_odeme_tarihi', sonOdemeStr).eq('taksitli', false).eq('aktif', true).maybeSingle()
+      if (borc.taksitli) {
+        await supabase
+          .from('borclar')
+          .delete()
+          .eq('id', borc.id)
 
-        if (aggrBorc) {
-          const yeniToplam = Math.max(0, parseFloat(aggrBorc.toplam_borc) - parseFloat(islem.tutar))
-          const yeniKalan = Math.max(0, parseFloat(aggrBorc.kalan_borc) - parseFloat(islem.tutar))
-          const yeniMin = Math.max(0, parseFloat(aggrBorc.minimum_odeme) - parseFloat(islem.tutar))
-          if (yeniToplam <= 0) {
-            await supabase.from('borclar').delete().eq('id', aggrBorc.id)
-          } else {
-            await supabase.from('borclar').update({
-              kalan_borc: yeniKalan, toplam_borc: yeniToplam, minimum_odeme: yeniMin
-            }).eq('id', aggrBorc.id)
-          }
-        } else {
-          // Taksitli borcu bul (toplam_borc = islem tutarı, aynı kart)
-          const { data: taksiBorclar } = await supabase.from('borclar').select('*')
-            .eq('user_id', session.user.id)
-            .eq('banka', hesap.ad)
-            .eq('toplam_borc', parseFloat(islem.tutar))
-            .eq('taksitli', true)
-            .eq('aktif', true)
-          if (taksiBorclar?.length > 0) {
-            await supabase.from('borclar').delete().eq('id', taksiBorclar[0].id)
-          }
-        }
+        return
+      }
+
+      const yeniToplam = Math.max(
+        0,
+        parseFloat(borc.toplam_borc || 0) - parseFloat(islem.tutar || 0)
+      )
+
+      const yeniKalan = Math.max(
+        0,
+        parseFloat(borc.kalan_borc || 0) - parseFloat(islem.tutar || 0)
+      )
+
+      const yeniMinimum = Math.max(
+        0,
+        parseFloat(borc.minimum_odeme || 0) - parseFloat(islem.tutar || 0)
+      )
+
+      if (yeniToplam <= 0) {
+        await supabase
+          .from('borclar')
+          .delete()
+          .eq('id', borc.id)
+      } else {
+        await supabase
+          .from('borclar')
+          .update({
+            toplam_borc: yeniToplam,
+            kalan_borc: yeniKalan,
+            minimum_odeme: yeniMinimum
+          })
+          .eq('id', borc.id)
       }
     }
+
+    if (islem.borc_id) {
+      const { data: bagliBorc } = await supabase
+        .from('borclar')
+        .select('*')
+        .eq('id', islem.borc_id)
+        .maybeSingle()
+
+      if (bagliBorc) {
+        await borcEtkisiniGeriAl(bagliBorc)
+      }
+    } else if (islem.borc_id) {
+  const { data: bagliBorc } = await supabase
+    .from('borclar')
+    .select('*')
+    .eq('id', islem.borc_id)
+    .maybeSingle()
+
+  if (bagliBorc) {
+    await borcEtkisiniGeriAl(bagliBorc)
+  }
+} else {
+  console.warn(
+    'Bu eski/legacy işlemde borc_id yok. Borç etkisi geri alınmadı:',
+    islem.id
+  )
+}
+  }
+}
 
     await supabase.from('islemler').delete().eq('id', id)
     islemleriGetir()

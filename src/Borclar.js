@@ -21,13 +21,13 @@ function Borclar({ session, mobil, gizliMod }) {
   const [raporAcik, setRaporAcik] = useState(false)
   const [raporOffset, setRaporOffset] = useState(0)
   const [buAyOdenen, setBuAyOdenen] = useState(0)
-  const [yeni, setYeni] = useState({
-    ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '',
-    minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '',
-    taksitli: false, taksit_sayisi: '', aylik_taksit: ''
-  })
+const [yeni, setYeni] = useState({
+  ad: '', tur: 'İhtiyaç Kredisi', toplam_borc: '', kalan_borc: '',
+  minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '',
+  taksitli: false, taksit_sayisi: '', aylik_taksit: ''
+})
 
-  const turler = ['Kredi Kartı', 'İhtiyaç Kredisi', 'Konut Kredisi', 'Taşıt Kredisi', 'Diğer']
+  const turler = [ 'İhtiyaç Kredisi', 'Konut Kredisi', 'Taşıt Kredisi', 'Diğer']
   const turRenk = {
     'Kredi Kartı': '#ef4444', 'İhtiyaç Kredisi': '#f97316',
     'Konut Kredisi': '#a78bfa', 'Taşıt Kredisi': '#0ea5e9', 'Diğer': '#94a3b8'
@@ -142,6 +142,11 @@ useEffect(() => {
   }
 
   const borcEkle = async () => {
+
+      if (yeni.tur === 'Kredi Kartı') {
+    alert('Kredi kartı harcamalarını İşlemler ekranından eklemelisin.')
+    return
+  }
   if (yeni.tur === 'Kredi Kartı') {
     if (!yeni.banka || !yeni.toplam_borc) return
     setKaydediliyor(true)
@@ -203,7 +208,7 @@ useEffect(() => {
     }
 
     setFormAcik(false)
-    setYeni({ ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '' })
+    setYeni({ ad: '', tur: 'İhtiyaç Kredisi', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '' })
     borclariGetir()
     setKaydediliyor(false)
     
@@ -258,7 +263,7 @@ if (!error && yeni.tur === 'Kredi Kartı' && yeni.banka) {
 
     if (!error) {
       setFormAcik(false)
-      setYeni({ ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '', aylik_taksit: '' })
+      setYeni({ ad: '', tur: 'İhtiyaç Kredisi', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '', aylik_taksit: '' })
       borclariGetir()
     }
     setKaydediliyor(false)
@@ -305,27 +310,34 @@ const odemeYap = async (borc) => {
     }
 
     // 3. Kaynak bankaya gider işlemi (silinince trigger otomatik geri alır)
-    await supabase.from('islemler').insert({
-      user_id: session.user.id,
-      hesap_id: odemeHesapId,
-      tarih: new Date().toISOString().split('T')[0],
-      tutar: tutar,
-      tur: 'gider',
-      kategori: 'Borç Ödemesi',
-      aciklama: `${borc.ad} — aylık ödeme`
-    })
+await supabase.from('islemler').insert({
+  user_id: session.user.id,
+  hesap_id: odemeHesapId,
+  tarih: new Date().toISOString().split('T')[0],
+  tutar: tutar,
+  tur: 'gider',
+  kategori: 'Borç Ödemesi',
+  aciklama: `${borc.ad} — aylık ödeme`,
+  is_borc_odeme: true,
+  borc_id: null
+})
 
     // KK hesabına gelir işlemi (silinince trigger otomatik geri alır)
     if (kkHesap) {
-      await supabase.from('islemler').insert({
-        user_id: session.user.id,
-        hesap_id: kkHesap.id,
-        tarih: new Date().toISOString().split('T')[0],
-        tutar: tutar,
-        tur: 'gelir',
-        kategori: 'Borç Ödemesi',
-        aciklama: `${borc.ad} — ödeme alındı`
-      })
+// KK hesabına gelir işlemi
+if (kkHesap) {
+  await supabase.from('islemler').insert({
+    user_id: session.user.id,
+    hesap_id: kkHesap.id,
+    tarih: new Date().toISOString().split('T')[0],
+    tutar: tutar,
+    tur: 'gelir',
+    kategori: 'Borç Ödemesi',
+    aciklama: `${borc.ad} — ödeme alındı`,
+    is_borc_odeme: false,
+    borc_id: borc.id
+  })
+}
     }
 
     // 4. Bakiyeleri manuel güncelle (trigger yoksa çalışır, varsa aynı değeri yazar)
@@ -375,27 +387,34 @@ const odemeYap = async (borc) => {
   await supabase.from('borclar').update(guncelleme).eq('id', borc.id)
 
   // 3. Kaynak bankaya gider işlemi (silinince trigger otomatik geri alır)
-  await supabase.from('islemler').insert({
-    user_id: session.user.id,
-    hesap_id: odemeHesapId,
-    tarih: new Date().toISOString().split('T')[0],
-    tutar: tutar,
-    tur: 'gider',
-    kategori: 'Borç Ödemesi',
-    aciklama: `${borc.ad} - borç ödemesi`
-  })
+await supabase.from('islemler').insert({
+  user_id: session.user.id,
+  hesap_id: odemeHesapId,
+  tarih: new Date().toISOString().split('T')[0],
+  tutar: tutar,
+  tur: 'gider',
+  kategori: 'Borç Ödemesi',
+  aciklama: `${borc.ad} — aylık ödeme`,
+  is_borc_odeme: true,
+  borc_id: null
+})
 
   // KK borcuysa KK hesabına gelir işlemi (silinince trigger otomatik geri alır)
   if (kkHesapTekil) {
-    await supabase.from('islemler').insert({
-      user_id: session.user.id,
-      hesap_id: kkHesapTekil.id,
-      tarih: new Date().toISOString().split('T')[0],
-      tutar: tutar,
-      tur: 'gelir',
-      kategori: 'Borç Ödemesi',
-      aciklama: `${borc.ad} - ödeme alındı`
-    })
+// KK borcuysa KK hesabına gelir işlemi
+if (kkHesapTekil) {
+  await supabase.from('islemler').insert({
+    user_id: session.user.id,
+    hesap_id: kkHesapTekil.id,
+    tarih: new Date().toISOString().split('T')[0],
+    tutar: tutar,
+    tur: 'gelir',
+    kategori: 'Borç Ödemesi',
+    aciklama: `${borc.ad} — ödeme alındı`,
+    is_borc_odeme: false,
+    borc_id: borc.id
+  })
+}
   }
 
   // 4. Bakiyeleri manuel güncelle (trigger yoksa çalışır, varsa aynı değeri yazar)
@@ -419,46 +438,24 @@ const odemeYap = async (borc) => {
   }
 
   const borcSil = async (id) => {
-    const borc = borclar.find(b => b.id === id)
+  const borc = borclar.find(b => b.id === id)
 
-    if (!window.confirm('Bu borcu silmek istediğine emin misin? İlgili kredi kartı harcaması da silinecek.')) return
+  if (!borc) return
 
-    if (borc?.tur === 'Kredi Kartı' && borc?.banka) {
-      const kkHesap = kkHesaplar.find(h => h.ad === borc.banka)
-      if (kkHesap) {
-        if (borc.taksitli) {
-          // Taksitli borç: addan " (X taksit)" kısmını çıkar, eşleşen işlemi bul ve sil
-          const aciklamaBase = borc.ad.replace(/ \(\d+ taksit\)$/, '')
-          let query = supabase.from('islemler').select('id')
-            .eq('user_id', session.user.id)
-            .eq('hesap_id', kkHesap.id)
-            .eq('tutar', parseFloat(borc.toplam_borc))
-            .eq('tur', 'gider')
-          if (aciklamaBase) query = query.ilike('aciklama', aciklamaBase)
-          const { data: ilgiliIslemler } = await query
-          if (ilgiliIslemler?.length > 0) {
-            await supabase.from('islemler').delete()
-              .in('id', ilgiliIslemler.map(i => i.id))
-          }
-        } else if (borc.son_odeme_tarihi) {
-          // Aylık birikim borcu: son_odeme_tarihi üzerinden dönem aralığını bul, o döneme ait giderleri sil
-          const { donemBaslangic, donemBitis } = donemAraligiHesapla(borc.son_odeme_tarihi)
-          const basStr = tarihStr(donemBaslangic)
-          const bitStr = tarihStr(donemBitis)
-          await supabase.from('islemler').delete()
-            .eq('user_id', session.user.id)
-            .eq('hesap_id', kkHesap.id)
-            .eq('tur', 'gider')
-            .neq('kategori', 'Borç Ödemesi')
-            .gte('tarih', basStr)
-            .lte('tarih', bitStr)
-        }
-      }
-    }
-
-    await supabase.from('borclar').delete().eq('id', id)
-    borclariGetir()
+  if (borc.tur === 'Kredi Kartı') {
+    alert('Kredi kartı borçları Borçlar ekranından silinmez. İlgili harcamayı İşlemler ekranından silmelisin.')
+    return
   }
+
+  if (!window.confirm('Bu borcu silmek istediğine emin misin? Bu işlem sadece borç kaydını siler, geçmiş ödeme işlemlerini silmez.')) return
+
+  await supabase
+    .from('borclar')
+    .delete()
+    .eq('id', id)
+
+  borclariGetir()
+}
 
   const bugun = new Date()
 
@@ -616,7 +613,7 @@ const kritikBorclar = borclar.filter(b => {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button style={styles.raporBtn} onClick={() => setRaporAcik(true)}>📊 Mali Tablo</button>
-          <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Yeni Borç Ekle</button>
+          <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Kredi / Borç Ekle</button>
         </div>
       </div>
 
@@ -779,7 +776,7 @@ const kritikBorclar = borclar.filter(b => {
 {formAcik && (
   <div style={styles.modalOverlay}>
     <div style={styles.modal}>
-      <h3 style={styles.modalBaslik}>Yeni Borç Ekle</h3>
+      <h3 style={styles.modalBaslik}>Yeni Kredi / Borç Ekle</h3>
 
       <label style={styles.label}>Tür</label>
       <select style={styles.input} value={yeni.tur}
@@ -1062,12 +1059,17 @@ const buAyKart = buAyKartBorclari.reduce(
                   </div>
                 )}
               </div>
-              <div style={styles.altBorcBtnler}>
-                <button style={styles.odemeBtn}
-                  onClick={() => { setOdemeFormAcik(borc); setOdemeFormTutar('') }}>
-                  💳 Ödeme
-                </button>
-                <button style={styles.silBtnKucuk} onClick={() => borcSil(borc.id)}>🗑️</button>
+                <div style={styles.altBorcBtnler}>
+                       <button
+                           style={styles.odemeBtn}
+                            onClick={() => {
+                               setOdemeFormAcik(borc)
+                                    setOdemeFormTutar('')
+                                                     }}
+  >
+ 💳 Ödeme
+  </button>
+
               </div>
             </div>
           ))}
