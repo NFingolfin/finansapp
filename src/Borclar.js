@@ -20,6 +20,7 @@ function Borclar({ session, mobil, gizliMod }) {
   const [kkHesaplar, setKkHesaplar] = useState([])
   const [raporAcik, setRaporAcik] = useState(false)
   const [raporOffset, setRaporOffset] = useState(0)
+  const [buAyOdenen, setBuAyOdenen] = useState(0)
   const [yeni, setYeni] = useState({
     ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '',
     minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '',
@@ -36,10 +37,52 @@ function Borclar({ session, mobil, gizliMod }) {
     'Konut Kredisi': '🏠', 'Taşıt Kredisi': '🚗', 'Diğer': '📋'
   }
 
+  const localTarihStr = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const aySinirlari = (ayOffset = 0) => {
+  const bugun = new Date()
+  const baslangic = new Date(bugun.getFullYear(), bugun.getMonth() + ayOffset, 1)
+  const sonrakiAyBaslangic = new Date(bugun.getFullYear(), bugun.getMonth() + ayOffset + 1, 1)
+
+  return {
+    basStr: localTarihStr(baslangic),
+    sonrakiBasStr: localTarihStr(sonrakiAyBaslangic)
+  }
+}
+
+const tarihAyIcindeMi = (tarih, ayOffset = 0) => {
+  if (!tarih) return false
+
+  const { basStr, sonrakiBasStr } = aySinirlari(ayOffset)
+
+  return tarih >= basStr && tarih < sonrakiBasStr
+}
+
+const borcOdemeTutari = (borc) => {
+  const kalanBorc = parseFloat(borc.kalan_borc || 0)
+  const aylikTutar = parseFloat(
+    borc.minimum_odeme ||
+    borc.aylik_taksit ||
+    kalanBorc ||
+    0
+  )
+
+  if (kalanBorc <= 0) return 0
+  if (aylikTutar <= 0) return kalanBorc
+
+  return Math.min(aylikTutar, kalanBorc)
+}
+
 useEffect(() => {
   borclariGetir()
   kkHesaplariGetir()
   hesaplariGetir()
+  buAyOdemeleriGetir()
 }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const borclariGetir = async () => {
@@ -71,6 +114,27 @@ useEffect(() => {
       if (odemeHesaplari.length > 0) setOdemeHesapId(odemeHesaplari[0].id)
     }
   }
+  const buAyOdemeleriGetir = async () => {
+  const { basStr, sonrakiBasStr } = aySinirlari(0)
+
+  const { data, error } = await supabase
+    .from('islemler')
+    .select('tutar')
+    .eq('user_id', session.user.id)
+    .eq('tur', 'gider')
+    .eq('kategori', 'Borç Ödemesi')
+    .gte('tarih', basStr)
+    .lt('tarih', sonrakiBasStr)
+
+  if (!error && data) {
+    const toplam = data.reduce(
+      (sum, islem) => sum + parseFloat(islem.tutar || 0),
+      0
+    )
+
+    setBuAyOdenen(toplam)
+  }
+}
 
   const aylikTaksitHesapla = (toplam, sayi) => {
     if (!toplam || !sayi || sayi <= 0) return ''
@@ -142,6 +206,7 @@ useEffect(() => {
     setYeni({ ad: '', tur: 'Kredi Kartı', toplam_borc: '', kalan_borc: '', minimum_odeme: '', son_odeme_tarihi: '', faiz_orani: '', banka: '', notlar: '', taksitli: false, taksit_sayisi: '' })
     borclariGetir()
     setKaydediliyor(false)
+    
     return
   }
 
@@ -273,6 +338,7 @@ const odemeYap = async (borc) => {
     setOdemeFormTutar('')
     borclariGetir()
     hesaplariGetir()
+    buAyOdemeleriGetir()
     setKaydediliyor(false)
     return
   }
@@ -342,6 +408,7 @@ const odemeYap = async (borc) => {
   setOdemeFormTutar('')
   borclariGetir()
   hesaplariGetir()
+  buAyOdemeleriGetir()
   setKaydediliyor(false)
 }
 
@@ -409,36 +476,24 @@ const odemeYap = async (borc) => {
     }
   })
 
-  // Her kredi kartı için "aktif dönem": son_odeme_tarihi en erken olan borç(lar).
-  // Bu, takvim ayından bağımsız çalışır — sadece kayıtlı son ödeme tarihlerine bakar.
-  // Aktif dönem ödenip kapanana kadar (aktif:false) sonraki dönemin borçları
-  // gösterilmez ve "Bu Ayı Öde" ile ödenmez.
-  const aktifBorcIdSeti = new Set()
-  Object.values(gruplar).forEach(kartBorclar => {
-    const tarihler = kartBorclar
-      .filter(b => b.son_odeme_tarihi)
-      .map(b => new Date(b.son_odeme_tarihi).getTime())
-    if (tarihler.length === 0) return
-    const minTarih = Math.min(...tarihler)
-    kartBorclar.forEach(b => {
-      if (b.son_odeme_tarihi && new Date(b.son_odeme_tarihi).getTime() === minTarih) {
-        aktifBorcIdSeti.add(b.id)
-      }
-    })
-  })
+const toplamKalan = borclar.reduce(
+  (a, b) => a + parseFloat(b.kalan_borc || 0),
+  0
+)
 
-  const toplamKalan = borclar.reduce((a, b) => a + parseFloat(b.kalan_borc), 0)
-  const toplamAylik = borclar.reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
-  const kritikBorclar = borclar.filter(b => {
-    if (!b.son_odeme_tarihi) return false
-    const fark = Math.ceil((new Date(b.son_odeme_tarihi) - bugun) / (1000 * 60 * 60 * 24))
-    return fark <= 7 && fark >= 0
-  }).length
+const buAyOdenecek = borclar
+  .filter(b => tarihAyIcindeMi(b.son_odeme_tarihi, 0))
+  .reduce((a, b) => a + borcOdemeTutari(b), 0)
 
-  const buAyOdeme = borclar.filter(b => {
-    if (b.tur === 'Kredi Kartı') return aktifBorcIdSeti.has(b.id)
-    return true // diğer borç türlerinde (kredi vb) tek kayıt var, her zaman güncel taksit sayılır
-  }).reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
+const gelecekAyOdenecek = borclar
+  .filter(b => tarihAyIcindeMi(b.son_odeme_tarihi, 1))
+  .reduce((a, b) => a + borcOdemeTutari(b), 0)
+
+const kritikBorclar = borclar.filter(b => {
+  if (!b.son_odeme_tarihi) return false
+  const fark = Math.ceil((new Date(b.son_odeme_tarihi) - bugun) / (1000 * 60 * 60 * 24))
+  return fark <= 7 && fark >= 0
+}).length
 
   const gunFarki = (tarih) => {
     if (!tarih) return null
@@ -513,16 +568,35 @@ const odemeYap = async (borc) => {
           <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{pm(toplamKalan)}</div>
           <div style={styles.ozetLabel}>Toplam Kalan Borç</div>
         </div>
-        <div style={{ ...styles.ozetKart, borderTop: '3px solid #f97316' }}>
-          <div style={styles.ozetIcon}>📅</div>
-          <div style={{ ...styles.ozetDeger, color: '#f97316' }}>₺{pm(toplamAylik)}</div>
-          <div style={styles.ozetLabel}>Aylık Toplam Ödeme</div>
-        </div>
-        <div style={{ ...styles.ozetKart, borderTop: '3px solid #eab308' }}>
-          <div style={styles.ozetIcon}>🗓️</div>
-          <div style={{ ...styles.ozetDeger, color: '#eab308' }}>₺{pm(buAyOdeme)}</div>
-          <div style={styles.ozetLabel}>Bu Ay Ödenecek</div>
-        </div>
+<div style={{ ...styles.ozetKart, borderTop: '3px solid #f97316' }}>
+  <div style={styles.ozetIcon}>📅</div>
+  <div style={{ ...styles.ozetDeger, color: '#f97316' }}>
+    ₺{pm(gelecekAyOdenecek)}
+  </div>
+  <div style={styles.ozetLabel}>Gelecek Ay Ödenecek</div>
+</div>
+
+<div style={{ ...styles.ozetKart, borderTop: '3px solid #eab308' }}>
+  <div style={styles.ozetIcon}>🗓️</div>
+
+  <div style={styles.ozetCiftSatir}>
+    <div>
+      <div style={{ ...styles.ozetDegerKucuk, color: '#eab308' }}>
+        ₺{pm(buAyOdenecek)}
+      </div>
+      <div style={styles.ozetLabel}>Bu Ay Ödenecek</div>
+    </div>
+
+    <div style={styles.ozetAyirici} />
+
+    <div>
+      <div style={{ ...styles.ozetDegerKucuk, color: '#0d9488' }}>
+        ₺{pm(buAyOdenen)}
+      </div>
+      <div style={styles.ozetLabel}>Bu Ay Ödenen</div>
+    </div>
+  </div>
+</div>
         <div style={{ ...styles.ozetKart, borderTop: `3px solid ${kritikBorclar > 0 ? '#ef4444' : '#0d9488'}` }}>
           <div style={styles.ozetIcon}>{kritikBorclar > 0 ? '⚠️' : '✅'}</div>
           <div style={{ ...styles.ozetDeger, color: kritikBorclar > 0 ? '#ef4444' : '#0d9488' }}>{kritikBorclar}</div>
@@ -868,12 +942,22 @@ const odemeYap = async (borc) => {
 
 {/* Kredi Kartı Grupları */}
 {(filtre === 'hepsi' || filtre === 'kredi') && Object.entries(gruplar).map(([kartAdi, kartBorclar]) => {
-  const toplamKalanKart = kartBorclar.reduce((a, b) => a + parseFloat(b.kalan_borc), 0)
-  // Aktif dönem: son_odeme_tarihi en erken olan borç(lar). Sadece bunlar "Bu Ay Ödenecek"e
-  // girer ve "Bu Ayı Öde" ile ödenir. Kesim tarihi geçmemiş yeni harcamalar (bir sonraki
-  // dönem) buraya dahil edilmez; bu ayrım işlem eklenirken (Islemler.js) zaten belirlenmiştir.
-  const aktifKartBorclari = kartBorclar.filter(b => aktifBorcIdSeti.has(b.id))
-  const buAyKart = aktifKartBorclari.reduce((a, b) => a + parseFloat(b.minimum_odeme || b.aylik_taksit || 0), 0)
+const toplamKalanKart = kartBorclar.reduce(
+  (a, b) => a + parseFloat(b.kalan_borc || 0),
+  0
+)
+
+// Bu ay ödenecek kart borcu:
+// son ödeme tarihi bu takvim ayının içinde olan borç satırlarıdır.
+// Gelecek ayın ekstresi bu rakama dahil edilmez.
+const buAyKartBorclari = kartBorclar.filter(
+  b => tarihAyIcindeMi(b.son_odeme_tarihi, 0)
+)
+
+const buAyKart = buAyKartBorclari.reduce(
+  (a, b) => a + borcOdemeTutari(b),
+  0
+)
   const enYakinTarih = kartBorclar.filter(b => b.son_odeme_tarihi).sort((a, b) => new Date(a.son_odeme_tarihi) - new Date(b.son_odeme_tarihi))[0]?.son_odeme_tarihi
   const renk = odemeRengi(enYakinTarih)
   const acik = acikGruplar[kartAdi] || false
@@ -918,24 +1002,32 @@ const odemeYap = async (borc) => {
             </div>
           </div>
         )}
-        <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.toplamOdemeBtn}
-            onClick={(e) => {
-              e.stopPropagation()
-              setOdemeFormAcik({ 
-                id: 'grup_' + kartAdi, 
-                ad: kartAdi + ' — Bu Dönem Borcu', 
-                kalan_borc: toplamKalanKart, 
-                minimum_odeme: buAyKart,
-                taksitli: false,
-                _grup: true,
-                _kartBorclar: aktifKartBorclari
-              })
-              setOdemeFormTutar(buAyKart.toString())
-            }}>
-            💳 Bu Ayı Öde (₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
-          </button>
-        </div>
+<div style={{ marginLeft: 'auto' }}>
+  {buAyKart > 0 ? (
+    <button
+      style={styles.toplamOdemeBtn}
+      onClick={(e) => {
+        e.stopPropagation()
+
+        setOdemeFormAcik({
+          id: 'grup_' + kartAdi,
+          ad: kartAdi + ' — Bu Dönem Borcu',
+          kalan_borc: buAyKart,
+          minimum_odeme: buAyKart,
+          taksitli: false,
+          _grup: true,
+          _kartBorclar: buAyKartBorclari
+        })
+
+        setOdemeFormTutar(buAyKart.toString())
+      }}
+    >
+      💳 Bu Ayı Öde (₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
+    </button>
+  ) : (
+    <span style={styles.odemeYokEtiket}>Bu ay ödeme yok</span>
+  )}
+</div>
       </div>
 
       {/* Accordion — açıksa göster */}
@@ -1077,7 +1169,10 @@ const styles = {
   ozetKart: { background: 'var(--bg-card)', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' },
   ozetIcon: { fontSize: '20px', marginBottom: '6px' },
   ozetDeger: { fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' },
-  ozetLabel: { color: 'var(--text-muted)', fontSize: '11px' },
+ozetCiftSatir: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' },
+ozetDegerKucuk: { fontSize: '15px', fontWeight: 'bold', marginBottom: '4px' },
+ozetAyirici: { width: '1px', height: '34px', background: 'var(--border)' },
+ozetLabel: { color: 'var(--text-muted)', fontSize: '11px' },
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' },
   filtreler: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
   filtreBtn: { padding: '7px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
@@ -1146,6 +1241,7 @@ const styles = {
   notlar: { color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px', padding: '10px', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border)' },
   borcBtnler: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
   toplamOdemeBtn: { padding: '10px 18px', background: 'linear-gradient(135deg,#ef4444,#f97316)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  odemeYokEtiket: { display: 'inline-block', padding: '8px 12px', color: 'var(--text-muted)', fontSize: '12px', whiteSpace: 'nowrap' },
   kapatBtn: { padding: '8px 16px', background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '8px', color: '#0d9488', fontSize: '13px', cursor: 'pointer' },
   silBtn: { padding: '8px 16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '13px', cursor: 'pointer' },
 }
