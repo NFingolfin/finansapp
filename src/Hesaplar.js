@@ -4,7 +4,7 @@ import { useLang } from './LangContext'
 
 function Hesaplar({ session, mobil, gizliMod }) {
   const { t } = useLang()
-  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+  const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [hesaplar, setHesaplar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -298,14 +298,14 @@ const toplamTRY = hesaplar
           <span style={styles.detayOzetLabel}>💵 Nakit Bakiye</span>
           <span style={{ color: '#0d9488', fontWeight: 'bold', fontSize: '16px' }}>
             {detayHesap.para_birimi === 'TRY' ? '₺' : detayHesap.para_birimi + ' '}
-            {parseFloat(detayHesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            {parseFloat(detayHesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
         {hesapYatirimlari.length > 0 && (
           <div style={styles.detayOzetSatir}>
             <span style={styles.detayOzetLabel}>📈 Yatırım Değeri</span>
             <span style={{ color: '#0ea5e9', fontWeight: 'bold', fontSize: '16px' }}>
-              ₺{hesapYatirimlari.reduce((a, y) => a + parseFloat(y.guncel_deger), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              ₺{hesapYatirimlari.reduce((a, y) => a + parseFloat(y.guncel_deger), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         )}
@@ -313,7 +313,7 @@ const toplamTRY = hesaplar
           <div style={{ ...styles.detayOzetSatir, borderBottom: 'none', paddingBottom: 0 }}>
             <span style={styles.detayOzetLabel}>💎 Toplam Değer</span>
             <span style={{ color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '18px' }}>
-              ₺{(parseFloat(detayHesap.bakiye) + hesapYatirimlari.reduce((a, y) => a + parseFloat(y.guncel_deger), 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              ₺{(parseFloat(detayHesap.bakiye) + hesapYatirimlari.reduce((a, y) => a + parseFloat(y.guncel_deger), 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         )}
@@ -350,18 +350,18 @@ const toplamTRY = hesaplar
                   </div>
                   <div style={{ textAlign: 'center', minWidth: '100px' }}>
                     <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Maliyet</div>
-                    <div style={{ color: 'var(--text-primary)', fontSize: '13px' }}>₺{parseFloat(y.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}</div>
+                    <div style={{ color: 'var(--text-primary)', fontSize: '13px' }}>₺{parseFloat(y.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
                   <div style={{ textAlign: 'center', minWidth: '100px' }}>
                     <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Güncel</div>
-                    <div style={{ color: 'var(--text-primary)', fontSize: '13px' }}>₺{parseFloat(y.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}</div>
+                    <div style={{ color: 'var(--text-primary)', fontSize: '13px' }}>₺{parseFloat(y.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   </div>
                   <div style={{ textAlign: 'right', minWidth: '80px' }}>
                     <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>
                       {karZarar >= 0 ? '+' : ''}{getiri}%
                     </div>
                     <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '12px' }}>
-                      {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
+                      {karZarar >= 0 ? '+' : ''}₺{karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 </div>
@@ -555,20 +555,20 @@ const toplamTRY = hesaplar
   {gizliMod ? '****' : (
     (hesap.para_birimi === 'TRY' ? '₺' : hesap.para_birimi + ' ') +
     (hesap.yatirim_hesabi && hesap.yatirim_toplam > 0
-      ? (parseFloat(hesap.bakiye) + hesap.yatirim_toplam).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
-      : parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2 }))
+      ? (parseFloat(hesap.bakiye) + hesap.yatirim_toplam).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
   )}
 </div>
 {hesap.para_birimi !== 'TRY' && (
   <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
-    ≈ ₺{gizliMod ? '****' : (hesap.bakiye_tl || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}
+    ≈ ₺{gizliMod ? '****' : (hesap.bakiye_tl || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
   </div>
 )}
 {hesap.yatirim_hesabi && hesap.yatirim_toplam > 0 && !gizliMod && (
   <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
     {(() => {
       const s = { TRY: '₺', USD: '$', EUR: '€', GBP: '£' }[hesap.para_birimi] || hesap.para_birimi + ' '
-      return `Nakit: ${s}${parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })} + Yatırım: ${s}${hesap.yatirim_toplam.toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`
+      return `Nakit: ${s}${parseFloat(hesap.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} + Yatırım: ${s}${hesap.yatirim_toplam.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     })()}
   </div>
 )}

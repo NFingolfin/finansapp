@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
-
-// API anahtarı .env dosyasından okunuyor (dev server yeniden başlatılınca env var devreye girer)
-const GROQ_API_KEY = process.env.REACT_APP_GROQ_KEY || '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'
+import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 
 function ChatBot({ session, onIslemEklendi }) {
   const [acik, setAcik] = useState(false)
@@ -31,7 +29,7 @@ function ChatBot({ session, onIslemEklendi }) {
   const hesaplariGetir = async () => {
     const { data } = await supabase
       .from('hesaplar')
-      .select('id, ad, tur')
+      .select('id, ad, tur, bakiye, para_birimi, kesim_gunu, yatirim_hesabi')
       .eq('user_id', session.user.id)
     if (data) setHesaplar(data)
   }
@@ -76,6 +74,16 @@ function ChatBot({ session, onIslemEklendi }) {
     return JSON.parse(temiz)
   }
 
+  const tarihGoster = (tarih) => {
+    if (!tarih) return '—'
+    if (typeof tarih === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tarih)) {
+      const [yil, ay, gun] = tarih.split('-').map(Number)
+      return new Date(yil, ay - 1, gun).toLocaleDateString('tr-TR')
+    }
+    const parsed = new Date(tarih)
+    return Number.isNaN(parsed.getTime()) ? tarih : parsed.toLocaleDateString('tr-TR')
+  }
+
   const mesajGonder = async () => {
     if (!girdi.trim() || yukleniyor) return
     const kullaniciMesaj = girdi.trim()
@@ -106,6 +114,7 @@ Bugünün tarihi: ${bugun}
 - "transfer"  : İki hesap arası para hareketi
 - "kk_alisveris" : Kredi kartıyla yapılan alışveriş (borcu kartın üstüne yüklenir)
 - "borc_odeme"   : Kredi kartı borcunu banka hesabından ödemek
+- "borc_ekle"    : Kredi, kişisel borç veya taksitli borç kaydı oluşturmak
 - "yatirim"   : Hisse, kripto, fon, döviz, altın alımı
 
 === KATEGORİLER ===
@@ -126,10 +135,15 @@ Taksitli değilse taksitli=false, taksit_sayisi=1 yaz.
 hesap_adi = parayı ödeyen banka hesabı, kart_adi = borcun ödendiği kredi kartı
 {"anlasilan":"kısa açıklama","islem":{"hesap_adi":"banka hesabı","kart_adi":"kredi kartı adı","tutar":5000,"tur":"borc_odeme","aciklama":"kredi kartı ödemesi","tarih":"${bugun}"}}
 
-=== JSON FORMAT 5 — Yatırım ===
-aciklama = sadece sembol (THYAO, BTC, Altın), miktar = adet sayısı
+=== JSON FORMAT 5 — Borç Ekle ===
+Kullanıcı "borç aldım", "kredi çektim", "12 taksit borcum var" diyorsa borc_ekle kullan. Kredi kartı alışverişi değilse kk_alisveris kullanma.
+borc_turu değerleri: İhtiyaç Kredisi, Konut Kredisi, Taşıt Kredisi, Diğer
+{"anlasilan":"kısa açıklama","islem":{"tur":"borc_ekle","ad":"ihtiyaç kredisi","borc_turu":"İhtiyaç Kredisi","banka":"banka adı","toplam_borc":120000,"kalan_borc":120000,"taksitli":true,"taksit_sayisi":12,"aylik_taksit":10000,"minimum_odeme":10000,"son_odeme_tarihi":"${bugun}","aciklama":"ihtiyaç kredisi"}}
+
+=== JSON FORMAT 6 — Yatırım ===
+aciklama = sadece sembol (THYAO, BTC, Altın), miktar = adet sayısı. tutar = toplam ödenen tutar. birim_maliyet biliniyorsa yaz, bilinmiyorsa boş bırakma; tutar/miktar hesapla. komisyon yoksa 0 yaz. para_birimi TRY, USD, EUR veya GBP olabilir.
 yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
-{"anlasilan":"kısa açıklama","islem":{"hesap_adi":"yatırım hesabı","tutar":5000,"tur":"yatirim","aciklama":"THYAO","yatirim_turu":"Hisse","miktar":50,"tarih":"${bugun}"}}
+{"anlasilan":"kısa açıklama","islem":{"hesap_adi":"yatırım hesabı","tutar":5000,"tur":"yatirim","aciklama":"THYAO","yatirim_turu":"Hisse","miktar":50,"birim_maliyet":100,"komisyon":0,"para_birimi":"TRY","tarih":"${bugun}"}}
 
 === ANLAMAZSAN ===
 {"anlasilan":"ne anlamadığını kısa açıkla","islem":null}`
@@ -137,28 +151,20 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       // Sohbet geçmişini AI'a gönder (max son 6 mesaj)
       const gecmis = gecmisRef.current.slice(-6)
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+      const { data, error } = await supabase.functions.invoke('chatbot', {
+        body: {
           messages: [
             { role: 'system', content: systemPrompt },
             ...gecmis,
             { role: 'user', content: kullaniciMesaj }
-          ],
-          temperature: 0.1,
-          max_tokens: 500
-        })
+          ]
+        }
       })
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error?.message || `API hatası (${response.status})`)
+      if (error) throw new Error(error.message || 'Chatbot servisine ulaşılamadı.')
 
-      const yanitMetni = data.choices?.[0]?.message?.content || ''
+      const yanitMetni = data?.content || ''
+      if (!yanitMetni) throw new Error(data?.error || 'AI yanıtı boş döndü.')
 
       // Geçmişe ekle
       gecmisRef.current = [
@@ -212,7 +218,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
   }
 
   const islemOnayla = async () => {
-    if (!onay?.hesap_id) {
+    if (onay?.tur !== 'borc_ekle' && !onay?.hesap_id) {
       setMesajlar(prev => [...prev, {
         rol: 'bot',
         metin: '❌ Hesap bulunamadı. Hesap adını daha açık belirtin.\n\nMevcut hesaplar: ' +
@@ -222,8 +228,48 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       return
     }
 
+    // ── Borç Ekle ──
+    if (onay.tur === 'borc_ekle') {
+      const toplamBorc = parseFloat(onay.toplam_borc || onay.tutar)
+      const taksitSayisi = parseInt(onay.taksit_sayisi) || 1
+      const taksitli = Boolean(onay.taksitli || taksitSayisi > 1)
+      const aylikTaksit = taksitli
+        ? (parseFloat(onay.aylik_taksit) || (toplamBorc / taksitSayisi))
+        : 0
+      const minimumOdeme = parseFloat(onay.minimum_odeme) || aylikTaksit || 0
+
+      const { error } = await supabase.from('borclar').insert({
+        user_id: session.user.id,
+        ad: onay.aciklama || onay.ad || 'Borç',
+        tur: onay.borc_turu || 'İhtiyaç Kredisi',
+        banka: onay.banka || '',
+        notlar: onay.notlar || '',
+        faiz_orani: parseFloat(onay.faiz_orani) || 0,
+        son_odeme_tarihi: onay.son_odeme_tarihi || onay.tarih || null,
+        aktif: true,
+        taksitli,
+        odenen_tutar: 0,
+        toplam_borc: toplamBorc,
+        kalan_borc: parseFloat(onay.kalan_borc) || toplamBorc,
+        minimum_odeme: minimumOdeme,
+        taksit_sayisi: taksitSayisi,
+        odenen_taksit: 0,
+        aylik_taksit: aylikTaksit
+      })
+
+      if (!error) {
+        setMesajlar(prev => [...prev, {
+          rol: 'bot',
+          metin: `🎉 Borç kaydedildi!\n\n${onay.aciklama || onay.ad || 'Borç'} — ₺${toplamBorc.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        }])
+        setOnay(null)
+        if (onIslemEklendi) onIslemEklendi()
+      } else {
+        setMesajlar(prev => [...prev, { rol: 'bot', metin: '❌ Borç kaydı sırasında hata oluştu.' }])
+      }
+
     // ── Transfer ──
-    if (onay.tur === 'transfer') {
+    } else if (onay.tur === 'transfer') {
       // Önce resolve edilmiş id'yi dene, olmazsa isimle tekrar bul
       const hedefHesap = onay.hedef_hesap_id
         ? hesaplar.find(h => h.id === onay.hedef_hesap_id)
@@ -260,7 +306,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       if (!e1 && !e2) {
         setMesajlar(prev => [...prev, {
           rol: 'bot',
-          metin: `🎉 Transfer tamamlandı!\n\n₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}\n🏦 ${onay.hesap_adi_gosterim} → ${hedefHesap.ad}\n📅 ${onay.tarih}`
+          metin: `🎉 Transfer tamamlandı!\n\n₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n🏦 ${onay.hesap_adi_gosterim} → ${hedefHesap.ad}\n📅 ${tarihGoster(onay.tarih)}`
         }])
         setOnay(null)
         if (onIslemEklendi) onIslemEklendi()
@@ -270,7 +316,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
     // ── KK Alışveriş ──
     } else if (onay.tur === 'kk_alisveris') {
-      const { error } = await supabase.from('islemler').insert({
+      const { data: yeniIslem, error } = await supabase.from('islemler').insert({
         user_id: session.user.id,
         hesap_id: onay.hesap_id,
         tarih: onay.tarih,
@@ -278,81 +324,93 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tur: 'gider',
         kategori: onay.kategori || 'Diğer',
         aciklama: onay.aciklama
-      })
+      }).select('id').single()
 
       if (!error) {
         const kartAdi = onay.hesap_adi_gosterim
+        const kartHesap = hesaplar.find(h => h.id === onay.hesap_id)
+        const tutar = parseFloat(onay.tutar)
+        const kesimGunu = kartHesap?.kesim_gunu || 1
+        const kesimTarihi = kesimTarihiHesapla(onay.tarih, kesimGunu)
+        const sonOdeme = sonOdemeHesapla(kesimTarihi)
+        const sonOdemeStr = tarihStr(sonOdeme)
+        let baglanacakBorcId = null
         if (onay.taksitli && parseInt(onay.taksit_sayisi) > 1) {
           // Taksitli borç
-          const aylikTaksit = parseFloat(onay.tutar) / parseInt(onay.taksit_sayisi)
-          let sonOdeme = new Date(onay.tarih)
-          sonOdeme.setMonth(sonOdeme.getMonth() + 1)
-          sonOdeme.setDate(10)
+          const aylikTaksit = tutar / parseInt(onay.taksit_sayisi)
 
-          await supabase.from('borclar').insert({
+          const { data: yeniBorc } = await supabase.from('borclar').insert({
             user_id: session.user.id,
             ad: `${onay.aciklama} (${onay.taksit_sayisi} taksit)`,
             tur: 'Kredi Kartı',
             banka: kartAdi,
-            toplam_borc: parseFloat(onay.tutar),
-            kalan_borc: parseFloat(onay.tutar),
+            toplam_borc: tutar,
+            kalan_borc: tutar,
             aylik_taksit: aylikTaksit,
             minimum_odeme: aylikTaksit,
             taksit_sayisi: parseInt(onay.taksit_sayisi),
             odenen_taksit: 0,
             taksitli: true,
-            son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+            son_odeme_tarihi: sonOdemeStr,
             aktif: true,
             odenen_tutar: 0  // ✅ düzeltildi (odened → odenen)
-          })
+          }).select('id').single()
+          baglanacakBorcId = yeniBorc?.id
         } else {
           // Taksitsiz — o ayın borcuna ekle
-          let sonOdeme = new Date(onay.tarih)
-          sonOdeme.setMonth(sonOdeme.getMonth() + 1)
-          sonOdeme.setDate(10)
-          const borcAdi = `${kartAdi} - ${String(sonOdeme.getMonth() + 1).padStart(2, '0')}/${sonOdeme.getFullYear()}`
+          const borcAdi = borcAdiOlustur(kartAdi, sonOdeme)
 
           const { data: mevcutBorc } = await supabase
             .from('borclar')
             .select('*')
             .eq('user_id', session.user.id)
-            .eq('ad', borcAdi)
+            .eq('banka', kartAdi)
+            .eq('son_odeme_tarihi', sonOdemeStr)
+            .eq('taksitli', false)
             .eq('aktif', true)
-            .single()
+            .maybeSingle()
 
           if (mevcutBorc) {
             await supabase.from('borclar').update({
-              kalan_borc: parseFloat(mevcutBorc.kalan_borc) + parseFloat(onay.tutar),
-              toplam_borc: parseFloat(mevcutBorc.toplam_borc) + parseFloat(onay.tutar),
-              minimum_odeme: parseFloat(mevcutBorc.minimum_odeme) + parseFloat(onay.tutar),
+              kalan_borc: parseFloat(mevcutBorc.kalan_borc || 0) + tutar,
+              toplam_borc: parseFloat(mevcutBorc.toplam_borc || 0) + tutar,
+              minimum_odeme: parseFloat(mevcutBorc.minimum_odeme || 0) + tutar,
             }).eq('id', mevcutBorc.id)
+            baglanacakBorcId = mevcutBorc.id
           } else {
-            await supabase.from('borclar').insert({
+            const { data: yeniBorc } = await supabase.from('borclar').insert({
               user_id: session.user.id,
               ad: borcAdi,
               tur: 'Kredi Kartı',
               banka: kartAdi,
-              toplam_borc: parseFloat(onay.tutar),
-              kalan_borc: parseFloat(onay.tutar),
-              minimum_odeme: parseFloat(onay.tutar),
+              toplam_borc: tutar,
+              kalan_borc: tutar,
+              minimum_odeme: tutar,
               taksit_sayisi: 1,
               odenen_taksit: 0,
               taksitli: false,
-              son_odeme_tarihi: sonOdeme.toISOString().split('T')[0],
+              son_odeme_tarihi: sonOdemeStr,
               aktif: true,
               odenen_tutar: 0,  // ✅ düzeltildi
               aylik_taksit: 0
-            })
+            }).select('id').single()
+            baglanacakBorcId = yeniBorc?.id
           }
+        }
+
+        if (baglanacakBorcId && yeniIslem?.id) {
+          await supabase.from('islemler')
+            .update({ borc_id: baglanacakBorcId })
+            .eq('id', yeniIslem.id)
         }
 
         setMesajlar(prev => [...prev, {
           rol: 'bot',
-          metin: `🎉 Kaydedildi!\n\n💳 ${onay.aciklama} — ₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}\n${
+          metin: `🎉 Kaydedildi!\n\n💳 ${onay.aciklama} — ₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n${
             onay.taksitli && parseInt(onay.taksit_sayisi) > 1
-              ? `📋 ${onay.taksit_sayisi} taksit (aylık ₺${(parseFloat(onay.tutar) / parseInt(onay.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 0 })})`
+              ? `📋 ${onay.taksit_sayisi} taksit (aylık ₺${(parseFloat(onay.tutar) / parseInt(onay.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
               : '💳 Tek çekim'
-          }\n🏦 ${kartAdi}\n📅 ${onay.tarih}`
+          }\n🏦 ${kartAdi}\n📅 ${tarihGoster(onay.tarih)}`
         }])
         setOnay(null)
         if (onIslemEklendi) onIslemEklendi()
@@ -375,27 +433,44 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         return
       }
 
+      const odemeTutari = parseFloat(onay.tutar)
+      const { data: kaynakVeri } = await supabase
+        .from('hesaplar')
+        .select('bakiye')
+        .eq('id', onay.hesap_id)
+        .maybeSingle()
+      const { data: kartVeri } = await supabase
+        .from('hesaplar')
+        .select('bakiye')
+        .eq('id', kartHesap.id)
+        .maybeSingle()
+      const kaynakBakiye = parseFloat(kaynakVeri?.bakiye || 0)
+      const kartBakiye = parseFloat(kartVeri?.bakiye || 0)
+
       // Banka hesabından gider
       const { error: e1 } = await supabase.from('islemler').insert({
         user_id: session.user.id,
         hesap_id: onay.hesap_id,
         tarih: onay.tarih,
-        tutar: parseFloat(onay.tutar),
+        tutar: odemeTutari,
         tur: 'gider',
         kategori: 'Borç Ödemesi',
-        aciklama: `${kartHesap.ad} ödemesi`
+        aciklama: `${kartHesap.ad} ödemesi`,
+        is_borc_odeme: true,
+        borc_id: null
       })
 
       // Kredi kartına gelir (borç azalması)
-      const { error: e2 } = await supabase.from('islemler').insert({
+      const { data: kartOdemeIslem, error: e2 } = await supabase.from('islemler').insert({
         user_id: session.user.id,
         hesap_id: kartHesap.id,
         tarih: onay.tarih,
-        tutar: parseFloat(onay.tutar),
+        tutar: odemeTutari,
         tur: 'gelir',
         kategori: 'Borç Ödemesi',
-        aciklama: `Borç ödemesi ← ${onay.hesap_adi_gosterim}`
-      })
+        aciklama: `Borç ödemesi ← ${onay.hesap_adi_gosterim}`,
+        is_borc_odeme: false
+      }).select('id').single()
 
       // Borçlar tablosunda aktif borcu düş
       const { data: borcData } = await supabase
@@ -409,7 +484,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
       if (borcData && borcData.length > 0) {
         const borc = borcData[0]
-        const odenecek = parseFloat(onay.tutar)
+        const odenecek = odemeTutari
         const yeniKalan = Math.max(0, parseFloat(borc.kalan_borc) - odenecek)
         const yeniOdenen = (parseFloat(borc.odenen_tutar) || 0) + odenecek
         const bitti = yeniKalan <= 0
@@ -427,18 +502,25 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         }
 
         await supabase.from('borclar').update(guncelleme).eq('id', borc.id)
+        if (kartOdemeIslem?.id) {
+          await supabase.from('islemler')
+            .update({ borc_id: borc.id })
+            .eq('id', kartOdemeIslem.id)
+        }
       }
 
       // Kaynak hesap bakiyesinden düş
-      const { data: kaynakHesap } = await supabase.from('hesaplar').select('bakiye').eq('id', onay.hesap_id).maybeSingle()
-      if (kaynakHesap) {
-        await supabase.from('hesaplar').update({ bakiye: parseFloat(kaynakHesap.bakiye || 0) - parseFloat(onay.tutar) }).eq('id', onay.hesap_id)
-      }
+      await supabase.from('hesaplar')
+        .update({ bakiye: kaynakBakiye - odemeTutari })
+        .eq('id', onay.hesap_id)
+      await supabase.from('hesaplar')
+        .update({ bakiye: kartBakiye + odemeTutari })
+        .eq('id', kartHesap.id)
 
       if (!e1 && !e2) {
         setMesajlar(prev => [...prev, {
           rol: 'bot',
-          metin: `🎉 Borç ödemesi tamamlandı!\n\n₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}\n🏦 ${onay.hesap_adi_gosterim} → ${kartHesap.ad}\n📅 ${onay.tarih}`
+          metin: `🎉 Borç ödemesi tamamlandı!\n\n₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n🏦 ${onay.hesap_adi_gosterim} → ${kartHesap.ad}\n📅 ${tarihGoster(onay.tarih)}`
         }])
         setOnay(null)
         if (onIslemEklendi) onIslemEklendi()
@@ -448,17 +530,25 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
     // ── Yatırım ──
     } else if (onay.tur === 'yatirim') {
-      const miktar = parseFloat(onay.miktar) || null
+      const miktar = parseFloat(onay.miktar) || 1
+      const toplamMaliyet = parseFloat(onay.tutar)
+      const komisyon = parseFloat(onay.komisyon) || 0
+      const yatirimHesap = hesaplar.find(h => h.id === onay.hesap_id)
+      const paraBirimi = onay.para_birimi || yatirimHesap?.para_birimi || 'TRY'
+      const birimMaliyet = parseFloat(onay.birim_maliyet) || ((toplamMaliyet - komisyon) / miktar)
+      const birimFiyat = parseFloat(onay.birim_fiyat) || birimMaliyet
+      const guncelDeger = parseFloat(onay.guncel_deger) || (birimFiyat * miktar)
       const { error } = await supabase.from('yatirimlar').insert({
         user_id: session.user.id,
         ad: onay.aciklama,
         tur: onay.yatirim_turu || 'Hisse',
         miktar: miktar,
-        maliyet: parseFloat(onay.tutar),
-        guncel_deger: parseFloat(onay.tutar),
-        birim_maliyet: miktar ? parseFloat(onay.tutar) / miktar : parseFloat(onay.tutar),
-        birim_fiyat: miktar ? parseFloat(onay.tutar) / miktar : parseFloat(onay.tutar),
-        para_birimi: 'TRY',
+        birim_maliyet: birimMaliyet,
+        komisyon: komisyon,
+        maliyet: toplamMaliyet,
+        guncel_deger: guncelDeger,
+        birim_fiyat: birimFiyat,
+        para_birimi: paraBirimi,
         hesap_id: onay.hesap_id
       })
 
@@ -467,14 +557,19 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
           user_id: session.user.id,
           hesap_id: onay.hesap_id,
           tarih: onay.tarih,
-          tutar: parseFloat(onay.tutar),
+          tutar: toplamMaliyet,
           tur: 'gider',
           kategori: 'Yatırım',
-          aciklama: `${onay.aciklama} alımı`
+          aciklama: `${onay.aciklama} alımı (${miktar} adet)`
         })
+        if (yatirimHesap) {
+          await supabase.from('hesaplar')
+            .update({ bakiye: parseFloat(yatirimHesap.bakiye || 0) - toplamMaliyet })
+            .eq('id', yatirimHesap.id)
+        }
         setMesajlar(prev => [...prev, {
           rol: 'bot',
-          metin: `🎉 Yatırım kaydedildi!\n\n📈 ${onay.aciklama}${miktar ? ` (${miktar} adet)` : ''} — ₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}\n📅 ${onay.tarih}\n🏦 ${onay.hesap_adi_gosterim}`
+          metin: `🎉 Yatırım kaydedildi!\n\n📈 ${onay.aciklama}${miktar ? ` (${miktar} adet)` : ''} — ₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n📅 ${tarihGoster(onay.tarih)}\n🏦 ${onay.hesap_adi_gosterim}`
         }])
         setOnay(null)
         if (onIslemEklendi) onIslemEklendi()
@@ -497,7 +592,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       if (!error) {
         setMesajlar(prev => [...prev, {
           rol: 'bot',
-          metin: `🎉 Kaydedildi!\n\n${onay.tur === 'gelir' ? '+' : '-'}₺${parseFloat(onay.tutar).toLocaleString('tr-TR')} — ${onay.aciklama}\n📅 ${onay.tarih}\n🏦 ${onay.hesap_adi_gosterim}`
+          metin: `🎉 Kaydedildi!\n\n${onay.tur === 'gelir' ? '+' : '-'}₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} — ${onay.aciklama}\n📅 ${tarihGoster(onay.tarih)}\n🏦 ${onay.hesap_adi_gosterim}`
         }])
         setOnay(null)
         if (onIslemEklendi) onIslemEklendi()
@@ -515,19 +610,30 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
   const onayDetaylar = () => {
     if (!onay) return []
 
+    if (onay.tur === 'borc_ekle') {
+      return [
+        { label: 'Borç Adı', deger: onay.aciklama || onay.ad || 'Borç' },
+        { label: 'Borç Türü', deger: onay.borc_turu || 'İhtiyaç Kredisi' },
+        { label: 'Banka', deger: onay.banka || '—' },
+        { label: 'Toplam Borç', deger: `₺${parseFloat(onay.toplam_borc || onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#ff6b6b' },
+        { label: 'Taksit', deger: onay.taksitli || parseInt(onay.taksit_sayisi) > 1 ? `${onay.taksit_sayisi || 1} taksit` : 'Taksitsiz' },
+        { label: 'Son Ödeme', deger: tarihGoster(onay.son_odeme_tarihi || onay.tarih) },
+      ]
+    }
+
     if (onay.tur === 'kk_alisveris') {
       return [
         { label: 'Kart', deger: onay.hesap_adi_gosterim },
-        { label: 'Tutar', deger: `-₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}`, renk: '#ff6b6b' },
+        { label: 'Tutar', deger: `-₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#ff6b6b' },
         { label: 'Kategori', deger: onay.kategori || 'Diğer' },
         { label: 'Açıklama', deger: onay.aciklama },
         {
           label: 'Taksit',
           deger: onay.taksitli && parseInt(onay.taksit_sayisi) > 1
-            ? `${onay.taksit_sayisi} taksit (aylık ₺${(parseFloat(onay.tutar) / parseInt(onay.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 0 })})`
+            ? `${onay.taksit_sayisi} taksit (aylık ₺${(parseFloat(onay.tutar) / parseInt(onay.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
             : 'Tek çekim'
         },
-        { label: 'Tarih', deger: onay.tarih },
+        { label: 'Tarih', deger: tarihGoster(onay.tarih) },
       ]
     }
 
@@ -536,8 +642,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         { label: 'Kaynak Hesap', deger: onay.hesap_adi_gosterim },
         // ✅ Resolve edilmiş hedef hesap adı gösteriliyor
         { label: 'Hedef Hesap', deger: onay.hedef_hesap_adi_gosterim || onay.hedef_hesap_adi || '?' },
-        { label: 'Tutar', deger: `₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}`, renk: '#45b7d1' },
-        { label: 'Tarih', deger: onay.tarih },
+        { label: 'Tutar', deger: `₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#45b7d1' },
+        { label: 'Tarih', deger: tarihGoster(onay.tarih) },
       ]
     }
 
@@ -545,8 +651,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       return [
         { label: 'Kaynak Hesap', deger: onay.hesap_adi_gosterim },
         { label: 'Kredi Kartı', deger: onay.kart_adi || '?' },
-        { label: 'Tutar', deger: `-₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}`, renk: '#ff6b6b' },
-        { label: 'Tarih', deger: onay.tarih },
+        { label: 'Tutar', deger: `-₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#ff6b6b' },
+        { label: 'Tarih', deger: tarihGoster(onay.tarih) },
       ]
     }
 
@@ -556,8 +662,11 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         { label: 'Yatırım Adı', deger: onay.aciklama },
         { label: 'Yatırım Türü', deger: onay.yatirim_turu || 'Hisse' },
         { label: 'Miktar', deger: onay.miktar ? `${onay.miktar} adet` : '—' },
-        { label: 'Tutar', deger: `₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}`, renk: '#ffd93d' },
-        { label: 'Tarih', deger: onay.tarih },
+        { label: 'Birim Maliyet', deger: onay.birim_maliyet ? `${onay.para_birimi || 'TRY'} ${parseFloat(onay.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Otomatik' },
+        { label: 'Komisyon', deger: `${onay.para_birimi || 'TRY'} ${(parseFloat(onay.komisyon) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+        { label: 'Para Birimi', deger: onay.para_birimi || 'TRY' },
+        { label: 'Tutar', deger: `₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#ffd93d' },
+        { label: 'Tarih', deger: tarihGoster(onay.tarih) },
       ]
     }
 
@@ -565,13 +674,13 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       { label: 'Hesap', deger: onay.hesap_adi_gosterim },
       {
         label: 'Tutar',
-        deger: `${onay.tur === 'gelir' ? '+' : '-'}₺${parseFloat(onay.tutar).toLocaleString('tr-TR')}`,
+        deger: `${onay.tur === 'gelir' ? '+' : '-'}₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         renk: onay.tur === 'gelir' ? '#4ecca3' : '#ff6b6b'
       },
       { label: 'Tür', deger: onay.tur === 'gelir' ? 'Gelir' : 'Gider' },
       { label: 'Kategori', deger: onay.kategori || '—' },
       { label: 'Açıklama', deger: onay.aciklama || '—' },
-      { label: 'Tarih', deger: onay.tarih },
+      { label: 'Tarih', deger: tarihGoster(onay.tarih) },
     ]
   }
 

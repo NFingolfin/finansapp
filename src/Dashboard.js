@@ -209,7 +209,7 @@ const [menuAcik, setMenuAcik] = useState(false)
 }
 
 function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
-  const pm = (val) => gizliMod ? '₺ ****' : '₺' + parseFloat(val || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+  const pm = (val) => gizliMod ? '₺ ****' : '₺' + parseFloat(val || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const { t } = useLang()
   const [ozet, setOzet] = useState({
     toplamNakit: 0,
@@ -390,7 +390,7 @@ const kartlar = [
                       {activeLabel || 'Toplam'}
                     </text>
                     <text x="100" y="108" textAnchor="middle" fill={activeSlice?.color || 'var(--text-primary)'} fontSize="11" fontWeight="bold" style={{ pointerEvents: 'none' }}>
-                      {activeSlice ? `${activeSlice.pct}%` : (gizliMod ? '₺ ****' : `₺${Math.round(total).toLocaleString('tr-TR')}`)}
+                      {activeSlice ? `${activeSlice.pct}%` : (gizliMod ? '₺ ****' : `₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
                     </text>
                   </svg>
                 </div>
@@ -407,7 +407,7 @@ const kartlar = [
                         <span style={{ color: 'var(--text-primary)', fontWeight: activeLabel === s.label ? '600' : '400' }}>{s.label}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{gizliMod ? '₺ ****' : `₺${Math.round(s.value).toLocaleString('tr-TR')}`}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{gizliMod ? '₺ ****' : `₺${s.value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
                         <span style={{ color: 'var(--text-secondary)', fontWeight: '600', minWidth: '40px', textAlign: 'right' }}>{s.pct}%</span>
                       </div>
                     </div>
@@ -427,7 +427,7 @@ const kartlar = [
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', padding: '4px 0', borderBottom: i < activeDetails.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                         <span style={{ color: 'var(--text-primary)' }}>{item.ad}</span>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>{gizliMod ? '₺ ****' : `₺${Math.round(item.deger).toLocaleString('tr-TR')}`}</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{gizliMod ? '₺ ****' : `₺${item.deger.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
                           {item.karPct !== null && (
                             <span style={{ color: parseFloat(item.karPct) >= 0 ? '#0d9488' : '#ef4444', minWidth: '44px', textAlign: 'right' }}>
                               {parseFloat(item.karPct) >= 0 ? '+' : ''}{item.karPct}%
@@ -457,7 +457,7 @@ const kartlar = [
                 <div style={styles.hesapAd}>{hesap.ad}</div>
                 <div style={styles.hesapTur}>{hesap.tur}</div>
                 <div style={{ color: gosterilen < 0 ? '#ef4444' : '#0d9488', fontWeight: 'bold', fontSize: '14px' }}>
-                  {gizliMod ? '****' : `${sembol}${gosterilen.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                  {gizliMod ? '****' : `${sembol}${gosterilen.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </div>
               </div>
             )

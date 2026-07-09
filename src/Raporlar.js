@@ -50,7 +50,7 @@ function Raporlar({ session, mobil, gizliMod }) {
     const ayIslemleri = islemler.filter(i => i.tarih?.startsWith(key))
     const gelir = ayIslemleri.filter(i => i.tur === 'gelir').reduce((a, i) => a + parseFloat(i.tutar), 0)
     const gider = ayIslemleri.filter(i => i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0)
-    return { ay: label, Gelir: Math.round(gelir), Gider: Math.round(gider), Net: Math.round(gelir - gider) }
+    return { ay: label, Gelir: gelir, Gider: gider, Net: gelir - gider }
   })
 
   // Seçilen aya ait işlemler
@@ -68,7 +68,7 @@ function Raporlar({ session, mobil, gizliMod }) {
   })
   const kategoriVerisi = Object.entries(kategoriMap)
     .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name, value: Math.round(value) }))
+    .map(([name, value]) => ({ name, value }))
 
   const KATEGORI_RENK = [
     '#0d9488', '#0ea5e9', '#eab308', '#ef4444', '#a78bfa',
@@ -91,7 +91,7 @@ function Raporlar({ session, mobil, gizliMod }) {
   })
   const yatirimGrafikVerisi = Object.entries(yatirimTurGrubu)
     .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name, value: Math.round(value) }))
+    .map(([name, value]) => ({ name, value }))
 
   // Ay seçici için seçenekler (son 24 ay)
   const aySecenekleri = () => {
@@ -106,7 +106,7 @@ function Raporlar({ session, mobil, gizliMod }) {
     return secenekler
   }
 
-  const formatTL = (v) => gizliMod ? '₺ ****' : `₺${Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`
+  const formatTL = (v) => gizliMod ? '₺ ****' : `₺${Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null

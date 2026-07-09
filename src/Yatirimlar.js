@@ -4,7 +4,7 @@ import { useLang } from './LangContext'
 
 function Yatirimlar({ session, mobil, gizliMod }) {
   const { t } = useLang()
-  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+  const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const pbSembol = (pb) => ({ 'TRY': '₺', 'USD': '$', 'EUR': '€', 'GBP': '£' }[pb] || pb)
   const [yatirimlar, setYatirimlar] = useState([])
@@ -434,7 +434,7 @@ const satisYap = async () => {
               </div>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                  ₺{gizliMod ? '****' : s.value.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}
+                  ₺{gizliMod ? '****' : s.value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span style={{ color: 'var(--text-secondary)', fontWeight: '600', minWidth: '42px', textAlign: 'right' }}>{s.pct}%</span>
               </div>
@@ -455,7 +455,7 @@ const satisYap = async () => {
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '5px 0', borderBottom: i < activeDetails.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                 <span style={{ color: 'var(--text-primary)' }}>{item.ad}</span>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>₺{gizliMod ? '****' : item.deger.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>₺{gizliMod ? '****' : item.deger.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   <span style={{ color: item.kar >= 0 ? '#0d9488' : '#ef4444', fontSize: '12px', minWidth: '48px', textAlign: 'right' }}>{item.kar >= 0 ? '+' : ''}{item.karPct}%</span>
                 </div>
               </div>
@@ -480,7 +480,7 @@ const satisYap = async () => {
         <div style={styles.ozetKart}>
           <div style={styles.ozetLabel}>Kar / Zarar</div>
           <div style={{ ...styles.ozetDeger, color: toplamKarZarar >= 0 ? '#0d9488' : '#ef4444' }}>
-            {gizliMod ? '₺ ****' : `${toplamKarZarar >= 0 ? '+' : ''}₺${toplamKarZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+            {gizliMod ? '₺ ****' : `${toplamKarZarar >= 0 ? '+' : ''}₺${toplamKarZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
         </div>
         <div style={styles.ozetKart}>
@@ -547,8 +547,8 @@ const satisYap = async () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
               {[
-                { label: 'Toplam Gerçekleşen K/Z', deger: `${toplamKar >= 0 ? '+' : ''}₺${Math.abs(toplamKar).toLocaleString('tr-TR', { minimumFractionDigits: 0 })}`, renk: toplamKar >= 0 ? '#0d9488' : '#ef4444' },
-                { label: 'Toplam Satış Tutarı', deger: `₺${Math.round(toplamSatis).toLocaleString('tr-TR')}`, renk: '#0ea5e9' },
+                { label: 'Toplam Gerçekleşen K/Z', deger: `${toplamKar >= 0 ? '+' : ''}₺${Math.abs(toplamKar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: toplamKar >= 0 ? '#0d9488' : '#ef4444' },
+                { label: 'Toplam Satış Tutarı', deger: `₺${toplamSatis.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#0ea5e9' },
                 { label: 'Ortalama Getiri', deger: `${parseFloat(ortKarYuzde) >= 0 ? '+' : ''}${ortKarYuzde}%`, renk: parseFloat(ortKarYuzde) >= 0 ? '#0d9488' : '#ef4444' },
                 { label: 'İşlem Sayısı', deger: `${realizasyonlar.length} (${karliIslem} karlı)`, renk: '#a78bfa' },
               ].map((k, i) => (
@@ -584,10 +584,10 @@ const satisYap = async () => {
                           <td style={{ padding: '9px 10px', color: 'var(--text-primary)', fontWeight: '600' }}>{r.yatirim_adi}</td>
                           <td style={{ padding: '9px 10px', color: 'var(--text-secondary)' }}>{r.tur}</td>
                           <td style={{ padding: '9px 10px', color: 'var(--text-secondary)', textAlign: 'right' }}>{parseFloat(r.satilan_miktar) > 0 ? parseFloat(r.satilan_miktar).toLocaleString('tr-TR') : '—'}</td>
-                          <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{gizliMod ? '****' : `${s}${parseFloat(r.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}</td>
-                          <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{gizliMod ? '****' : `${s}${parseFloat(r.satis_tutari).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}</td>
+                          <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{gizliMod ? '****' : `${s}${parseFloat(r.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</td>
+                          <td style={{ padding: '9px 10px', textAlign: 'right', color: 'var(--text-secondary)' }}>{gizliMod ? '****' : `${s}${parseFloat(r.satis_tutari).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</td>
                           <td style={{ padding: '9px 10px', textAlign: 'right', color: kz >= 0 ? '#0d9488' : '#ef4444', fontWeight: '600' }}>
-                            {gizliMod ? '****' : `${kz >= 0 ? '+' : ''}${s}${kz.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                            {gizliMod ? '****' : `${kz >= 0 ? '+' : ''}${s}${kz.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                           </td>
                           <td style={{ padding: '9px 10px', textAlign: 'right', color: pct >= 0 ? '#0d9488' : '#ef4444', fontWeight: '600' }}>
                             {`${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`}
@@ -644,7 +644,7 @@ const satisYap = async () => {
       {duzenleYatirim.miktar && duzenleYatirim.birim_fiyat && (
         <div style={styles.bilgiMesaj}>
           💡 Güncel değer: <strong>
-            {pbSembol(duzenleYatirim.para_birimi)}{(parseFloat(duzenleYatirim.miktar) * parseFloat(duzenleYatirim.birim_fiyat)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            {pbSembol(duzenleYatirim.para_birimi)}{(parseFloat(duzenleYatirim.miktar) * parseFloat(duzenleYatirim.birim_fiyat)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </strong>
         </div>
       )}
@@ -670,7 +670,7 @@ const satisYap = async () => {
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
       <h3 style={styles.modalBaslik}>📤 Satış Yap</h3>
       <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-        {satisYatirim.ad} — Güncel Değer: {pbSembol(satisYatirim.para_birimi)}{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+        {satisYatirim.ad} — Güncel Değer: {pbSembol(satisYatirim.para_birimi)}{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         {parseFloat(satisYatirim.miktar) > 0 && ` · ${satisYatirim.miktar} adet`}
       </p>
 
@@ -716,7 +716,7 @@ const satisYap = async () => {
         <option value="">Hesap seç</option>
         {hesaplar.map(h => (
           <option key={h.id} value={h.id}>
-            {h.ad} ({h.para_birimi === 'TRY' ? '₺' : h.para_birimi + ' '}{parseFloat(h.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
+            {h.ad} ({h.para_birimi === 'TRY' ? '₺' : h.para_birimi + ' '}{parseFloat(h.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
           </option>
         ))}
       </select>
@@ -732,12 +732,12 @@ const satisYap = async () => {
         return (
           <div style={{ ...styles.bilgiMesaj, color: pozitif ? '#0d9488' : '#ef4444', background: pozitif ? 'rgba(13,148,136,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${pozitif ? 'rgba(13,148,136,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
             {pozitif
-              ? `🟢 Kar: +${pbSembol(satisYatirim.para_birimi)}${kar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} (+${karPct}%)`
-              : `🔴 Zarar: ${pbSembol(satisYatirim.para_birimi)}${kar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} (-${karPct}%)`
+              ? `🟢 Kar: +${pbSembol(satisYatirim.para_birimi)}${kar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (+${karPct}%)`
+              : `🔴 Zarar: ${pbSembol(satisYatirim.para_birimi)}${kar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (-${karPct}%)`
             }
             {satMiktar > 0 && mevcutMiktar > 0 && satMiktar < mevcutMiktar && (
               <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.8 }}>
-                Kısmi satış · Maliyet payı: {pbSembol(satisYatirim.para_birimi)}{ilgiliMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                Kısmi satış · Maliyet payı: {pbSembol(satisYatirim.para_birimi)}{ilgiliMaliyet.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             )}
           </div>
@@ -804,7 +804,7 @@ const satisYap = async () => {
 
             {yeni.miktar && yeni.birim_maliyet && (
               <div style={styles.bilgiMesaj}>
-                💡 Toplam maliyet: <strong>{pbSembol(yeni.para_birimi)}{((parseFloat(yeni.miktar) * parseFloat(yeni.birim_maliyet)) + (parseFloat(yeni.komisyon) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                💡 Toplam maliyet: <strong>{pbSembol(yeni.para_birimi)}{((parseFloat(yeni.miktar) * parseFloat(yeni.birim_maliyet)) + (parseFloat(yeni.komisyon) || 0)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                 {' · '}Güncel fiyat kayıt sırasında otomatik çekilecek
               </div>
             )}
@@ -825,14 +825,14 @@ const satisYap = async () => {
       <option value="">Hesap seç</option>
       {hesaplar.map(h => (
         <option key={h.id} value={h.id}>
-          {h.ad} (₺{parseFloat(h.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
+          {h.ad} (₺{parseFloat(h.bakiye).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
         </option>
       ))}
     </select>
     {yeni.odeme_hesap_id && yeni.maliyet && (
       <div style={styles.bilgiMesaj}>
         💡 <strong>{hesaplar.find(h => h.id === yeni.odeme_hesap_id)?.ad}</strong> hesabından
-        ₺{parseFloat(yeni.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} düşecek.
+        ₺{parseFloat(yeni.maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} düşecek.
       </div>
     )}
   </>
@@ -906,15 +906,15 @@ const satisYap = async () => {
               </div>
               <div style={mobil ? { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' } : { display: 'contents' }}>
                 <div style={styles.kartOrta}><div style={styles.detayLabel}>Miktar</div><div style={styles.detayDeger}>{parseFloat(y.miktar) > 0 ? `${y.miktar} adet` : '—'}</div></div>
-                <div style={styles.kartOrta}><div style={styles.detayLabel}>Birim Maliyet</div><div style={styles.detayDeger}>{y.birim_maliyet > 0 ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '—'}</div></div>
-                <div style={styles.kartOrta}><div style={styles.detayLabel}>Güncel Fiyat</div><div style={styles.detayDeger}>{y.birim_fiyat > 0 && parseFloat(y.miktar) > 0 ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}` : '—'}</div></div>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Birim Maliyet</div><div style={styles.detayDeger}>{y.birim_maliyet > 0 ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_maliyet).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</div></div>
+                <div style={styles.kartOrta}><div style={styles.detayLabel}>Güncel Fiyat</div><div style={styles.detayDeger}>{y.birim_fiyat > 0 && parseFloat(y.miktar) > 0 ? `${pbSembol(y.para_birimi)}${parseFloat(y.birim_fiyat).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</div></div>
                 <div style={styles.kartOrta}><div style={styles.detayLabel}>Toplam Maliyet</div><div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.maliyet)}</div></div>
                 <div style={styles.kartOrta}><div style={styles.detayLabel}>Güncel Değer</div><div style={styles.detayDeger}>{pbSembol(y.para_birimi)}{pm(y.guncel_deger)}</div></div>
               </div>
               <div style={mobil ? { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } : { display: 'contents' }}>
                 <div style={{ ...styles.kartSag, textAlign: mobil ? 'left' : 'right' }}>
                   <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '18px', fontWeight: 'bold' }}>
-                    {gizliMod ? `${pbSembol(y.para_birimi)} ****` : `${karZarar >= 0 ? '+' : ''}${pbSembol(y.para_birimi)}${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                    {gizliMod ? `${pbSembol(y.para_birimi)} ****` : `${karZarar >= 0 ? '+' : ''}${pbSembol(y.para_birimi)}${karZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   </div>
                   <div style={{ color: karZarar >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px' }}>
                     {gizliMod ? '***%' : `${getiri >= 0 ? '+' : ''}${getiri}%`}
@@ -943,7 +943,7 @@ const satisYap = async () => {
                       <span style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488', borderRadius: '20px', padding: '2px 10px', fontSize: '12px' }}>{grup.length} yatırım</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Toplam: {grupDeger.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Toplam: {grupDeger.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{acik ? '▲' : '▼'}</span>
                     </div>
                   </div>

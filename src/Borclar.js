@@ -5,7 +5,7 @@ import { kesimTarihiHesapla, sonOdemeHesapla, donemAraligiHesapla, tarihStr, bor
 
 function Borclar({ session, mobil, gizliMod }) {
   const { t } = useLang()
-  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+  const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [borclar, setBorclar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)
@@ -674,11 +674,11 @@ const kritikBorclar = borclar.filter(b => {
                           </td>
                           {cells.map(c => (
                             <td key={c.key} style={{ ...styles.tdTutar, color: isPast ? 'var(--text-muted)' : c.amount > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                              {c.amount > 0 ? `₺${c.amount.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                              {c.amount > 0 ? `₺${c.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                             </td>
                           ))}
                           <td style={{ ...styles.tdTutar, fontWeight: '700', color: isPast ? 'var(--text-muted)' : rowTotal > 0 ? '#ef4444' : 'var(--text-muted)', borderLeft: '2px solid var(--border)' }}>
-                            {rowTotal > 0 ? `₺${rowTotal.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                            {rowTotal > 0 ? `₺${rowTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                           </td>
                         </tr>
                       )
@@ -689,12 +689,12 @@ const kritikBorclar = borclar.filter(b => {
                         const total = aylar.reduce((sum, ay) => sum + k.borclar.reduce((s, b) => s + aylikBorcOdeme(b, ay), 0), 0)
                         return (
                           <td key={k.label} style={{ ...styles.tdTutar, fontWeight: '700', color: total > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            {total > 0 ? `₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '—'}
+                            {total > 0 ? `₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                           </td>
                         )
                       })}
                       <td style={{ ...styles.tdTutar, fontWeight: '700', color: '#ef4444', borderLeft: '2px solid var(--border)' }}>
-                        ₺{kolonlar.reduce((sum, k) => sum + aylar.reduce((s, ay) => s + k.borclar.reduce((bs, b) => bs + aylikBorcOdeme(b, ay), 0), 0), 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        ₺{kolonlar.reduce((sum, k) => sum + aylar.reduce((s, ay) => s + k.borclar.reduce((bs, b) => bs + aylikBorcOdeme(b, ay), 0), 0), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tbody>
@@ -714,12 +714,12 @@ const kritikBorclar = borclar.filter(b => {
           <div style={{ ...styles.modal, width: mobil ? '95vw' : '360px' }}>
             <h3 style={styles.modalBaslik}>💳 Ödeme Yap</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-              {odemeFormAcik.ad} — Kalan: ₺{parseFloat(odemeFormAcik.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              {odemeFormAcik.ad} — Kalan: ₺{parseFloat(odemeFormAcik.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
 
             {odemeFormAcik.taksitli && (
               <div style={styles.taksitBilgi}>
-                💡 Aylık taksit tutarı: <strong>₺{parseFloat(odemeFormAcik.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                💡 Aylık taksit tutarı: <strong>₺{parseFloat(odemeFormAcik.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
             )}
             <label style={styles.label}>Hangi Hesaptan?</label>
@@ -730,7 +730,7 @@ const kritikBorclar = borclar.filter(b => {
 >
                       {hesaplar.map(h => (
                         <option key={h.id} value={h.id}>
-                          {h.ad} {!gizliMod ? `(${parseFloat(h.bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${h.para_birimi || '₺'})` : ''}
+                          {h.ad} {!gizliMod ? `(${parseFloat(h.bakiye || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${h.para_birimi || '₺'})` : ''}
                         </option>
                       ))}
             </select>
@@ -825,7 +825,7 @@ const kritikBorclar = borclar.filter(b => {
                 onChange={e => setYeni({ ...yeni, taksit_sayisi: e.target.value })} />
               {yeni.toplam_borc && yeni.taksit_sayisi && (
                 <div style={styles.taksitBilgi}>
-                  💡 Aylık taksit: <strong>₺{(parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                  💡 Aylık taksit: <strong>₺{(parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                 </div>
               )}
             </>
@@ -862,7 +862,7 @@ const kritikBorclar = borclar.filter(b => {
 
               {yeni.toplam_borc && yeni.taksit_sayisi && parseInt(yeni.taksit_sayisi) > 0 && (
                 <div style={styles.taksitBilgi}>
-                  💡 Aylık taksit: <strong>₺{(parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                  💡 Aylık taksit: <strong>₺{(parseFloat(yeni.toplam_borc) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                   {' · '}{yeni.taksit_sayisi} ay
                 </div>
               )}
@@ -1019,7 +1019,7 @@ const buAyKart = buAyKartBorclari.reduce(
         setOdemeFormTutar(buAyKart.toString())
       }}
     >
-      💳 Bu Ayı Öde (₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 0 })})
+      💳 Bu Ayı Öde (₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
     </button>
   ) : (
     <span style={styles.odemeYokEtiket}>Bu ay ödeme yok</span>
@@ -1044,7 +1044,7 @@ const buAyKart = buAyKartBorclari.reduce(
                 {borc.notlar && <div style={styles.altBorcNot}>📝 {borc.notlar}</div>}
                 {borc.taksitli && (
                   <div style={styles.altBorcNot}>
-                    Aylık: ₺{parseFloat(borc.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} · 
+                    Aylık: ₺{parseFloat(borc.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · 
                     Kalan: {borc.taksit_sayisi - (borc.odenen_taksit || 0)} taksit
                   </div>
                 )}

@@ -4,7 +4,7 @@ import { useLang } from './LangContext'
 
 function Hedefler({ session, mobil, gizliMod }) {
   const { t } = useLang()
-  const pm = (val, opts = { minimumFractionDigits: 0 }) =>
+  const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [hedefler, setHedefler] = useState([])
   const [takip, setTakip] = useState([])
@@ -290,7 +290,6 @@ if (guncelDeger !== null) {
                           type="number"
                           value={ayDeger || ''}
                           placeholder="—"
-                          onBlur={e => ayTakipGuncelle(hedef.id, ay, e.target.value)}
 onChange={e => {
   const yeniTakip = [...takip]
   const idx = yeniTakip.findIndex(t => t.hedef_id === hedef.id && t.ay === ay)

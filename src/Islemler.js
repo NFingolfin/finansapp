@@ -5,7 +5,7 @@ import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from '.
 
 function Islemler({ session, mobil, gizliMod }) {
   const { t } = useLang()
-  const pm = (val, opts = { minimumFractionDigits: 2 }) =>
+  const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [islemler, setIslemler] = useState([])
   const [hesaplar, setHesaplar] = useState([])
@@ -636,7 +636,7 @@ if (islem?.tur === 'gider') {
                           value={yeni.taksit_sayisi} onChange={e => setYeni({ ...yeni, taksit_sayisi: e.target.value })} />
                         {yeni.tutar && yeni.taksit_sayisi && (
                           <div style={styles.taksitBilgi}>
-                            💡 Aylık taksit: <strong>₺{(parseFloat(yeni.tutar) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</strong>
+                            💡 Aylık taksit: <strong>₺{(parseFloat(yeni.tutar) / parseInt(yeni.taksit_sayisi)).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                           </div>
                         )}
                       </>
@@ -703,7 +703,7 @@ if (islem?.tur === 'gider') {
                   </div>
                 </div>
                 <div style={{ ...styles.islemTutar, color: isBorcOdeme ? '#f97316' : islem.tur === 'gelir' ? '#4ecca3' : islem.tur === 'gider' ? '#ff6b6b' : '#45b7d1' }}>
-                  {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : islem.tur === 'gider' ? '-' : ''}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                  {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : islem.tur === 'gider' ? '-' : ''}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </div>
                 <button style={styles.silBtn} onClick={() => islemSil(islem.id)}>🗑️</button>
               </div>
