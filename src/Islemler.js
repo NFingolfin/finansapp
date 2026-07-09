@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
-import { useLang } from './LangContext'
 import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 
 function Islemler({ session, mobil, gizliMod }) {
-  const { t } = useLang()
   const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [islemler, setIslemler] = useState([])
@@ -44,7 +42,7 @@ function Islemler({ session, mobil, gizliMod }) {
   useEffect(() => {
     islemleriGetir()
     hesaplariGetir()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const islemleriGetir = async () => {
     setYukleniyor(true)

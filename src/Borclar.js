@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { useLang } from './LangContext'
-import { kesimTarihiHesapla, sonOdemeHesapla, donemAraligiHesapla, tarihStr, borcAdiOlustur } from './kkutils'
+import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 
 function Borclar({ session, mobil, gizliMod }) {
   const { t } = useLang()

@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
-import { useLang } from './LangContext'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts'
 
 function Raporlar({ session, mobil, gizliMod }) {
-  const { t } = useLang()
   const [islemler, setIslemler] = useState([])
   const [yatirimlar, setYatirimlar] = useState([])
   const [yukleniyor, setYukleniyor] = useState(true)

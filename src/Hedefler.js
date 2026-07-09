@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
-import { useLang } from './LangContext'
 
 function Hedefler({ session, mobil, gizliMod }) {
-  const { t } = useLang()
   const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [hedefler, setHedefler] = useState([])
@@ -140,30 +138,6 @@ if (guncelDeger !== null) {
   const ayTakipGetir = (hedefId, ay) => {
     return parseFloat(takip.find(t => t.hedef_id === hedefId && t.ay === ay)?.gerceklesen || 0)
   }
-
- const ayTakipGuncelle = async (hedefId, ay, deger) => {
-  const mevcut = takip.find(t => t.hedef_id === hedefId && t.ay === ay)
-  if (mevcut) {
-    await supabase.from('hedef_takip').update({ 
-      gerceklesen: parseFloat(deger) || 0 
-    }).eq('id', mevcut.id)
-  } else {
-    await supabase.from('hedef_takip').insert({
-      user_id: session.user.id, 
-      hedef_id: hedefId, 
-      yil: aktifYil, 
-      ay, 
-      gerceklesen: parseFloat(deger) || 0
-    })
-  }
-  // Sadece takip verisini güncelle, verileriGetir çağırma
-  const { data: yeniTakip } = await supabase
-    .from('hedef_takip')
-    .select('*')
-    .eq('user_id', session.user.id)
-    .eq('yil', aktifYil)
-  setTakip(yeniTakip || [])
-}
 
   const grid = '160px repeat(12, 75px) 100px 100px 80px 36px'
 

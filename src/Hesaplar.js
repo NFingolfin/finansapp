@@ -19,7 +19,7 @@ const [suruklenen, setSuruklenen] = useState(null)
   const [detayModal, setDetayModal] = useState(false)
 const [detayHesap, setDetayHesap] = useState(null)
 const [hesapYatirimlari, setHesapYatirimlari] = useState([])
-const [touchBaslangic, setTouchBaslangic] = useState(null)
+const [, setTouchBaslangic] = useState(null)
 
   const hesapTurleri = ['Banka', 'Nakit', 'Kredi Kartı', 'Yatırım', 'Borç', 'Diğer']
   const paraBirimleri = ['TRY', 'USD', 'EUR', 'GBP', 'ALTIN']

@@ -57,7 +57,7 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
   const [silOnayAcik, setSilOnayAcik] = useState(false)
   const [silOnayMetni, setSilOnayMetni] = useState('')
 
-  useEffect(() => { profilGetir() }, [])
+  useEffect(() => { profilGetir() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const profilGetir = async () => {
     setProfilYukleniyor(true)

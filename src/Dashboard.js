@@ -38,7 +38,7 @@ const [menuAcik, setMenuAcik] = useState(false)
     return yeni
   })
 
-  useEffect(() => { profilGetir() }, [])
+  useEffect(() => { profilGetir() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const profilGetir = async () => {
     const { data, error } = await supabase
@@ -225,7 +225,7 @@ function OzetSayfasi({ session, setAktifSayfa, mobil, gizliMod }) {
 
   useEffect(() => {
     verileriGetir()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const verileriGetir = async () => {
     const { data: hesapData } = await supabase.from('hesaplar').select('*').eq('user_id', session.user.id)
@@ -467,16 +467,6 @@ const kartlar = [
     </div>
   )
 }
-function YakindaGelecek({ baslik }) {
-  return (
-    <div style={styles.yakinda}>
-      <div style={styles.yakindaIcon}>🚧</div>
-      <h2 style={styles.yakindaBaslik}>{baslik} sayfası</h2>
-      <p style={styles.yakindaMetin}>Bu bölüm yakında eklenecek.</p>
-    </div>
-  )
-}
-
 const styles = {
 wrapper: {
   display: 'flex',
