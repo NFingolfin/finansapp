@@ -1,81 +1,85 @@
-/* ═══════════════════════════════════════════
-   Finkod Cüzdan — Tema Değişkenleri
-   ═══════════════════════════════════════════ */
+/* Finkod design system — Editorial Clean / Soft Corporate */
+:root {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
 
-/* ── Açık Mod ── */
 [data-tema="light"] {
-  --bg-primary:   #f1f5f9;
-  --bg-card:      #ffffff;
-  --bg-sidebar:   #ffffff;
-  --bg-input:     #f8fafc;
-  --bg-subtle:    #f1f5f9;
-  --bg-hover:     rgba(0,0,0,0.04);
-  --bg-overlay:   rgba(15,23,42,0.5);
+  --bg: #fafbfc;
+  --surface: #ffffff;
+  --surface-soft: #f8f9fb;
+  --text: #182235;
+  --text-muted: #8792a6;
+  --border: #e8ebf0;
+  --primary: #1f64e7;
+  --primary-hover: #1d4ed8;
+  --success: #249b7b;
+  --warning: #b68132;
+  --danger: #d9535f;
+  --info: #3675d3;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, .018);
+  --shadow-md: 0 18px 45px rgba(15, 23, 42, .10);
 
-  --text-primary:   #0f172a;
-  --text-secondary: #64748b;
-  --text-muted:     #94a3b8;
-
-  --border:       #e2e8f0;
-  --border-light: #f1f5f9;
-
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.07);
-  --shadow-md:  0 20px 60px rgba(0,0,0,0.12);
-
-  --accent:     #0d9488;
-  --accent-2:   #0ea5e9;
-  --danger:     #ef4444;
-  --warning:    #eab308;
-  --success:    #0d9488;
+  /* Backwards-compatible aliases used by existing screens */
+  --bg-primary: var(--bg);
+  --bg-card: var(--surface);
+  --bg-sidebar: var(--surface);
+  --bg-input: var(--surface-soft);
+  --bg-subtle: #f5f7fa;
+  --bg-hover: #f3f6fb;
+  --bg-overlay: rgba(15, 23, 42, .48);
+  --text-primary: var(--text);
+  --text-secondary: #53617a;
+  --border-light: #edf0f5;
+  --accent: var(--primary);
+  --accent-2: #3b82f6;
 }
 
-/* ── Koyu Mod ── */
 [data-tema="dark"] {
-  --bg-primary:   #0f172a;
-  --bg-card:      #1e293b;
-  --bg-sidebar:   #0f172a;
-  --bg-input:     rgba(255,255,255,0.07);
-  --bg-subtle:    rgba(255,255,255,0.04);
-  --bg-hover:     rgba(255,255,255,0.05);
-  --bg-overlay:   rgba(0,0,0,0.75);
-
-  --text-primary:   #f1f5f9;
-  --text-secondary: rgba(255,255,255,0.55);
-  --text-muted:     rgba(255,255,255,0.35);
-
-  --border:       rgba(255,255,255,0.1);
-  --border-light: rgba(255,255,255,0.06);
-
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.3);
-  --shadow-md:  0 20px 60px rgba(0,0,0,0.5);
-
-  --accent:     #0d9488;
-  --accent-2:   #0ea5e9;
-  --danger:     #ef4444;
-  --warning:    #eab308;
-  --success:    #0d9488;
+  --bg: #08111f;
+  --surface: #101c2e;
+  --surface-soft: #132238;
+  --text: #eef4ff;
+  --text-muted: #8fa0ba;
+  --border: #22334b;
+  --primary: #4f8cff;
+  --primary-hover: #6b9dff;
+  --success: #35c5a3;
+  --warning: #e8a43b;
+  --danger: #f06470;
+  --info: #67a0ff;
+  --shadow-sm: 0 8px 20px rgba(0, 0, 0, .16);
+  --shadow-md: 0 22px 60px rgba(0, 0, 0, .38);
+  --bg-primary: var(--bg);
+  --bg-card: var(--surface);
+  --bg-sidebar: #0c1829;
+  --bg-input: var(--surface-soft);
+  --bg-subtle: #14243a;
+  --bg-hover: #172b47;
+  --bg-overlay: rgba(0, 0, 0, .72);
+  --text-primary: var(--text);
+  --text-secondary: #b1bfd3;
+  --border-light: #1b2b42;
+  --accent: var(--primary);
+  --accent-2: #60a5fa;
 }
 
-/* ── Global geçiş animasyonu ── */
-*, *::before, *::after {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+*, *::before, *::after { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea {
+  transition: border-color .18s ease, background-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
-
-/* Geçişi form elementlerinde koru ama inputları dahil etme */
-input, select, textarea, button {
-  transition: background-color 0.25s ease, border-color 0.2s ease, color 0.25s ease,
-              box-shadow 0.2s ease;
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
+  outline-offset: 2px;
 }
-
-html, body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-/* Scrollbar dark mod uyumu */
-[data-tema="dark"] ::-webkit-scrollbar { width: 6px; height: 6px; }
-[data-tema="dark"] ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
-[data-tema="dark"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-
-/* Select dark mod */
-[data-tema="dark"] select option { background: #1e293b; color: #f1f5f9; }
+input:focus, select:focus, textarea:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent); }
+button:not(:disabled):active { transform: translateY(1px); }
+button:disabled { cursor: not-allowed !important; opacity: .58; }
+::selection { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-muted) 35%, transparent); border-radius: 999px; }
+[data-tema="dark"] select option { background: var(--surface); color: var(--text); }

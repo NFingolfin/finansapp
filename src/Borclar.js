@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { useLang } from './LangContext'
 import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
+import { CreditCard, CalendarDays, CalendarCheck, Clock3, BarChart3, Plus, FileText, Landmark } from 'lucide-react'
 
 function Borclar({ session, mobil, gizliMod }) {
   const { t } = useLang()
@@ -28,15 +29,6 @@ const [yeni, setYeni] = useState({
 })
 
   const turler = [ 'İhtiyaç Kredisi', 'Konut Kredisi', 'Taşıt Kredisi', 'Diğer']
-  const turRenk = {
-    'Kredi Kartı': '#ef4444', 'İhtiyaç Kredisi': '#f97316',
-    'Konut Kredisi': '#a78bfa', 'Taşıt Kredisi': '#0ea5e9', 'Diğer': '#94a3b8'
-  }
-  const turIkon = {
-    'Kredi Kartı': '💳', 'İhtiyaç Kredisi': '💰',
-    'Konut Kredisi': '🏠', 'Taşıt Kredisi': '🚗', 'Diğer': '📋'
-  }
-
   const localTarihStr = (date) => {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -501,9 +493,8 @@ const kritikBorclar = borclar.filter(b => {
     if (f === null) return '#94a3b8'
     if (f < 0) return '#ef4444'
     if (f <= 3) return '#ef4444'
-    if (f <= 7) return '#f97316'
-    if (f <= 14) return '#eab308'
-    return '#0d9488'
+    if (f <= 7) return 'var(--warning)'
+    return '#285b70'
   }
   const odemeLabel = (tarih) => {
     const f = gunFarki(tarih)
@@ -560,44 +551,44 @@ const kritikBorclar = borclar.filter(b => {
     <div>
       {/* Üst Özet */}
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
-        <div style={{ ...styles.ozetKart, borderTop: '3px solid #ef4444' }}>
-          <div style={styles.ozetIcon}>💳</div>
-          <div style={{ ...styles.ozetDeger, color: '#ef4444' }}>₺{pm(toplamKalan)}</div>
+        <div style={styles.ozetKart}>
+          <div style={styles.ozetIcon}><CreditCard size={20} /></div>
           <div style={styles.ozetLabel}>Toplam Kalan Borç</div>
+          <div style={styles.ozetDeger}>₺{pm(toplamKalan)}</div>
         </div>
-<div style={{ ...styles.ozetKart, borderTop: '3px solid #f97316' }}>
-  <div style={styles.ozetIcon}>📅</div>
-  <div style={{ ...styles.ozetDeger, color: '#f97316' }}>
+<div style={styles.ozetKart}>
+  <div style={styles.ozetIcon}><CalendarDays size={20} /></div>
+  <div style={styles.ozetLabel}>Gelecek Ay Ödenecek</div>
+  <div style={styles.ozetDeger}>
     ₺{pm(gelecekAyOdenecek)}
   </div>
-  <div style={styles.ozetLabel}>Gelecek Ay Ödenecek</div>
 </div>
 
-<div style={{ ...styles.ozetKart, borderTop: '3px solid #eab308' }}>
-  <div style={styles.ozetIcon}>🗓️</div>
+<div style={{ ...styles.ozetKart, ...styles.netKart }}>
+  <div style={{ ...styles.ozetIcon, ...styles.netIcon }}><CalendarCheck size={20} /></div>
 
   <div style={styles.ozetCiftSatir}>
     <div>
-      <div style={{ ...styles.ozetDegerKucuk, color: '#eab308' }}>
+      <div style={{ ...styles.ozetDegerKucuk, color: '#fff' }}>
         ₺{pm(buAyOdenecek)}
       </div>
-      <div style={styles.ozetLabel}>Bu Ay Ödenecek</div>
+      <div style={{ ...styles.ozetLabel, color: 'rgba(255,255,255,.76)' }}>Bu Ay Ödenecek</div>
     </div>
 
     <div style={styles.ozetAyirici} />
 
     <div>
-      <div style={{ ...styles.ozetDegerKucuk, color: '#0d9488' }}>
+      <div style={{ ...styles.ozetDegerKucuk, color: '#fff' }}>
         ₺{pm(buAyOdenen)}
       </div>
-      <div style={styles.ozetLabel}>Bu Ay Ödenen</div>
+      <div style={{ ...styles.ozetLabel, color: 'rgba(255,255,255,.76)' }}>Bu Ay Ödenen</div>
     </div>
   </div>
 </div>
-        <div style={{ ...styles.ozetKart, borderTop: `3px solid ${kritikBorclar > 0 ? '#ef4444' : '#0d9488'}` }}>
-          <div style={styles.ozetIcon}>{kritikBorclar > 0 ? '⚠️' : '✅'}</div>
-          <div style={{ ...styles.ozetDeger, color: kritikBorclar > 0 ? '#ef4444' : '#0d9488' }}>{kritikBorclar}</div>
+        <div style={styles.ozetKart}>
+          <div style={{ ...styles.ozetIcon, color: kritikBorclar > 0 ? 'var(--danger)' : '#285b70' }}><Clock3 size={20} /></div>
           <div style={styles.ozetLabel}>7 Günde Vadesi Gelen</div>
+          <div style={{ ...styles.ozetDeger, color: kritikBorclar > 0 ? 'var(--danger)' : 'var(--text-primary)' }}>{kritikBorclar}</div>
         </div>
       </div>
 
@@ -607,13 +598,13 @@ const kritikBorclar = borclar.filter(b => {
           <button style={filtre === 'hepsi' ? { ...styles.filtreBtn, ...styles.filtreBtnAktif } : styles.filtreBtn}
             onClick={() => setFiltre('hepsi')}>Tümü ({borclar.length})</button>
           <button style={filtre === 'kredi' ? { ...styles.filtreBtn, ...styles.filtreBtnAktif } : styles.filtreBtn}
-            onClick={() => setFiltre('kredi')}>💳 Kredi Kartları ({Object.keys(gruplar).length})</button>
+            onClick={() => setFiltre('kredi')}><CreditCard size={15} /> Kredi Kartları ({Object.keys(gruplar).length})</button>
           <button style={filtre === 'diger' ? { ...styles.filtreBtn, ...styles.filtreBtnAktif } : styles.filtreBtn}
-            onClick={() => setFiltre('diger')}>📋 Diğer ({diger.length})</button>
+            onClick={() => setFiltre('diger')}><FileText size={15} /> Diğer ({diger.length})</button>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button style={styles.raporBtn} onClick={() => setRaporAcik(true)}>📊 Mali Tablo</button>
-          <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Kredi / Borç Ekle</button>
+          <button style={styles.raporBtn} onClick={() => setRaporAcik(true)}><BarChart3 size={16} /> Mali Tablo</button>
+          <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}><Plus size={17} /> Kredi / Borç Ekle</button>
         </div>
       </div>
 
@@ -626,7 +617,7 @@ const kritikBorclar = borclar.filter(b => {
           <div style={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && setRaporAcik(false)}>
             <div style={{ ...styles.modal, width: mobil ? '99vw' : '94vw', maxWidth: '1400px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                <h3 style={{ ...styles.modalBaslik, margin: 0 }}>📊 Mali Tablo — Ödeme Takvimi</h3>
+                <h3 style={{ ...styles.modalBaslik, margin: 0 }}>Mali Tablo — Ödeme Takvimi</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <button style={styles.navBtn} onClick={() => setRaporOffset(p => p - 6)}>◀ -6 Ay</button>
                   <span style={{ color: 'var(--text-secondary)', fontSize: '13px', whiteSpace: 'nowrap' }}>
@@ -634,7 +625,7 @@ const kritikBorclar = borclar.filter(b => {
                   </span>
                   <button style={styles.navBtn} onClick={() => setRaporOffset(p => p + 6)}>+6 Ay ▶</button>
                   {raporOffset !== 0 && (
-                    <button style={{ ...styles.navBtn, color: '#0d9488', border: '1px solid #0d9488' }} onClick={() => setRaporOffset(0)}>Bugüne Dön</button>
+                    <button style={{ ...styles.navBtn, color: '#285b70', border: '1px solid #b9cbd4' }} onClick={() => setRaporOffset(0)}>Bugüne Dön</button>
                   )}
                   <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '20px', padding: '4px 8px', lineHeight: 1 }} onClick={() => setRaporAcik(false)}>✕</button>
                 </div>
@@ -649,7 +640,7 @@ const kritikBorclar = borclar.filter(b => {
                           {k.label.length > 18 ? k.label.substring(0, 16) + '…' : k.label}
                         </th>
                       ))}
-                      <th style={{ ...styles.thKolon, color: '#ef4444', borderLeft: '2px solid var(--border)' }}>Toplam</th>
+                      <th style={{ ...styles.thKolon, color: 'var(--text-primary)', borderLeft: '2px solid var(--border)' }}>Toplam</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -665,19 +656,19 @@ const kritikBorclar = borclar.filter(b => {
                       })
                       return (
                         <tr key={ay.toISOString()} style={{
-                          background: isCurrentMonth ? 'rgba(13,148,136,0.07)' : 'transparent',
-                          borderLeft: isCurrentMonth ? '3px solid #0d9488' : '3px solid transparent'
+                          background: isCurrentMonth ? 'rgba(40,91,112,.06)' : 'transparent',
+                          borderLeft: isCurrentMonth ? '3px solid #396f82' : '3px solid transparent'
                         }}>
-                          <td style={{ ...styles.tdAy, color: isCurrentMonth ? '#0d9488' : isPast ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: isCurrentMonth ? '700' : '400' }}>
+                          <td style={{ ...styles.tdAy, color: isCurrentMonth ? '#285b70' : isPast ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: isCurrentMonth ? '700' : '400' }}>
                             {ay.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
-                            {isCurrentMonth && <span style={{ fontSize: '10px', marginLeft: '6px', background: '#0d9488', color: '#fff', borderRadius: '4px', padding: '1px 5px' }}>Bu ay</span>}
+                            {isCurrentMonth && <span style={{ fontSize: '10px', marginLeft: '6px', background: '#285b70', color: '#fff', borderRadius: '4px', padding: '1px 5px' }}>Bu ay</span>}
                           </td>
                           {cells.map(c => (
                             <td key={c.key} style={{ ...styles.tdTutar, color: isPast ? 'var(--text-muted)' : c.amount > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                               {c.amount > 0 ? `₺${c.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                             </td>
                           ))}
-                          <td style={{ ...styles.tdTutar, fontWeight: '700', color: isPast ? 'var(--text-muted)' : rowTotal > 0 ? '#ef4444' : 'var(--text-muted)', borderLeft: '2px solid var(--border)' }}>
+                          <td style={{ ...styles.tdTutar, fontWeight: '700', color: isPast ? 'var(--text-muted)' : rowTotal > 0 ? 'var(--text-primary)' : 'var(--text-muted)', borderLeft: '2px solid var(--border)' }}>
                             {rowTotal > 0 ? `₺${rowTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                           </td>
                         </tr>
@@ -693,7 +684,7 @@ const kritikBorclar = borclar.filter(b => {
                           </td>
                         )
                       })}
-                      <td style={{ ...styles.tdTutar, fontWeight: '700', color: '#ef4444', borderLeft: '2px solid var(--border)' }}>
+                      <td style={{ ...styles.tdTutar, fontWeight: '700', color: 'var(--text-primary)', borderLeft: '2px solid var(--border)' }}>
                         ₺{kolonlar.reduce((sum, k) => sum + aylar.reduce((s, ay) => s + k.borclar.reduce((bs, b) => bs + aylikBorcOdeme(b, ay), 0), 0), 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -712,7 +703,7 @@ const kritikBorclar = borclar.filter(b => {
       {odemeFormAcik && (
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modal, width: mobil ? '95vw' : '360px' }}>
-            <h3 style={styles.modalBaslik}>💳 Ödeme Yap</h3>
+            <h3 style={styles.modalBaslik}>Ödeme Yap</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
               {odemeFormAcik.ad} — Kalan: ₺{parseFloat(odemeFormAcik.kalan_borc).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
@@ -765,7 +756,7 @@ const kritikBorclar = borclar.filter(b => {
             <div style={styles.modalBtnler}>
               <button style={styles.iptalBtn} onClick={() => { setOdemeFormAcik(null); setOdemeFormTutar('') }}>İptal</button>
               <button style={styles.kaydetBtn} onClick={() => odemeYap(odemeFormAcik)} disabled={kaydediliyor}>
-                {kaydediliyor ? 'Kaydediliyor...' : '✅ Ödemeyi Kaydet'}
+                {kaydediliyor ? 'Kaydediliyor...' : 'Ödemeyi Kaydet'}
               </button>
             </div>
           </div>
@@ -811,7 +802,7 @@ const kritikBorclar = borclar.filter(b => {
 
           <div style={styles.toggleSatir}>
             <span style={styles.toggleLabel}>Taksitli mi?</span>
-            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#4ecca3' : 'rgba(255,255,255,0.1)' }}
+            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#396f82' : 'var(--border)' }}
               onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '' })}>
               <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
@@ -847,7 +838,7 @@ const kritikBorclar = borclar.filter(b => {
 
           <div style={styles.toggleSatir}>
             <span style={styles.toggleLabel}>Taksitli mi?</span>
-            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#0d9488' : 'rgba(255,255,255,0.1)' }}
+            <div style={{ ...styles.toggle, background: yeni.taksitli ? '#396f82' : 'var(--border)' }}
               onClick={() => setYeni({ ...yeni, taksitli: !yeni.taksitli, taksit_sayisi: '', minimum_odeme: '' })}>
               <div style={{ ...styles.toggleTop, transform: yeni.taksitli ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
@@ -931,7 +922,7 @@ const kritikBorclar = borclar.filter(b => {
         <div style={styles.yukleniyor}>{t('yukleniyor')}</div>
       ) : borclar.length === 0 ? (
         <div style={styles.bos}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+          <div style={{ color: 'var(--success)', marginBottom: '16px' }}><CalendarCheck size={38} /></div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Hiç borcun yok, harika!</p>
         </div>
       ) : (
@@ -965,7 +956,7 @@ const buAyKart = buAyKartBorclari.reduce(
       <div style={{ ...styles.grupBaslik, cursor: 'pointer' }}
         onClick={() => setAcikGruplar(prev => ({ ...prev, [kartAdi]: !acik }))}>
         <div style={styles.grupSol}>
-          <span style={{ fontSize: '28px' }}>💳</span>
+          <span style={styles.kartIkon}><CreditCard size={24} /></span>
           <div>
             <div style={styles.grupAd}>{kartAdi}</div>
             <div style={styles.grupAlt}>{kartBorclar.length} işlem · {acik ? '▲ Kapat' : '▼ Detaylar'}</div>
@@ -974,7 +965,7 @@ const buAyKart = buAyKartBorclari.reduce(
         <div style={styles.grupSag}>
           {enYakinTarih && (
             <div style={{ ...styles.vadeBadge, background: renk + '22', color: renk, border: `1px solid ${renk}44` }}>
-              ⏰ {odemeLabel(enYakinTarih)}
+              {odemeLabel(enYakinTarih)}
             </div>
           )}
         </div>
@@ -984,11 +975,11 @@ const buAyKart = buAyKartBorclari.reduce(
       <div style={{ ...styles.grupOzet, flexWrap: mobil ? 'wrap' : 'nowrap', gap: mobil ? '12px' : '32px' }}>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Toplam Kalan Borç</div>
-          <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>₺{pm(toplamKalanKart)}</div>
+          <div style={styles.tutarDeger}>₺{pm(toplamKalanKart)}</div>
         </div>
         <div style={styles.grupOzetKutu}>
           <div style={styles.tutarLabel}>Bu Ay Ödenecek</div>
-          <div style={{ ...styles.tutarDeger, color: '#eab308' }}>₺{pm(buAyKart)}
+          <div style={styles.tutarDeger}>₺{pm(buAyKart)}
           </div>
         </div>
         {enYakinTarih && (
@@ -1019,7 +1010,7 @@ const buAyKart = buAyKartBorclari.reduce(
         setOdemeFormTutar(buAyKart.toString())
       }}
     >
-      💳 Bu Ayı Öde (₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+      Bu Ayı Öde (₺{buAyKart.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
     </button>
   ) : (
     <span style={styles.odemeYokEtiket}>Bu ay ödeme yok</span>
@@ -1041,7 +1032,7 @@ const buAyKart = buAyKartBorclari.reduce(
                     </span>
                   )}
                 </div>
-                {borc.notlar && <div style={styles.altBorcNot}>📝 {borc.notlar}</div>}
+                {borc.notlar && <div style={styles.altBorcNot}>{borc.notlar}</div>}
                 {borc.taksitli && (
                   <div style={styles.altBorcNot}>
                     Aylık: ₺{parseFloat(borc.aylik_taksit).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · 
@@ -1050,7 +1041,7 @@ const buAyKart = buAyKartBorclari.reduce(
                 )}
               </div>
               <div style={styles.altBorcSag}>
-                <div style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '15px' }}>
+                <div style={{ color: 'var(--text-primary)', fontWeight: '700', fontSize: '15px' }}>
                   ₺{pm(borc.kalan_borc)}
                 </div>
                 {borc.taksitli && (
@@ -1067,7 +1058,7 @@ const buAyKart = buAyKartBorclari.reduce(
                                     setOdemeFormTutar('')
                                                      }}
   >
- 💳 Ödeme
+ Ödeme
   </button>
 
               </div>
@@ -1087,10 +1078,10 @@ const buAyKart = buAyKartBorclari.reduce(
               : borc.toplam_borc > 0 ? Math.min(100, ((borc.toplam_borc - borc.kalan_borc) / borc.toplam_borc) * 100) : 0
 
             return (
-              <div key={borc.id} style={{ ...styles.borcKart, borderLeft: `4px solid ${turRenk[borc.tur] || '#a8a8b3'}` }}>
+              <div key={borc.id} style={styles.borcKart}>
                 <div style={styles.borcUst}>
                   <div style={styles.borcSolUst}>
-                    <span style={{ fontSize: '28px' }}>{turIkon[borc.tur] || '📋'}</span>
+                    <span style={styles.kartIkon}><Landmark size={24} /></span>
                     <div>
                       <div style={styles.borcAd}>{borc.ad}</div>
                       <div style={styles.borcBanka}>{borc.banka || borc.tur}
@@ -1101,7 +1092,7 @@ const buAyKart = buAyKartBorclari.reduce(
                   <div style={styles.borcSagUst}>
                     {borc.son_odeme_tarihi && (
                       <div style={{ ...styles.vadeBadge, background: renk + '22', color: renk, border: `1px solid ${renk}44` }}>
-                        ⏰ {odemeLabel(borc.son_odeme_tarihi)}
+                        {odemeLabel(borc.son_odeme_tarihi)}
                       </div>
                     )}
                   </div>
@@ -1110,7 +1101,7 @@ const buAyKart = buAyKartBorclari.reduce(
                 <div style={styles.tutarlar}>
                   <div style={styles.tutarKutu}>
                     <div style={styles.tutarLabel}>Kalan Borç</div>
-                    <div style={{ ...styles.tutarDeger, color: '#ef4444' }}>₺{pm(borc.kalan_borc)}</div>
+                    <div style={styles.tutarDeger}>₺{pm(borc.kalan_borc)}</div>
                   </div>
                   {borc.toplam_borc > 0 && (
                     <div style={styles.tutarKutu}>
@@ -1120,7 +1111,7 @@ const buAyKart = buAyKartBorclari.reduce(
                   )}
                   <div style={styles.tutarKutu}>
                     <div style={styles.tutarLabel}>{borc.taksitli ? 'Aylık Taksit' : 'Min. Ödeme'}</div>
-                    <div style={{ ...styles.tutarDeger, color: '#eab308' }}>
+                    <div style={styles.tutarDeger}>
                       ₺{pm(borc.taksitli ? borc.aylik_taksit : borc.minimum_odeme || 0)}
                     </div>
                   </div>
@@ -1148,14 +1139,14 @@ const buAyKart = buAyKartBorclari.reduce(
                   </div>
                 )}
 
-                {borc.notlar && <div style={styles.notlar}>📝 {borc.notlar}</div>}
+                {borc.notlar && <div style={styles.notlar}>{borc.notlar}</div>}
 
                 <div style={styles.borcBtnler}>
                   <button style={styles.odemeBtn} onClick={() => { setOdemeFormAcik(borc); setOdemeFormTutar('') }}>
-                    💳 Ödeme Yap
+                    Ödeme Yap
                   </button>
-                  <button style={styles.kapatBtn} onClick={() => borcKapat(borc.id)}>✅ Kapat</button>
-                  <button style={styles.silBtn} onClick={() => borcSil(borc.id)}>🗑️ Sil</button>
+                  <button style={styles.kapatBtn} onClick={() => borcKapat(borc.id)}>Kapat</button>
+                  <button style={styles.silBtn} onClick={() => borcSil(borc.id)}>Sil</button>
                 </div>
               </div>
             )
@@ -1167,51 +1158,54 @@ const buAyKart = buAyKartBorclari.reduce(
 }
 
 const styles = {
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' },
-  ozetKart: { background: 'var(--bg-card)', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' },
-  ozetIcon: { fontSize: '20px', marginBottom: '6px' },
-  ozetDeger: { fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' },
-ozetCiftSatir: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '22px' },
+  ozetKart: { background: 'var(--bg-card)', borderRadius: '14px', padding: '20px', textAlign: 'left', boxShadow: 'none', border: '1px solid var(--border)', minHeight: '132px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  netKart: { background: 'linear-gradient(135deg,#6faeb3 0%,#2d6482 100%)', border: 'none', boxShadow: '0 10px 24px rgba(45,100,130,.18)' },
+  ozetIcon: { width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', color: '#285b70', background: 'var(--surface-soft)', border: '1px solid var(--border)' },
+  netIcon: { background: 'rgba(255,255,255,.94)', border: 'none', color: '#285b70' },
+  ozetDeger: { fontSize: '22px', fontWeight: '750', marginTop: '7px', letterSpacing: '-.02em' },
+ozetCiftSatir: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '18px', marginTop: '9px' },
 ozetDegerKucuk: { fontSize: '15px', fontWeight: 'bold', marginBottom: '4px' },
-ozetAyirici: { width: '1px', height: '34px', background: 'var(--border)' },
-ozetLabel: { color: 'var(--text-muted)', fontSize: '11px' },
-  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' },
+ozetAyirici: { width: '1px', height: '34px', background: 'rgba(255,255,255,.28)' },
+ozetLabel: { color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '550' },
+  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', padding: '0 10px', minHeight: '64px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', flexWrap: 'wrap', gap: '12px', boxShadow: 'none' },
   filtreler: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  filtreBtn: { padding: '7px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
-  filtreBtnAktif: { background: 'rgba(239,68,68,0.08)', border: '1px solid #ef4444', color: '#ef4444' },
-  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  raporBtn: { padding: '10px 16px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.35)', borderRadius: '10px', color: '#0ea5e9', fontWeight: '600', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  filtreBtn: { minHeight: '62px', padding: '0 14px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', borderRadius: '0', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px' },
+  filtreBtnAktif: { background: 'transparent', borderBottom: '2px solid #2f667a', color: '#244f69', fontWeight: '650' },
+  ekleBtn: { height: '40px', padding: '0 16px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' },
+  raporBtn: { height: '40px', padding: '0 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', color: '#285b70', fontWeight: '600', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '7px' },
   navBtn: { padding: '6px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' },
   thAy: { padding: '10px 14px', textAlign: 'left', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid var(--border)', minWidth: '160px', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 },
   thKolon: { padding: '10px 12px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid var(--border)', minWidth: '130px', position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 5 },
   tdAy: { padding: '10px 14px', whiteSpace: 'nowrap', fontSize: '13px', borderBottom: '1px solid var(--border-light)' },
   tdTutar: { padding: '10px 12px', textAlign: 'right', fontSize: '13px', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-light)' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: 'var(--bg-card)', borderRadius: '20px', padding: '28px', width: '480px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-md)', boxSizing: 'border-box' },
-  modalBaslik: { color: 'var(--text-primary)', fontSize: '18px', margin: '0 0 16px 0' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.48)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '18px' },
+  modal: { background: 'var(--surface)', borderRadius: '14px', padding: '24px', width: '480px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 22px 60px rgba(15,23,42,.16)', boxSizing: 'border-box' },
+  modalBaslik: { color: 'var(--text-primary)', fontSize: '17px', fontWeight: '700', margin: '0 0 20px 0', paddingBottom: '14px', borderBottom: '1px solid var(--border)' },
   toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: 'var(--bg-input)', borderRadius: '10px', border: '1px solid var(--border)' },
   toggleLabel: { color: '#475569', fontSize: '14px' },
   toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
   toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
-  taksitBilgi: { background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '10px', padding: '12px', color: '#0d9488', fontSize: '14px', marginBottom: '14px' },
+  taksitBilgi: { background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '14px' },
   hizliButonlar: { display: 'flex', gap: '8px', marginBottom: '16px' },
   hizliBtn: { flex: 1, padding: '8px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
   ikiliBolum: { display: 'flex', gap: '12px' },
-  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', boxSizing: 'border-box' },
+  label: { color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '550', display: 'block', marginBottom: '7px' },
+  input: { width: '100%', minHeight: '42px', padding: '10px 12px', marginBottom: '14px', background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '11px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  iptalBtn: { flex: 1, height: '42px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-secondary)', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, height: '42px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', cursor: 'pointer' },
   yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
   liste: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  grupKart: { background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid #fee2e2', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
-  grupBaslik: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'rgba(239,68,68,0.04)', borderBottom: '1px solid #fee2e2' },
+  grupKart: { background: 'var(--bg-card)', borderRadius: '14px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'none' },
+  grupBaslik: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '19px 22px', background: 'var(--surface)', borderBottom: '1px solid var(--border)' },
+  kartIkon: { width: '40px', height: '40px', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-soft)', border: '1px solid var(--border)', color: '#285b70' },
   grupSol: { display: 'flex', alignItems: 'center', gap: '12px' },
   grupAd: { color: 'var(--text-primary)', fontSize: '15px', fontWeight: 'bold' },
   grupAlt: { color: 'var(--text-muted)', fontSize: '12px', marginTop: '2px' },
   grupSag: { display: 'flex', gap: '8px' },
-  grupOzet: { display: 'flex', gap: '32px', padding: '14px 20px', background: 'var(--bg-input)', borderBottom: '1px solid var(--border-light)' },
+  grupOzet: { display: 'flex', gap: '36px', padding: '17px 22px', background: 'var(--surface-soft)', borderBottom: '1px solid var(--border)' },
   grupOzetKutu: {},
   altBorclar: { padding: '10px 20px' },
   altBorcSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-light)' },
@@ -1220,14 +1214,14 @@ ozetLabel: { color: 'var(--text-muted)', fontSize: '11px' },
   altBorcNot: { color: 'var(--text-muted)', fontSize: '12px', marginTop: '2px' },
   altBorcSag: { textAlign: 'right', minWidth: '120px' },
   altBorcBtnler: { display: 'flex', gap: '6px' },
-  odemeBtn: { padding: '6px 12px', background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '8px', color: '#0d9488', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  odemeBtn: { padding: '7px 13px', background: 'var(--surface)', border: '1px solid #b9cbd4', borderRadius: '8px', color: '#285b70', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' },
   silBtnKucuk: { padding: '6px 10px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '12px', cursor: 'pointer' },
-  borcKart: { background: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-light)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' },
+  borcKart: { background: 'var(--bg-card)', borderRadius: '14px', padding: '22px', border: '1px solid var(--border)', boxShadow: 'none' },
   borcUst: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' },
   borcSolUst: { display: 'flex', alignItems: 'center', gap: '12px' },
   borcAd: { color: 'var(--text-primary)', fontSize: '15px', fontWeight: 'bold' },
   borcBanka: { color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' },
-  taksitTag: { background: 'rgba(13,148,136,0.08)', color: '#0d9488', padding: '2px 8px', borderRadius: '6px', fontSize: '11px' },
+  taksitTag: { background: 'var(--surface-soft)', color: 'var(--text-muted)', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', border: '1px solid var(--border)' },
   borcSagUst: { display: 'flex', gap: '8px', alignItems: 'center' },
   vadeBadge: { padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' },
   tutarlar: { display: 'flex', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' },
@@ -1237,15 +1231,15 @@ ozetLabel: { color: 'var(--text-muted)', fontSize: '11px' },
   ilerlemeContainer: { marginBottom: '16px' },
   ilerlemeUst: { display: 'flex', justifyContent: 'space-between', marginBottom: '6px' },
   ilerlemeLabel: { color: 'var(--text-muted)', fontSize: '12px' },
-  ilerlemeYuzde: { color: '#0d9488', fontSize: '12px' },
+  ilerlemeYuzde: { color: 'var(--text-muted)', fontSize: '12px' },
   ilerlemeBar: { height: '6px', background: 'var(--bg-subtle)', borderRadius: '3px', overflow: 'hidden' },
-  ilerlemeDolu: { height: '100%', background: 'linear-gradient(90deg,#0d9488,#0ea5e9)', borderRadius: '3px' },
+  ilerlemeDolu: { height: '100%', background: '#396f82', borderRadius: '3px' },
   notlar: { color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px', padding: '10px', background: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border)' },
   borcBtnler: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-  toplamOdemeBtn: { padding: '10px 18px', background: 'linear-gradient(135deg,#ef4444,#f97316)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  toplamOdemeBtn: { padding: '9px 16px', background: 'var(--surface)', border: '1px solid #b9cbd4', borderRadius: '9px', color: '#285b70', fontWeight: '650', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' },
   odemeYokEtiket: { display: 'inline-block', padding: '8px 12px', color: 'var(--text-muted)', fontSize: '12px', whiteSpace: 'nowrap' },
-  kapatBtn: { padding: '8px 16px', background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '8px', color: '#0d9488', fontSize: '13px', cursor: 'pointer' },
-  silBtn: { padding: '8px 16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '13px', cursor: 'pointer' },
+  kapatBtn: { padding: '8px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' },
+  silBtn: { padding: '8px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '13px', cursor: 'pointer' },
 }
 
 export default Borclar

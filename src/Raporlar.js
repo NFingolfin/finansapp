@@ -297,10 +297,10 @@ function Raporlar({ session, mobil, gizliMod }) {
 
 function OzetKart({ baslik, deger, renk, icon }) {
   return (
-    <div style={{ background: 'var(--bg-card)', borderRadius: '14px', padding: '16px', border: '1px solid var(--border-light)', borderTop: `3px solid ${renk}`, textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
-      <div style={{ fontSize: '20px', marginBottom: '6px' }}>{icon}</div>
-      <div style={{ color: renk, fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>{deger}</div>
-      <div style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{baslik}</div>
+    <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: '22px', border: '1px solid var(--border)', textAlign: 'left', boxShadow: 'none', minHeight: '122px' }}>
+      <div style={{ fontSize: '20px', marginBottom: '14px' }}>{icon}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '7px', fontWeight: '550' }}>{baslik}</div>
+      <div style={{ color: renk, fontSize: '21px', fontWeight: '750', letterSpacing: '-.025em' }}>{deger}</div>
     </div>
   )
 }
@@ -310,8 +310,8 @@ const styles = {
   aySecici: {
     display: 'flex', alignItems: 'center', gap: '12px',
     background: 'var(--bg-card)', border: '1px solid var(--border)',
-    borderRadius: '12px', padding: '12px 20px', marginBottom: '24px',
-    boxShadow: 'var(--shadow-sm)'
+    borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '24px',
+    boxShadow: 'none'
   },
   aySeciciLabel: { color: 'var(--text-secondary)', fontSize: '14px', whiteSpace: 'nowrap' },
   aySelect: {
@@ -319,12 +319,12 @@ const styles = {
     borderRadius: '8px', color: 'var(--text-primary)', padding: '8px 12px', fontSize: '14px', cursor: 'pointer'
   },
   aySeciciAlt: { color: 'var(--text-muted)', fontSize: '12px' },
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' },
-  grafPanel: { background: 'var(--bg-card)', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '22px' },
+  grafPanel: { background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: '20px', boxShadow: 'none', border: '1px solid var(--border)' },
   panelBaslik: { color: 'var(--text-primary)', fontSize: '15px', margin: '0 0 20px 0', fontWeight: '600' },
   bosGraf: { color: 'var(--text-muted)', textAlign: 'center', padding: '40px', fontSize: '14px' },
   altGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
-  tooltip: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', boxShadow: 'var(--shadow-sm)' },
+  tooltip: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', boxShadow: 'none' },
   tooltipBaslik: { color: 'var(--text-muted)', fontSize: '12px', marginBottom: '6px' },
   kategoriListe: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' },
   kategoriSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-light)' },

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from './supabase'
+import { Bot, MessageCircle, X, Send, ClipboardList, LoaderCircle, Check } from 'lucide-react'
 import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 
 function ChatBot({ session, onIslemEklendi }) {
@@ -686,18 +687,18 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
   return (
     <>
-      <button style={styles.chatButon} onClick={() => setAcik(!acik)}>
-        {acik ? '✕' : '💬'}
+      <button aria-label={acik ? 'Asistanı kapat' : 'Asistanı aç'} style={styles.chatButon} onClick={() => setAcik(!acik)}>
+        {acik ? <X size={22} /> : <MessageCircle size={22} />}
       </button>
 
       {acik && (
         <div style={styles.chatKutu}>
           <div style={styles.baslik}>
             <div style={styles.baslikSol}>
-              <span style={{ fontSize: '20px' }}>🤖</span>
+              <Bot size={20} />
               <div style={styles.baslikAd}>Finkod Asistan</div>
             </div>
-            <button style={styles.kapat} onClick={() => setAcik(false)}>✕</button>
+            <button aria-label="Kapat" style={styles.kapat} onClick={() => setAcik(false)}><X size={18} /></button>
           </div>
 
           <div style={styles.mesajlar}>
@@ -705,8 +706,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
               <div key={i} style={{ ...styles.mesajSatir, justifyContent: m.rol === 'kullanici' ? 'flex-end' : 'flex-start' }}>
                 <div style={{
                   ...styles.mesajBalon,
-                  background: m.rol === 'kullanici' ? 'linear-gradient(135deg, #4ecca3, #38b2ac)' : '#1e293b',
-                  color: m.rol === 'kullanici' ? '#0f172a' : '#f1f5f9',
+                  background: m.rol === 'kullanici' ? 'var(--primary)' : 'var(--surface-soft)',
+                  color: m.rol === 'kullanici' ? '#fff' : 'var(--text-primary)',
                   borderRadius: m.rol === 'kullanici' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                 }}>
                   {m.metin.split('\n').map((s, j, arr) => (
@@ -718,7 +719,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
             {onay && (
               <div style={styles.onayKart}>
-                <div style={styles.onayBaslik}>📋 İşlem Detayları</div>
+                <div style={styles.onayBaslik}><ClipboardList size={16} /> İşlem Detayları</div>
                 <div style={styles.onayDetay}>
                   {onayDetaylar().map((r, i) => (
                     <div key={i} style={styles.onayRow}>
@@ -730,16 +731,16 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
                   ))}
                 </div>
                 <div style={styles.onayBtnler}>
-                  <button style={styles.reddetBtn} onClick={islemReddet}>✕ İptal</button>
-                  <button style={styles.onaylaBtn} onClick={islemOnayla}>✓ Onayla</button>
+                  <button style={styles.reddetBtn} onClick={islemReddet}><X size={15} /> İptal</button>
+                  <button style={styles.onaylaBtn} onClick={islemOnayla}><Check size={15} /> Onayla</button>
                 </div>
               </div>
             )}
 
             {yukleniyor && (
               <div style={{ ...styles.mesajSatir, justifyContent: 'flex-start' }}>
-                <div style={{ ...styles.mesajBalon, background: '#1e293b', color: '#f1f5f9' }}>
-                  ⏳ Analiz ediliyor...
+                <div style={{ ...styles.mesajBalon, background: 'var(--surface-soft)', color: 'var(--text-primary)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <LoaderCircle size={15} /> Analiz ediliyor...
                 </div>
               </div>
             )}
@@ -760,7 +761,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
               onClick={mesajGonder}
               disabled={yukleniyor || !girdi.trim()}
             >
-              ➤
+              <Send size={17} />
             </button>
           </div>
         </div>
@@ -773,65 +774,65 @@ const styles = {
   chatButon: {
     position: 'fixed', bottom: '24px', right: '24px',
     width: '56px', height: '56px', borderRadius: '50%',
-    background: 'linear-gradient(135deg, #4ecca3, #38b2ac)',
-    border: 'none', fontSize: '24px', cursor: 'pointer',
-    boxShadow: '0 4px 20px rgba(78,204,163,0.4)',
+    background: 'var(--primary)',
+    border: 'none', color: '#fff', cursor: 'pointer',
+    boxShadow: '0 10px 28px rgba(37,99,235,.28)',
     zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center'
   },
   chatKutu: {
     position: 'fixed', bottom: '90px', right: '24px',
     width: '360px', height: '540px',
-    background: '#0f172a', borderRadius: '20px',
-    border: '1px solid rgba(255,255,255,0.1)',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+    background: 'var(--surface)', borderRadius: 'var(--radius-lg)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-md)',
     zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden'
   },
   baslik: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '14px 18px',
-    background: 'rgba(78,204,163,0.1)',
-    borderBottom: '1px solid rgba(255,255,255,0.08)'
+    background: 'var(--surface-soft)',
+    borderBottom: '1px solid var(--border)'
   },
   baslikSol: { display: 'flex', alignItems: 'center', gap: '10px' },
-  baslikAd: { color: '#fff', fontSize: '14px', fontWeight: 'bold' },
-  kapat: { background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: '16px' },
+  baslikAd: { color: 'var(--text-primary)', fontSize: '14px', fontWeight: '700' },
+  kapat: { background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' },
   mesajlar: { flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' },
   mesajSatir: { display: 'flex' },
   mesajBalon: { maxWidth: '82%', padding: '10px 14px', fontSize: '13px', lineHeight: '1.5', borderRadius: '18px' },
   onayKart: {
-    background: '#1e293b', borderRadius: '12px', padding: '14px',
-    border: '1px solid rgba(78,204,163,0.3)', margin: '2px 0'
+    background: 'var(--surface-soft)', borderRadius: '12px', padding: '14px',
+    border: '1px solid var(--border)', margin: '2px 0'
   },
-  onayBaslik: { color: '#4ecca3', fontSize: '13px', fontWeight: 'bold', marginBottom: '10px' },
+  onayBaslik: { color: 'var(--primary)', fontSize: '13px', fontWeight: '700', marginBottom: '10px', display: 'flex', gap: '7px', alignItems: 'center' },
   onayDetay: { display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '12px' },
   onayRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
-  onayLabel: { color: 'rgba(255,255,255,0.45)', fontSize: '12px', flexShrink: 0 },
-  onayDeger: { color: '#f1f5f9', fontSize: '12px', textAlign: 'right' },
+  onayLabel: { color: 'var(--text-muted)', fontSize: '12px', flexShrink: 0 },
+  onayDeger: { color: 'var(--text-primary)', fontSize: '12px', textAlign: 'right' },
   onayBtnler: { display: 'flex', gap: '8px' },
   reddetBtn: {
     flex: 1, padding: '8px',
     background: 'rgba(255,107,107,0.12)', border: '1px solid rgba(255,107,107,0.3)',
-    borderRadius: '8px', color: '#ff6b6b', cursor: 'pointer', fontSize: '13px'
+    borderRadius: '8px', color: 'var(--danger)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
   },
   onaylaBtn: {
     flex: 1, padding: '8px',
-    background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none',
-    borderRadius: '8px', color: '#0f172a', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px'
+    background: 'var(--primary)', border: 'none',
+    borderRadius: '8px', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
   },
   girisAlani: {
     display: 'flex', gap: '8px', padding: '12px 14px',
-    borderTop: '1px solid rgba(255,255,255,0.08)', background: '#0f172a'
+    borderTop: '1px solid var(--border)', background: 'var(--surface)'
   },
   girisInput: {
     flex: 1, padding: '10px 14px',
-    background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '10px', color: '#fff', fontSize: '13px', outline: 'none'
+    background: 'var(--surface-soft)', border: '1px solid var(--border)',
+    borderRadius: '10px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none'
   },
   gonderBtn: {
     width: '40px', height: '40px',
-    background: 'linear-gradient(135deg,#4ecca3,#38b2ac)', border: 'none',
-    borderRadius: '10px', color: '#0f172a', fontSize: '16px',
-    cursor: 'pointer', fontWeight: 'bold', transition: 'opacity 0.2s'
+    background: 'var(--primary)', border: 'none',
+    borderRadius: '10px', color: '#fff',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
   },
 }
 

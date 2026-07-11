@@ -44,7 +44,7 @@ export const çeviriler = {
     /* Hedefler */
     hedefEkle: '+ Hedef Ekle',
     /* Gizlilik */
-    degerleriGizle: '🙈 Değerleri Gizle', degerleriGoster: '👁️ Değerleri Göster',
+    degerleriGizle: 'Değerleri Gizle', degerleriGoster: 'Değerleri Göster',
   },
   en: {
     /* Menu */
@@ -87,7 +87,7 @@ export const çeviriler = {
     /* Goals */
     hedefEkle: '+ Add Goal',
     /* Privacy */
-    degerleriGizle: '🙈 Hide Values', degerleriGoster: '👁️ Show Values',
+    degerleriGizle: 'Hide Values', degerleriGoster: 'Show Values',
   }
 }
 

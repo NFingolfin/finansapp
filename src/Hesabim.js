@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { UserRound, ShieldCheck, Save, KeyRound, AlertTriangle, Trash2, LoaderCircle } from 'lucide-react'
 
 /* ── Şifre güç hesaplama ── */
 function sifreGucu(sifre) {
@@ -181,7 +182,7 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
       {/* ── Profil Bilgileri ── */}
       <div style={{ ...s.panel, padding: mobil ? '18px 16px' : '28px' }}>
         <div style={s.panelHeader}>
-          <div style={s.panelIkon}>👤</div>
+          <div style={s.panelIkon}><UserRound size={20}/></div>
           <div>
             <h2 style={s.panelBaslik}>Profil Bilgileri</h2>
             <p style={s.panelAlt}>Ad ve soyadını güncel tut</p>
@@ -215,14 +216,14 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
           onClick={profilGuncelle}
           disabled={profilKaydediliyor}
         >
-          {profilKaydediliyor ? '⏳ Kaydediliyor...' : '💾  Profili Kaydet'}
+          {profilKaydediliyor ? <><LoaderCircle size={15}/> Kaydediliyor...</> : <><Save size={15}/> Profili Kaydet</>}
         </button>
       </div>
 
       {/* ── Şifre Değiştir ── */}
       <div style={{ ...s.panel, padding: mobil ? '18px 16px' : '28px' }}>
         <div style={s.panelHeader}>
-          <div style={s.panelIkon}>🔐</div>
+          <div style={s.panelIkon}><ShieldCheck size={20}/></div>
           <div>
             <h2 style={s.panelBaslik}>Şifre Değiştir</h2>
             <p style={s.panelAlt}>Güvenliğin için güçlü bir şifre kullan</p>
@@ -292,7 +293,7 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
           onClick={sifreGuncelle}
           disabled={sifreKaydediliyor}
         >
-          {sifreKaydediliyor ? '⏳ Güncelleniyor...' : '🔑  Şifreyi Güncelle'}
+          {sifreKaydediliyor ? <><LoaderCircle size={15}/> Güncelleniyor...</> : <><KeyRound size={15}/> Şifreyi Güncelle</>}
         </button>
       </div>
 
@@ -300,7 +301,7 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
       <div style={s.tehlikePanel}>
         <div style={s.panelHeader}>
           <div style={{ ...s.panelIkon, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-            ⚠️
+            <AlertTriangle size={20}/>
           </div>
           <div>
             <h2 style={{ ...s.panelBaslik, color: '#ef4444' }}>Tehlikeli Bölge</h2>
@@ -317,7 +318,7 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
             </div>
           </div>
           <button style={s.silBtn} onClick={() => setSilOnayAcik(true)}>
-            🗑️ Hesabımı Sil
+            <Trash2 size={15}/> Hesabımı Sil
           </button>
         </div>
       </div>
@@ -378,50 +379,48 @@ function Hesabim({ session, onProfilGuncellendi, mobil }) {
 }
 
 const s = {
-  sayfa: { maxWidth: '720px' },
+  sayfa: { maxWidth: '960px' },
   yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '60px' },
 
   /* Kullanıcı banner */
   kullaniciBanner: {
     display: 'flex', alignItems: 'center', gap: '20px',
-    background: 'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(14,165,233,0.04))',
-    border: '1px solid rgba(13,148,136,0.15)',
-    borderRadius: '18px', padding: '24px 28px', marginBottom: '24px',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: '14px', padding: '22px 24px', marginBottom: '18px',
   },
   avatarDaire: {
     width: 58, height: 58, borderRadius: '50%',
-    background: 'linear-gradient(135deg, #0d9488, #0ea5e9)',
+    background: 'linear-gradient(135deg,#7da8ad,#315f75)',
     color: '#ffffff', fontSize: '24px', fontWeight: '800',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0, boxShadow: '0 4px 16px rgba(13,148,136,0.25)',
+    flexShrink: 0, boxShadow: 'none',
   },
   bannerAd: { color: 'var(--text-primary)', fontSize: '18px', fontWeight: '700', marginBottom: '2px' },
   bannerEmail: { color: 'var(--text-muted)', fontSize: '13px', marginBottom: '8px' },
   bannerBadge: {
     display: 'inline-block',
-    background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.2)',
+    background: 'var(--surface-soft)', border: '1px solid var(--border)',
     borderRadius: '20px', padding: '2px 10px',
-    color: '#0d9488', fontSize: '11px', fontWeight: '600',
+    color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '600',
   },
 
   /* Panel */
   panel: {
     background: 'var(--bg-card)',
     border: '1px solid var(--border)',
-    borderRadius: '18px', padding: '28px',
-    marginBottom: '20px',
-    boxShadow: 'var(--shadow-sm)',
+    borderRadius: '14px', padding: '24px',
+    marginBottom: '18px', boxShadow: 'none',
   },
   panelHeader: {
-    display: 'flex', alignItems: 'center', gap: '16px',
-    paddingBottom: '20px', marginBottom: '20px',
+    display: 'flex', alignItems: 'center', gap: '13px',
+    paddingBottom: '16px', marginBottom: '18px',
     borderBottom: '1px solid var(--border-light)',
   },
   panelIkon: {
-    width: 46, height: 46,
-    background: 'rgba(13,148,136,0.08)', border: '1px solid rgba(13,148,136,0.15)',
-    borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '20px', flexShrink: 0,
+    width: 40, height: 40,
+    background: 'var(--surface-soft)', border: '1px solid var(--border)', color: '#285b70',
+    borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   panelBaslik: { color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', margin: '0 0 3px 0' },
   panelAlt: { color: 'var(--text-muted)', fontSize: '13px', margin: 0 },
@@ -429,7 +428,7 @@ const s = {
   /* E-posta kutusu */
   epostaKutu: {
     display: 'flex', alignItems: 'center', gap: '12px',
-    background: 'var(--bg-input)', border: '1px solid var(--border)',
+    background: 'var(--surface-soft)', border: '1px solid var(--border)',
     borderRadius: '11px', padding: '11px 16px', marginBottom: '18px',
   },
   epostaLabel: { color: 'var(--text-muted)', fontSize: '12px', minWidth: 52 },
@@ -464,10 +463,9 @@ const s = {
   /* Buton */
   btn: {
     padding: '13px 28px',
-    background: 'linear-gradient(135deg, #0d9488, #0ea5e9)',
-    border: 'none', borderRadius: '11px',
-    color: '#ffffff', fontSize: '14px', fontWeight: '700',
-    cursor: 'pointer', boxShadow: '0 4px 16px rgba(13,148,136,0.2)',
+    background: '#234f68', border: 'none', borderRadius: '9px',
+    color: '#ffffff', fontSize: '12px', fontWeight: '600',
+    cursor: 'pointer', boxShadow: 'none', display: 'inline-flex', alignItems: 'center', gap: '7px',
   },
   btnDisabled: {
     padding: '13px 28px',
@@ -479,15 +477,15 @@ const s = {
   tehlikePanel: {
     background: 'var(--bg-card)',
     border: '1px solid rgba(239,68,68,0.25)',
-    borderRadius: '18px', padding: '28px',
+    borderRadius: '14px', padding: '24px',
     marginBottom: '20px',
-    boxShadow: '0 0 0 4px rgba(239,68,68,0.04)',
+    boxShadow: 'none',
   },
   tehlikeIcerik: {
     display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
     gap: '20px', flexWrap: 'wrap',
     padding: '16px',
-    background: 'rgba(239,68,68,0.04)',
+    background: 'var(--surface-soft)',
     border: '1px solid rgba(239,68,68,0.12)',
     borderRadius: '12px',
   },
@@ -499,10 +497,10 @@ const s = {
   },
   silBtn: {
     padding: '11px 22px',
-    background: '#ef4444', border: 'none', borderRadius: '10px',
-    color: '#fff', fontSize: '14px', fontWeight: '700',
+    background: 'var(--surface)', border: '1px solid rgba(217,83,95,.35)', borderRadius: '9px',
+    color: 'var(--danger)', fontSize: '12px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '7px',
     cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-    boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
+    boxShadow: 'none',
   },
 
   /* Silme onay modalı */

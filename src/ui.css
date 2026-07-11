@@ -1,0 +1,47 @@
+/* Shared application shell and reusable primitives */
+.app-shell { min-height: 100vh; background: var(--bg); }
+.app-sidebar { box-shadow: 1px 0 0 var(--border); }
+.app-logo-block { min-height: 52px; }
+.app-user-card { position: relative; overflow: hidden; }
+.app-user-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--primary); }
+.app-nav-item svg { flex: 0 0 auto; }
+.app-topbar { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.app-page { width: 100%; max-width: 1280px; margin: 0 auto; }
+.app-page-title { letter-spacing: -.025em; }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; }
+
+/* Normalize the inline-style based legacy screens without changing behaviour. */
+.app-page button { letter-spacing: -.005em; }
+.app-page input, .app-page select, .app-page textarea { outline: 0; }
+.app-page table { border-collapse: separate; border-spacing: 0; }
+.app-page h1, .app-page h2, .app-page h3 { letter-spacing: -.02em; }
+.balance-row:hover { background: var(--surface-soft); }
+.account-actions { pointer-events: none; }
+[data-hesap-id]:hover .account-actions,
+[data-hesap-id]:focus-within .account-actions { opacity: 1 !important; pointer-events: auto; }
+.transaction-row:hover { background: var(--surface-soft); }
+.transaction-row:hover .transaction-delete,
+.transaction-row:focus-within .transaction-delete { opacity: 1 !important; }
+.investment-row:hover { background: var(--surface-soft) !important; }
+.performance-row { transition: background .16s ease; }
+.performance-row:hover { background: var(--surface-soft); }
+.performance-row td:first-child { border-radius: 8px 0 0 8px; }
+.performance-row td:last-child { border-radius: 0 8px 8px 0; }
+.app-topbar button[aria-label="Hesabım sayfasına git"]:hover { background: var(--surface-soft) !important; border-color: var(--border) !important; }
+.app-topbar button[aria-label="Hesabım sayfasına git"] strong { font-size: 12px; font-weight: 650; line-height: 1.25; }
+.app-topbar button[aria-label="Hesabım sayfasına git"] small { color: var(--text-muted); font-size: 9px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+
+@media (hover: hover) {
+  .app-page button:not(:disabled):hover { filter: saturate(.9); }
+  .app-nav-item:not(.is-active):hover { background: var(--bg-hover) !important; color: var(--primary) !important; }
+}
+
+@media (max-width: 767px) {
+  .app-sidebar { width: min(286px, 86vw) !important; }
+  .app-topbar { padding: 0 16px !important; }
+  .app-page { padding: 14px 14px 92px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}

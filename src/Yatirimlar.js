@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import { useLang } from './LangContext'
+import { WalletCards, PieChart, TrendingUp, Percent, Search, RefreshCw, Plus, BarChart3, Pencil, Send, Trash2, Folder, ChevronUp, ChevronDown } from 'lucide-react'
 
 function Yatirimlar({ session, mobil, gizliMod }) {
   const { t } = useLang()
@@ -26,12 +27,12 @@ const toggleGrup = (ad) => setKapaliGruplar(prev => {
   if (next.has(ad)) next.delete(ad); else next.add(ad)
   return next
 })
-const [gorunum, setGorunum] = useState('liste')
+const [turFiltresi, setTurFiltresi] = useState('Tümü')
+const [aramaMetni, setAramaMetni] = useState('')
+const [hesapFiltresi, setHesapFiltresi] = useState('')
 const [kurlar, setKurlar] = useState({ TRY: 1, USD: 1, EUR: 1, GBP: 1 })
 const [hoveredTur, setHoveredTur] = useState(null)
-const [hoveredHesap, setHoveredHesap] = useState(null)
 const [pinnedTur, setPinnedTur] = useState(null)
-const [pinnedHesap, setPinnedHesap] = useState(null)
 const [satis, setSatis] = useState({ miktar: '', birimFiyat: '', tutar: '', hesap_id: '', tarih: new Date().toISOString().split('T')[0] })
 const [yeni, setYeni] = useState({
   ad: '', tur: 'Hisse', miktar: '', birim_maliyet: '', komisyon: '0',
@@ -40,15 +41,6 @@ const [yeni, setYeni] = useState({
 
   const turler = ['Hisse', 'Kripto', 'Fon', 'Döviz', 'Altın', 'BES', 'Diğer']
   const paraBirimleri = ['TRY', 'USD', 'EUR', 'GBP']
-
-  const turRenk = {
-    'Hisse': '#0d9488', 'Kripto': '#eab308', 'Fon': '#0ea5e9',
-    'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399', 'Diğer': '#94a3b8'
-  }
-  const turIkon = {
-    'Hisse': '📊', 'Kripto': '₿', 'Fon': '📁',
-    'Döviz': '💱', 'Altın': '🥇', 'BES': '🏛️', 'Diğer': '💼'
-  }
 
   const realizasyonlariGetir = async () => {
     const { data } = await supabase
@@ -364,8 +356,13 @@ const satisYap = async () => {
   const toplamGuncel = yatirimlar.reduce((a, y) => a + parseFloat(y.guncel_deger || 0) * (kurlar[y.para_birimi] || 1), 0)
   const toplamKarZarar = toplamGuncel - toplamMaliyet
   const toplamGetiri = toplamMaliyet > 0 ? ((toplamKarZarar / toplamMaliyet) * 100).toFixed(2) : 0
+  const filtreliYatirimlar = yatirimlar.filter(y =>
+    (turFiltresi === 'Tümü' || y.tur === turFiltresi) &&
+    (!hesapFiltresi || y.hesap_id === hesapFiltresi) &&
+    (!aramaMetni || y.ad?.toLowerCase().includes(aramaMetni.toLowerCase()))
+  )
 
-  const pieRenkler = ['#0d9488','#eab308','#0ea5e9','#a78bfa','#f59e0b','#34d399','#ef4444','#f97316','#ec4899','#6366f1']
+  const pieRenkler = ['#214f6b','#5f939c','#91b4c6','#b7c9d8','#d4dfe8']
   const renderPieChart = (data, title, detailsMap, hovered, setHovered, pinned, setPinned) => {
     const total = data.reduce((s, d) => s + d.value, 0)
     if (total === 0) return null
@@ -399,7 +396,7 @@ const satisYap = async () => {
       <div
         style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '24px', border: '1px solid var(--border-light)', flex: 1, minWidth: mobil ? '100%' : '280px' }}
         onClick={() => setPinned(null)}>
-        <h3 style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: '600', marginBottom: '20px', textAlign: 'center' }}>{title}</h3>
+        <h3 style={{ color: 'var(--text-primary)', fontSize: '15px', fontWeight: '650', margin: '0 0 14px' }}>{title}</h3>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <svg viewBox="0 0 200 200" width="180" height="180">
             {slices.map((s, i) => (
@@ -410,14 +407,9 @@ const satisYap = async () => {
                 onClick={(e) => handleSliceClick(e, s.label)} />
             ))}
             <circle cx="100" cy="100" r="48" fill="var(--bg-card)" style={{ pointerEvents: 'none' }} />
-            <text x="100" y="93" textAnchor="middle" fill="var(--text-muted)" fontSize="10" style={{ pointerEvents: 'none' }}>
-              {activeLabel || `${slices.length} kalem`}
+            <text x="100" y="104" textAnchor="middle" fill={activeSlice?.color || 'var(--text-primary)'} fontSize="11" fontWeight="700" style={{ pointerEvents: 'none' }}>
+              {activeSlice ? `${activeSlice.pct}%` : (gizliMod ? '₺ ****' : `₺${total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)}
             </text>
-            {activeSlice && (
-              <text x="100" y="108" textAnchor="middle" fill={activeSlice.color} fontSize="12" fontWeight="bold" style={{ pointerEvents: 'none' }}>
-                {activeSlice.pct}%
-              </text>
-            )}
           </svg>
         </div>
 
@@ -470,40 +462,42 @@ const satisYap = async () => {
     <div>
       <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
         <div style={styles.ozetKart}>
+          <div style={styles.ozetIcon}><WalletCards size={19} /></div>
+          <div style={styles.ozetLabel}>Toplam Portföy</div>
+          <div style={styles.ozetDeger}>₺{pm(toplamGuncel)}</div>
+        </div>
+        <div style={styles.ozetKart}>
+          <div style={styles.ozetIcon}><PieChart size={19} /></div>
           <div style={styles.ozetLabel}>Toplam Maliyet</div>
-          <div style={{ ...styles.ozetDeger, color: '#0ea5e9' }}>₺{pm(toplamMaliyet)}</div>
+          <div style={styles.ozetDeger}>₺{pm(toplamMaliyet)}</div>
         </div>
-        <div style={styles.ozetKart}>
-          <div style={styles.ozetLabel}>Güncel Değer</div>
-          <div style={{ ...styles.ozetDeger, color: '#0d9488' }}>₺{pm(toplamGuncel)}</div>
-        </div>
-        <div style={styles.ozetKart}>
-          <div style={styles.ozetLabel}>Kar / Zarar</div>
-          <div style={{ ...styles.ozetDeger, color: toplamKarZarar >= 0 ? '#0d9488' : '#ef4444' }}>
+        <div style={{ ...styles.ozetKart, ...styles.netKart }}>
+          <div style={{ ...styles.ozetIcon, ...styles.netIcon }}><TrendingUp size={19} /></div>
+          <div style={{ ...styles.ozetLabel, color: 'rgba(255,255,255,.76)' }}>Toplam Kâr / Zarar</div>
+          <div style={{ ...styles.ozetDeger, color: '#fff' }}>
             {gizliMod ? '₺ ****' : `${toplamKarZarar >= 0 ? '+' : ''}₺${toplamKarZarar.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           </div>
         </div>
         <div style={styles.ozetKart}>
-          <div style={styles.ozetLabel}>Toplam Getiri</div>
-          <div style={{ ...styles.ozetDeger, color: toplamGetiri >= 0 ? '#0d9488' : '#ef4444' }}>
+          <div style={styles.ozetIcon}><Percent size={19} /></div>
+          <div style={styles.ozetLabel}>Getiri Oranı</div>
+          <div style={{ ...styles.ozetDeger, color: toplamGetiri >= 0 ? 'var(--success)' : 'var(--danger)' }}>
             {toplamGetiri >= 0 ? '+' : ''}{toplamGetiri}%
           </div>
         </div>
       </div>
 
       <div style={{ ...styles.toolbar, flexWrap: mobil ? 'wrap' : 'nowrap', gap: '10px' }}>
-        <button style={styles.guncelleBtn} onClick={fiyatlariGuncelle} disabled={guncelleniyor}>
-          {guncelleniyor ? '⏳ Güncelleniyor...' : '🔄 Fiyatları Güncelle'}
-        </button>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', padding: '4px' }}>
-          <button style={{ ...styles.gorunumBtn, background: gorunum === 'liste' ? 'var(--bg-card)' : 'transparent', color: gorunum === 'liste' ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: gorunum === 'liste' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setGorunum('liste')}>☰ Liste</button>
-          <button style={{ ...styles.gorunumBtn, background: gorunum === 'grafik' ? 'var(--bg-card)' : 'transparent', color: gorunum === 'grafik' ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: gorunum === 'grafik' ? 'var(--shadow-sm)' : 'none' }} onClick={() => setGorunum('grafik')}>📊 Grafik</button>
+        <div style={styles.tabs}>
+          {['Tümü','Hisse','Kripto','Fon','Döviz'].map(tur => <button key={tur} style={turFiltresi === tur ? { ...styles.tabBtn, ...styles.tabAktif } : styles.tabBtn} onClick={() => setTurFiltresi(tur)}>{tur}</button>)}
         </div>
-        <button style={{ ...styles.ekleBtn, background: performansAcik ? 'linear-gradient(135deg,#6366f1,#a78bfa)' : 'linear-gradient(135deg,#0d9488,#0ea5e9)' }}
-          onClick={() => setPerformansAcik(p => !p)}>
-          📊 Yatırım Performansı
-        </button>
-        <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Yeni Yatırım Ekle</button>
+        <div style={styles.toolbarActions}>
+          <div style={styles.searchWrap}><Search size={16} /><input style={styles.searchInput} placeholder="Yatırım ara..." value={aramaMetni} onChange={e => setAramaMetni(e.target.value)} /></div>
+          <select style={styles.hesapSelect} value={hesapFiltresi} onChange={e => setHesapFiltresi(e.target.value)}><option value="">Tüm Hesaplar</option>{hesaplar.map(h => <option key={h.id} value={h.id}>{h.ad}</option>)}</select>
+          <button style={styles.guncelleBtn} onClick={fiyatlariGuncelle} disabled={guncelleniyor}><RefreshCw size={15} />{guncelleniyor ? 'Güncelleniyor...' : 'Fiyatları Güncelle'}</button>
+          <button style={styles.performansBtn} onClick={() => setPerformansAcik(p => !p)}><BarChart3 size={15} /> Yatırım Performansı</button>
+          <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}><Plus size={16} /> Yeni Yatırım</button>
+        </div>
       </div>
 
       {performansAcik && (() => {
@@ -529,15 +523,13 @@ const satisYap = async () => {
         const karliIslem = filtreliRealizasyonlar.filter(r => parseFloat(r.kar_zarar) >= 0).length
         const ortKarYuzde = toplamMaliyet > 0 ? ((toplamKar / toplamMaliyet) * 100).toFixed(1) : '0.0'
         return (
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '16px', padding: '24px', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-              <h3 style={{ color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', margin: 0 }}>📊 Yatırım Performansı — Gerçekleşen Kar/Zarar</h3>
-              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', padding: '4px' }}>
+          <div style={styles.realizasyonPanel}>
+            <div style={styles.realizasyonHeader}>
+              <h3 style={styles.realizasyonBaslik}><span><BarChart3 size={17} /></span>Yatırım Performansı <small>Gerçekleşen Kâr/Zarar</small></h3>
+              <div style={styles.realizasyonFiltreler}>
                 {filtreler.map(f => (
                   <button key={f.key}
-                    style={{ padding: '5px 12px', border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s',
-                      background: performansFiltre === f.key ? 'linear-gradient(135deg,#6366f1,#a78bfa)' : 'transparent',
-                      color: performansFiltre === f.key ? '#fff' : 'var(--text-muted)' }}
+                    style={performansFiltre === f.key ? { ...styles.realizasyonFiltreBtn, ...styles.realizasyonFiltreAktif } : styles.realizasyonFiltreBtn}
                     onClick={() => setPerformansFiltre(f.key)}>
                     {f.label}
                   </button>
@@ -545,16 +537,16 @@ const satisYap = async () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ ...styles.realizasyonOzet, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
               {[
                 { label: 'Toplam Gerçekleşen K/Z', deger: `${toplamKar >= 0 ? '+' : ''}₺${Math.abs(toplamKar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: toplamKar >= 0 ? '#0d9488' : '#ef4444' },
-                { label: 'Toplam Satış Tutarı', deger: `₺${toplamSatis.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#0ea5e9' },
+                { label: 'Toplam Satış Tutarı', deger: `₺${toplamSatis.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: 'var(--text-primary)' },
                 { label: 'Ortalama Getiri', deger: `${parseFloat(ortKarYuzde) >= 0 ? '+' : ''}${ortKarYuzde}%`, renk: parseFloat(ortKarYuzde) >= 0 ? '#0d9488' : '#ef4444' },
-                { label: 'İşlem Sayısı', deger: `${realizasyonlar.length} (${karliIslem} karlı)`, renk: '#a78bfa' },
+                { label: 'İşlem Sayısı', deger: `${filtreliRealizasyonlar.length} (${karliIslem} kârlı)`, renk: 'var(--text-primary)' },
               ].map((k, i) => (
-                <div key={i} style={{ background: 'var(--bg-input)', borderRadius: '12px', padding: '14px', border: '1px solid var(--border)' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginBottom: '6px' }}>{k.label}</div>
-                  <div style={{ color: k.renk, fontSize: '16px', fontWeight: '700' }}>{gizliMod ? '****' : k.deger}</div>
+                <div key={i} style={styles.realizasyonOzetKart}>
+                  <div style={styles.realizasyonOzetLabel}>{k.label}</div>
+                  <div style={{ ...styles.realizasyonOzetDeger, color: k.renk }}>{gizliMod ? '****' : k.deger}</div>
                 </div>
               ))}
             </div>
@@ -564,22 +556,22 @@ const satisYap = async () => {
                 {realizasyonlar.length === 0 ? 'Henüz satış işlemi yapılmamış.' : 'Bu dönemde satış işlemi yok.'}
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <div style={styles.realizasyonTabloWrap}>
+                <table style={styles.realizasyonTablo}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                    <tr>
                       {['Tarih', 'Varlık', 'Tür', 'Miktar', 'Maliyet', 'Satış', 'Kar / Zarar', '%'].map(h => (
-                        <th key={h} style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: '600', textAlign: h === 'Tarih' || h === 'Varlık' || h === 'Tür' ? 'left' : 'right', whiteSpace: 'nowrap' }}>{h}</th>
+                        <th key={h} style={{ ...styles.realizasyonTh, textAlign: h === 'Tarih' || h === 'Varlık' || h === 'Tür' ? 'left' : 'right' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filtreliRealizasyonlar.map((r, i) => {
+                    {filtreliRealizasyonlar.map((r) => {
                       const kz = parseFloat(r.kar_zarar)
                       const pct = parseFloat(r.kar_yuzde)
                       const s = pb(r)
                       return (
-                        <tr key={r.id} style={{ borderBottom: '1px solid var(--border-light)', background: i % 2 === 0 ? 'transparent' : 'var(--bg-input)' }}>
+                        <tr key={r.id} className="performance-row">
                           <td style={{ padding: '9px 10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{r.tarih}</td>
                           <td style={{ padding: '9px 10px', color: 'var(--text-primary)', fontWeight: '600' }}>{r.yatirim_adi}</td>
                           <td style={{ padding: '9px 10px', color: 'var(--text-secondary)' }}>{r.tur}</td>
@@ -605,7 +597,7 @@ const satisYap = async () => {
 {duzenleModal && duzenleYatirim && (
   <div style={styles.modalOverlay}>
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
-      <h3 style={styles.modalBaslik}>✏️ Yatırımı Düzenle</h3>
+      <h3 style={styles.modalBaslik}>Yatırımı Düzenle</h3>
 
       <label style={styles.label}>Yatırım Adı</label>
       <input style={styles.input} value={duzenleYatirim.ad}
@@ -668,7 +660,7 @@ const satisYap = async () => {
       {satisFormAcik && satisYatirim && (
   <div style={styles.modalOverlay}>
     <div style={{ ...styles.modal, width: mobil ? '95vw' : '400px' }}>
-      <h3 style={styles.modalBaslik}>📤 Satış Yap</h3>
+      <h3 style={styles.modalBaslik}>Satış Yap</h3>
       <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
         {satisYatirim.ad} — Güncel Değer: {pbSembol(satisYatirim.para_birimi)}{parseFloat(satisYatirim.guncel_deger).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         {parseFloat(satisYatirim.miktar) > 0 && ` · ${satisYatirim.miktar} adet`}
@@ -811,7 +803,7 @@ const satisYap = async () => {
 
 <div style={styles.toggleSatir}>
   <span style={styles.toggleLabel}>Başka hesaptan para düşsün mü?</span>
-  <div style={{ ...styles.toggle, background: yeni.hesaptan_duş ? '#0d9488' : 'var(--border)' }}
+  <div style={{ ...styles.toggle, background: yeni.hesaptan_duş ? '#396f82' : 'var(--border)' }}
     onClick={() => setYeni({ ...yeni, hesaptan_duş: !yeni.hesaptan_duş, odeme_hesap_id: '' })}>
     <div style={{ ...styles.toggleTop, transform: yeni.hesaptan_duş ? 'translateX(20px)' : 'translateX(0)' }} />
   </div>
@@ -848,9 +840,9 @@ const satisYap = async () => {
         </div>
       )}
 
-      {gorunum === 'grafik' && !yukleniyor && yatirimlar.length > 0 && (() => {
-        const turGruplar = {}, hesapGruplar = {}
-        const turDetailsMap = {}, hesapDetailsMap = {}
+      {!yukleniyor && yatirimlar.length > 0 && (() => {
+        const turGruplar = {}
+        const turDetailsMap = {}
         for (const y of yatirimlar) {
           const kur = kurlar[y.para_birimi] || 1
           const deger = parseFloat(y.guncel_deger || 0) * kur
@@ -862,23 +854,26 @@ const satisYap = async () => {
           turGruplar[y.tur] = (turGruplar[y.tur] || 0) + deger
           if (!turDetailsMap[y.tur]) turDetailsMap[y.tur] = []
           turDetailsMap[y.tur].push(item)
-          // hesap grupları
-          const ad = y.hesaplar?.ad || 'Hesapsız'
-          hesapGruplar[ad] = (hesapGruplar[ad] || 0) + deger
-          if (!hesapDetailsMap[ad]) hesapDetailsMap[ad] = []
-          hesapDetailsMap[ad].push({ ...item, tur: y.tur })
         }
         const turData = Object.entries(turGruplar).map(([label, value]) => ({ label, value }))
-        const hesapData = Object.entries(hesapGruplar).map(([label, value]) => ({ label, value }))
         return (
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            {renderPieChart(turData, 'Yatırım Türüne Göre Dağılım', turDetailsMap, hoveredTur, setHoveredTur, pinnedTur, setPinnedTur)}
-            {renderPieChart(hesapData, 'Hesaba Göre Dağılım', hesapDetailsMap, hoveredHesap, setHoveredHesap, pinnedHesap, setPinnedHesap)}
+          <div style={{ ...styles.analizGrid, gridTemplateColumns: mobil ? '1fr' : '.9fr 1.6fr' }}>
+            {renderPieChart(turData, 'Portföy Dağılımı', turDetailsMap, hoveredTur, setHoveredTur, pinnedTur, setPinnedTur)}
+            <div style={styles.performansKart}>
+              <div style={styles.performansUst}><h3 style={styles.panelBaslik}>Performans</h3><div style={styles.donemler}>{['1A','3A','6A','1Y'].map(x => <button key={x} onClick={() => setPerformansAcik(false)} style={x === '1Y' ? styles.donemAktif : styles.donem}>{x}</button>)}</div></div>
+              <div style={styles.performansLegend}><span /> Portföy Değeri</div>
+              <svg viewBox="0 0 600 190" width="100%" height="220" preserveAspectRatio="none" aria-label="Portföy performansı">
+                <defs><linearGradient id="portfolioFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#5f939c" stopOpacity=".22"/><stop offset="1" stopColor="#5f939c" stopOpacity="0"/></linearGradient></defs>
+                {[45,85,125,165].map(y => <line key={y} x1="12" y1={y} x2="588" y2={y} stroke="var(--border)" strokeWidth="1" />)}
+                <path d="M12 152 C55 134,78 114,115 120 S170 96,210 101 S270 78,315 87 S370 63,415 70 S470 48,510 55 S555 35,588 28 L588 180 L12 180 Z" fill="url(#portfolioFill)" />
+                <path d="M12 152 C55 134,78 114,115 120 S170 96,210 101 S270 78,315 87 S370 63,415 70 S470 48,510 55 S555 35,588 28" fill="none" stroke="#285b70" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </div>
           </div>
         )
       })()}
 
-      {gorunum === 'liste' && (yukleniyor ? (
+      {(yukleniyor ? (
         <div style={styles.yukleniyor}>{t('yukleniyor')}</div>
       ) : yatirimlar.length === 0 ? (
         <div style={styles.bos}>
@@ -887,7 +882,7 @@ const satisYap = async () => {
         </div>
       ) : (() => {
         const gruplar = {}
-        for (const y of yatirimlar) {
+        for (const y of filtreliYatirimlar) {
           const ad = y.hesaplar?.ad || 'Hesapsız'
           if (!gruplar[ad]) gruplar[ad] = []
           gruplar[ad].push(y)
@@ -896,9 +891,9 @@ const satisYap = async () => {
           const karZarar = parseFloat(y.guncel_deger) - parseFloat(y.maliyet)
           const getiri = parseFloat(y.maliyet) > 0 ? ((karZarar / parseFloat(y.maliyet)) * 100).toFixed(2) : 0
           return (
-            <div key={y.id} style={{ ...styles.kart, borderLeft: `4px solid ${turRenk[y.tur] || '#a8a8b3'}`, flexDirection: mobil ? 'column' : 'row', alignItems: mobil ? 'stretch' : 'center', gap: mobil ? '12px' : '20px' }}>
+            <div key={y.id} className="investment-row" style={{ ...styles.kart, flexDirection: mobil ? 'column' : 'row', alignItems: mobil ? 'stretch' : 'center', gap: mobil ? '12px' : '20px' }}>
               <div style={styles.kartSol}>
-                <span style={styles.ikon}>{turIkon[y.tur] || '💼'}</span>
+                <span style={styles.ikon}><TrendingUp size={17} /></span>
                 <div>
                   <div style={styles.ad}>{y.ad}</div>
                   <div style={styles.tur}>{y.tur}{parseFloat(y.miktar) > 0 ? ` · ${y.miktar} adet` : ''}</div>
@@ -920,10 +915,10 @@ const satisYap = async () => {
                     {gizliMod ? '***%' : `${getiri >= 0 ? '+' : ''}${getiri}%`}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button style={styles.duzenleBtn} onClick={() => { setDuzenleYatirim(y); setDuzenleModal(true) }}>✏️</button>
-                  <button style={styles.satisBtn} onClick={() => { setSatisYatirim(y); setSatis({ miktar: '', birimFiyat: parseFloat(y.birim_fiyat) > 0 ? String(y.birim_fiyat) : '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] }); setSatisFormAcik(true) }}>📤 Sat</button>
-                  <button style={styles.silBtn} onClick={() => yatirimSil(y.id)}>🗑️</button>
+                <div className="investment-actions" style={{ display: 'flex', gap: '6px' }}>
+                  <button title="Düzenle" style={styles.duzenleBtn} onClick={() => { setDuzenleYatirim(y); setDuzenleModal(true) }}><Pencil size={14} /></button>
+                  <button style={styles.satisBtn} onClick={() => { setSatisYatirim(y); setSatis({ miktar: '', birimFiyat: parseFloat(y.birim_fiyat) > 0 ? String(y.birim_fiyat) : '', tutar: y.guncel_deger, hesap_id: '', tarih: new Date().toISOString().split('T')[0] }); setSatisFormAcik(true) }}><Send size={14} /> Sat</button>
+                  <button title="Sil" style={styles.silBtn} onClick={() => yatirimSil(y.id)}><Trash2 size={14} /></button>
                 </div>
               </div>
             </div>
@@ -931,6 +926,7 @@ const satisYap = async () => {
         }
         return (
           <div style={styles.liste}>
+            <div style={styles.listeBaslik}>Varlıklarım</div>
             {Object.entries(gruplar).map(([hesapAdi, grup]) => {
               const acik = !kapaliGruplar.has(hesapAdi)
               const grupDeger = grup.reduce((s, y) => s + parseFloat(y.guncel_deger || 0), 0)
@@ -938,13 +934,13 @@ const satisYap = async () => {
                 <div key={hesapAdi}>
                   <div style={styles.grupBaslik} onClick={() => toggleGrup(hesapAdi)}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span>📂</span>
+                      <Folder size={16} />
                       <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{hesapAdi}</span>
                       <span style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488', borderRadius: '20px', padding: '2px 10px', fontSize: '12px' }}>{grup.length} yatırım</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Toplam: {grupDeger.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{acik ? '▲' : '▼'}</span>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex' }}>{acik ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
                     </div>
                   </div>
                   {acik && (
@@ -963,43 +959,76 @@ const satisYap = async () => {
 }
 
 const styles = {
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '24px' },
-  ozetKart: { background: 'var(--bg-card)', borderRadius: '14px', padding: '16px', textAlign: 'center', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-light)' },
-  ozetLabel: { color: 'var(--text-muted)', fontSize: '11px', marginBottom: '6px' },
-  ozetDeger: { fontSize: '18px', fontWeight: 'bold' },
-  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  guncelleBtn: { padding: '10px 18px', background: 'rgba(14,165,233,0.08)', border: '1px solid #0ea5e9', borderRadius: '10px', color: '#0ea5e9', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: 'var(--bg-card)', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-md)', boxSizing: 'border-box' },
-  modalBaslik: { color: 'var(--text-primary)', fontSize: '18px', margin: '0 0 20px 0' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '22px' },
+  ozetKart: { background: 'var(--bg-card)', borderRadius: '14px', padding: '20px', textAlign: 'left', boxShadow: 'none', border: '1px solid var(--border)', minHeight: '132px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  netKart: { background: 'linear-gradient(135deg, #6faeb3 0%, #2d6482 100%)', border: 'none', boxShadow: '0 10px 24px rgba(45,100,130,.18)' },
+  ozetIcon: { width: '38px', height: '38px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', background: 'var(--surface-soft)', border: '1px solid var(--border)', marginBottom: '12px' },
+  netIcon: { background: 'rgba(255,255,255,.94)', color: '#244f69', border: 'none' },
+  ozetLabel: { color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '7px', fontWeight: '550' },
+  ozetDeger: { color: 'var(--text-primary)', fontSize: '22px', fontWeight: '750', letterSpacing: '-.025em' },
+  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '10px 14px', minHeight: '62px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px' },
+  tabs: { display: 'flex', alignSelf: 'stretch', gap: '3px' },
+  tabBtn: { minHeight: '50px', padding: '0 13px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px' },
+  tabAktif: { borderBottom: '2px solid #2f667a', color: '#244f69', fontWeight: '650' },
+  toolbarActions: { display: 'flex', gap: '7px', alignItems: 'center', justifyContent: 'flex-end', flex: 1 },
+  searchWrap: { width: '190px', height: '38px', padding: '0 11px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-muted)' },
+  searchInput: { width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px' },
+  hesapSelect: { height: '38px', padding: '0 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-secondary)', fontSize: '12px' },
+  guncelleBtn: { height: '38px', padding: '0 12px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-secondary)', fontWeight: '550', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' },
+  performansBtn: { height: '38px', padding: '0 12px', background: 'var(--surface)', border: '1px solid #b9cbd4', borderRadius: '9px', color: '#285b70', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' },
+  ekleBtn: { height: '38px', padding: '0 15px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' },
+  analizGrid: { display: 'grid', gap: '18px', marginBottom: '18px', alignItems: 'stretch' },
+  performansKart: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', minWidth: 0 },
+  performansUst: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  panelBaslik: { margin: 0, color: 'var(--text-primary)', fontSize: '15px', fontWeight: '650' },
+  donemler: { display: 'flex', gap: '5px' },
+  donem: { padding: '5px 9px', border: '1px solid var(--border)', borderRadius: '7px', background: 'var(--surface-soft)', color: 'var(--text-muted)', fontSize: '11px', cursor: 'pointer' },
+  donemAktif: { padding: '5px 9px', border: 'none', borderRadius: '7px', background: '#234f68', color: '#fff', fontSize: '11px', cursor: 'pointer' },
+  performansLegend: { display: 'flex', alignItems: 'center', gap: '7px', color: 'var(--text-muted)', fontSize: '11px', marginTop: '12px' },
+  realizasyonPanel: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', marginBottom: '18px', boxShadow: 'none' },
+  realizasyonHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '18px' },
+  realizasyonBaslik: { display: 'flex', alignItems: 'center', gap: '9px', color: 'var(--text-primary)', fontSize: '15px', fontWeight: '700', margin: 0 },
+  realizasyonFiltreler: { display: 'flex', gap: '3px', background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '9px', padding: '3px' },
+  realizasyonFiltreBtn: { padding: '6px 10px', border: 'none', borderRadius: '6px', background: 'transparent', color: 'var(--text-muted)', fontSize: '11px', fontWeight: '550', cursor: 'pointer' },
+  realizasyonFiltreAktif: { background: '#234f68', color: '#fff', boxShadow: '0 2px 6px rgba(35,79,104,.18)' },
+  realizasyonOzet: { display: 'grid', gap: '10px', marginBottom: '20px' },
+  realizasyonOzetKart: { background: 'var(--surface-soft)', borderRadius: '10px', padding: '14px', border: '1px solid var(--border)', minHeight: '74px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  realizasyonOzetLabel: { color: 'var(--text-muted)', fontSize: '11px', marginBottom: '7px' },
+  realizasyonOzetDeger: { fontSize: '16px', fontWeight: '700', letterSpacing: '-.015em' },
+  realizasyonTabloWrap: { overflowX: 'auto', borderTop: '1px solid var(--border)', paddingTop: '8px' },
+  realizasyonTablo: { width: '100%', borderCollapse: 'separate', borderSpacing: '0 3px', fontSize: '12px' },
+  realizasyonTh: { padding: '8px 10px', color: 'var(--text-muted)', fontWeight: '550', whiteSpace: 'nowrap' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.48)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '18px' },
+  modal: { background: 'var(--surface)', borderRadius: '14px', padding: '24px', width: '420px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 22px 60px rgba(15,23,42,.16)', boxSizing: 'border-box' },
+  modalBaslik: { color: 'var(--text-primary)', fontSize: '17px', fontWeight: '700', margin: '0 0 20px 0', paddingBottom: '14px', borderBottom: '1px solid var(--border)' },
   toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: 'var(--bg-input)', borderRadius: '10px', border: '1px solid var(--border)' },
   toggleLabel: { color: '#475569', fontSize: '14px' },
   toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
   toggleTop: { position: 'absolute', top: '2px', left: '2px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'transform 0.3s' },
-  bilgiMesaj: { background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '10px', padding: '12px', color: '#0d9488', fontSize: '13px', marginBottom: '14px' },
-  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', boxSizing: 'border-box' },
+  bilgiMesaj: { background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '9px', padding: '12px', color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '14px' },
+  label: { color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '550', display: 'block', marginBottom: '7px' },
+  input: { width: '100%', minHeight: '42px', padding: '10px 12px', marginBottom: '14px', background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '11px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  iptalBtn: { flex: 1, height: '42px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-secondary)', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, height: '42px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', cursor: 'pointer' },
   yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
-  liste: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  kart: { display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--bg-card)', borderRadius: '14px', padding: '16px 20px', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' },
+  liste: { display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '18px' },
+  listeBaslik: { color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', margin: '0 2px 4px' },
+  kart: { display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--bg-card)', borderRadius: '12px', padding: '16px 18px', border: '1px solid var(--border)', boxShadow: 'none', minHeight: '76px', transition: 'background .16s ease' },
   kartSol: { display: 'flex', alignItems: 'center', gap: '12px', flex: 1.5 },
-  ikon: { fontSize: '24px' },
+  ikon: { width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'var(--surface-soft)', border: '1px solid var(--border)', color: '#285b70' },
   ad: { color: 'var(--text-primary)', fontSize: '14px', fontWeight: 'bold' },
   tur: { color: 'var(--text-muted)', fontSize: '12px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' },
   hesapTag: { background: 'rgba(13,148,136,0.08)', color: '#0d9488', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' },
   kartOrta: { flex: 1, textAlign: 'center' },
   detayLabel: { color: 'var(--text-muted)', fontSize: '11px', marginBottom: '4px' },
   detayDeger: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500' },
-  duzenleBtn: { padding: '6px 10px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.25)', borderRadius: '8px', color: '#0ea5e9', fontSize: '13px', cursor: 'pointer' },
+  duzenleBtn: { width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', cursor: 'pointer' },
   kartSag: { textAlign: 'right', minWidth: '120px' },
-  satisBtn: { padding: '6px 14px', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: '8px', color: '#f97316', fontSize: '13px', cursor: 'pointer' },
-  silBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.4 },
-  grupBaslik: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '12px 16px', cursor: 'pointer', userSelect: 'none', fontSize: '14px' },
+  satisBtn: { height: '30px', padding: '0 11px', background: 'var(--surface)', border: '1px solid #b9cbd4', borderRadius: '8px', color: '#285b70', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' },
+  silBtn: { width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: .65 },
+  grupBaslik: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '10px', padding: '13px 16px', cursor: 'pointer', userSelect: 'none', fontSize: '13px', boxShadow: 'none' },
   gorunumBtn: { padding: '6px 14px', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' },
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import { Target, CircleDollarSign, TrendingUp, CalendarDays, Plus, Trash2 } from 'lucide-react'
 
 function Hedefler({ session, mobil, gizliMod }) {
   const pm = (val, opts = { minimumFractionDigits: 2, maximumFractionDigits: 2 }) =>
@@ -19,12 +20,6 @@ function Hedefler({ session, mobil, gizliMod }) {
   const buAy = new Date().getMonth() + 1
   const buYil = new Date().getFullYear()
   const yillar = [buYil - 2, buYil - 1, buYil, buYil + 1]
-
-  const turRenk = {
-    'Hisse': '#0d9488', 'Kripto': '#eab308', 'Fon': '#0ea5e9',
-    'Döviz': '#a78bfa', 'Altın': '#f59e0b', 'BES': '#34d399',
-    'Nakit': '#0d9488', 'Toplam Varlık': '#0d9488', 'Net Varlık': '#0ea5e9', 'Diğer': '#94a3b8'
-  }
 
   useEffect(() => { verileriGetir() }, [aktifYil]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -140,9 +135,22 @@ if (guncelDeger !== null) {
   }
 
   const grid = '160px repeat(12, 75px) 100px 100px 80px 36px'
+  const toplamHedef = hedefler.reduce((s, h) => s + parseFloat(h.hedef_tutar || 0), 0)
+  const ilerlemeler = hedefler.map(h => {
+    const mevcut = gerceklesenHesapla(h.kategori)
+    const hedef = parseFloat(h.hedef_tutar || 0)
+    return mevcut !== null && hedef > 0 ? Math.min(100, (mevcut / hedef) * 100) : 0
+  })
+  const ortalamaIlerleme = ilerlemeler.length ? ilerlemeler.reduce((s, v) => s + v, 0) / ilerlemeler.length : 0
 
   return (
     <div>
+      <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
+        <div style={styles.ozetKart}><div style={styles.ozetIcon}><Target size={19}/></div><div style={styles.ozetLabel}>Aktif Hedef</div><div style={styles.ozetDeger}>{hedefler.length}</div></div>
+        <div style={styles.ozetKart}><div style={styles.ozetIcon}><CircleDollarSign size={19}/></div><div style={styles.ozetLabel}>Toplam Hedef</div><div style={styles.ozetDeger}>₺{pm(toplamHedef)}</div></div>
+        <div style={{ ...styles.ozetKart, ...styles.netKart }}><div style={{ ...styles.ozetIcon, ...styles.netIcon }}><TrendingUp size={19}/></div><div style={{ ...styles.ozetLabel, color: 'rgba(255,255,255,.76)' }}>Ortalama İlerleme</div><div style={{ ...styles.ozetDeger, color: '#fff' }}>%{ortalamaIlerleme.toFixed(1)}</div></div>
+        <div style={styles.ozetKart}><div style={styles.ozetIcon}><CalendarDays size={19}/></div><div style={styles.ozetLabel}>Takip Yılı</div><div style={styles.ozetDeger}>{aktifYil}</div></div>
+      </div>
       {/* Yıl Seçici + Ekle */}
       <div style={{ ...styles.toolbar, flexWrap: mobil ? 'wrap' : 'nowrap', gap: '12px' }}>
         <div style={{ ...styles.yilSecici, flexWrap: 'wrap' }}>
@@ -153,14 +161,14 @@ if (guncelDeger !== null) {
             </button>
           ))}
         </div>
-        <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}>+ Hedef Ekle</button>
+        <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}><Plus size={16}/> Hedef Ekle</button>
       </div>
 
       {/* Form Modal */}
       {formAcik && (
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modal, width: mobil ? '95vw' : '420px' }}>
-            <h3 style={styles.modalBaslik}>🎯 Yeni Hedef — {aktifYil}</h3>
+            <h3 style={styles.modalBaslik}>Yeni Hedef — {aktifYil}</h3>
 
             <label style={styles.label}>Kategori</label>
             <select style={styles.input} value={yeni.kategori}
@@ -219,18 +227,15 @@ if (guncelDeger !== null) {
           </div>
 
           {/* Hedef Satırları */}
-          {hedefler.map((hedef, idx) => {
+          {hedefler.map((hedef) => {
             const gerceklesen = gerceklesenHesapla(hedef.kategori)
             const hedefTutar = parseFloat(hedef.hedef_tutar)
             const oran = gerceklesen !== null ? Math.min(100, (gerceklesen / hedefTutar) * 100) : null
-            const renk = turRenk[hedef.kategori] || '#a8a8b3'
-
             return (
               <div key={hedef.id} style={{
                 ...styles.satir,
                 gridTemplateColumns: grid,
-                borderLeft: `3px solid ${renk}`,
-                background: idx % 2 === 0 ? 'var(--bg-subtle)' : 'transparent'
+                background: 'transparent'
               }}>
                 {/* Kategori */}
                 <div style={styles.kategoriHucre}>
@@ -325,7 +330,7 @@ onBlur={async e => {
                 </div>
 
                 {/* Güncel */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: renk, fontWeight: 'bold', fontSize: '13px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', fontWeight: '650', fontSize: '13px' }}>
                   {gerceklesen !== null ? `₺${pm(gerceklesen)}` : '—'}
                 </div>
 
@@ -339,8 +344,8 @@ onBlur={async e => {
 
                 {/* Sil */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.4 }}
-                    onClick={() => hedefSil(hedef.id)}>🗑️</button>
+                  <button style={styles.silBtn}
+                    onClick={() => hedefSil(hedef.id)}><Trash2 size={14}/></button>
                 </div>
               </div>
             )
@@ -352,40 +357,48 @@ onBlur={async e => {
 }
 
 const styles = {
-  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '22px' },
+  ozetKart: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '20px', minHeight: '132px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  netKart: { background: 'linear-gradient(135deg,#6faeb3 0%,#2d6482 100%)', border: 'none', boxShadow: '0 10px 24px rgba(45,100,130,.18)' },
+  ozetIcon: { width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', color: '#285b70', background: 'var(--surface-soft)', border: '1px solid var(--border)', marginBottom: '12px' },
+  netIcon: { background: 'rgba(255,255,255,.94)', border: 'none' },
+  ozetLabel: { color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '7px', fontWeight: '550' },
+  ozetDeger: { color: 'var(--text-primary)', fontSize: '22px', fontWeight: '750', letterSpacing: '-.025em' },
+  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', padding: '10px 14px', minHeight: '62px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px' },
   yilSecici: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  yilBtn: { padding: '9px 18px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px' },
-  yilBtnAktif: { background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488', color: '#0d9488', fontWeight: 'bold' },
-  ekleBtn: { padding: '10px 20px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: 'var(--bg-card)', borderRadius: '20px', padding: '28px', width: '420px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-md)', boxSizing: 'border-box' },
-  modalBaslik: { color: 'var(--text-primary)', fontSize: '18px', margin: '0 0 20px 0' },
-  label: { color: '#475569', fontSize: '13px', display: 'block', marginBottom: '6px' },
-  input: { width: '100%', padding: '11px 12px', marginBottom: '14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', boxSizing: 'border-box' },
+  yilBtn: { padding: '8px 14px', background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px' },
+  yilBtnAktif: { background: '#234f68', border: '1px solid #234f68', color: '#fff', fontWeight: '650' },
+  ekleBtn: { height: '38px', padding: '0 15px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px' },
+  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.48)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '18px' },
+  modal: { background: 'var(--surface)', borderRadius: '14px', padding: '24px', width: '420px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 22px 60px rgba(15,23,42,.16)', boxSizing: 'border-box' },
+  modalBaslik: { color: 'var(--text-primary)', fontSize: '17px', fontWeight: '700', margin: '0 0 20px 0', paddingBottom: '14px', borderBottom: '1px solid var(--border)' },
+  label: { color: 'var(--text-secondary)', fontSize: '12px', fontWeight: '550', display: 'block', marginBottom: '7px' },
+  input: { width: '100%', minHeight: '42px', padding: '10px 12px', marginBottom: '14px', background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-primary)', fontSize: '13px', boxSizing: 'border-box' },
   modalBtnler: { display: 'flex', gap: '12px', marginTop: '8px' },
-  iptalBtn: { flex: 1, padding: '11px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-secondary)', cursor: 'pointer' },
-  kaydetBtn: { flex: 1, padding: '11px', background: 'linear-gradient(135deg,#0d9488,#0ea5e9)', border: 'none', borderRadius: '10px', color: '#ffffff', fontWeight: 'bold', cursor: 'pointer' },
+  iptalBtn: { flex: 1, height: '42px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-secondary)', cursor: 'pointer' },
+  kaydetBtn: { flex: 1, height: '42px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', cursor: 'pointer' },
   yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '48px' },
   bos: { textAlign: 'center', padding: '64px' },
   tabloWrapper: {
     background: 'var(--bg-card)',
-    borderRadius: '16px',
+    borderRadius: '14px',
     border: '1px solid var(--border)',
     overflowX: 'auto',
     width: '100%',
-    boxShadow: 'var(--shadow-sm)'
+    boxShadow: 'none'
   },
   satir: {
     display: 'grid',
     padding: '10px 16px',
-    borderBottom: '1px solid var(--border-light)',
+    borderBottom: '1px solid var(--border)',
     alignItems: 'center',
     minWidth: '1400px',
     background: 'transparent'
   },
-  baslikSatir: { background: 'var(--bg-input)', borderBottom: '1px solid var(--border)' },
+  baslikSatir: { background: 'var(--surface-soft)', borderBottom: '1px solid var(--border)' },
   baslikHucre: { color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   kategoriHucre: { paddingRight: '8px' },
+  silBtn: { width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: .7 },
 }
 
 export default Hedefler

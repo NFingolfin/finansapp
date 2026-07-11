@@ -218,7 +218,7 @@ const s = {
   },
   kapatBtn: {
     width: '100%', padding: '13px',
-    background: 'linear-gradient(135deg, #0d9488, #0ea5e9)',
+    background: 'var(--primary)',
     border: 'none', borderRadius: '10px',
     color: '#fff', fontSize: '15px', fontWeight: '700',
     cursor: 'pointer',
