@@ -1,117 +1,48 @@
-/**
- * FinkodLogo — Kalkan + bar grafik + ok + yaprak
- * uid prop: aynı sayfada birden fazla kullanımda SVG gradient ID çakışmasını önler
- */
+/** Finkod Cüzdan — cube + currency mark */
 function FinkodLogo({ size = 44, uid = 'a' }) {
-  const h = Math.round(size * 1.18)
-  const bg = `fkbg${uid}`
-  const bgInner = `fkbgi${uid}`
-  const br = `fkbr${uid}`
-  const gl = `fkgl${uid}`
-  const glowFilter = `fkgf${uid}`
+  const h = Math.round(size * 0.96)
+  const top = `cubeTop-${uid}`
+  const left = `cubeLeft-${uid}`
+  const right = `cubeRight-${uid}`
 
   return (
-    <svg width={size} height={h} viewBox="0 0 44 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width={size}
+      height={h}
+      viewBox="0 0 64 61"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Finkod Cüzdan"
+    >
       <defs>
-        {/* Kalkan arka plan gradyanı */}
-        <linearGradient id={bg} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#1a5060" />
-          <stop offset="50%" stopColor="#0e2f42" />
-          <stop offset="100%" stopColor="#071a28" />
+        <linearGradient id={top} x1="14" y1="10" x2="48" y2="28" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#173653" />
+          <stop offset="1" stopColor="#0B2038" />
         </linearGradient>
-        {/* İç highlight gradyanı */}
-        <linearGradient id={bgInner} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(13,148,136,0.18)" />
-          <stop offset="100%" stopColor="rgba(13,148,136,0)" />
+        <linearGradient id={left} x1="11" y1="23" x2="31" y2="54" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#153A5D" />
+          <stop offset="1" stopColor="#071C34" />
         </linearGradient>
-        {/* Kenarlık gradyanı */}
-        <linearGradient id={br} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#5eead4" />
-          <stop offset="60%" stopColor="#0d9488" />
-          <stop offset="100%" stopColor="#0ea5e9" />
+        <linearGradient id={right} x1="31" y1="29" x2="48" y2="50" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#36516B" />
+          <stop offset="1" stopColor="#1B324B" />
         </linearGradient>
-        {/* Ok / parlama gradyanı */}
-        <linearGradient id={gl} x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0d9488" />
-          <stop offset="100%" stopColor="#5eead4" />
-        </linearGradient>
-        {/* Glow filtresi */}
-        <filter id={glowFilter} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.8" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
 
-      {/* ── Dış parlama halkası ── */}
+      <path d="M10 20.2 29.8 8.5 49.8 19.8 30 31.8 10 20.2Z" fill={`url(#${top})`} />
+      <path d="M10 23.7 28.2 34.2V56L10 45.4V23.7Z" fill={`url(#${left})`} />
+      <path d="M31.8 34.2 48.1 24.4V45.6L31.8 55.8V34.2Z" fill={`url(#${right})`} />
+      <path d="M10 34.5 28.2 45" stroke="#31506E" strokeWidth="1" opacity=".55" />
+      <path d="M31.8 45 48.1 35.1" stroke="#597087" strokeWidth="1" opacity=".38" />
+
       <path
-        d="M22 1 C37 1 42 8 42 16 L42 30 C42 43 22 51 22 51 C22 51 2 43 2 30 L2 16 C2 8 7 1 22 1Z"
-        fill="none"
-        stroke="rgba(13,148,136,0.22)"
-        strokeWidth="3"
+        d="M56.5 24.8a13.8 13.8 0 1 0 0 20.4"
+        stroke="#7C8793"
+        strokeWidth="4.2"
+        strokeLinecap="square"
       />
-
-      {/* ── Kalkan gövdesi ── */}
-      <path
-        d="M22 2 C36 2 41 9 41 17 L41 30 C41 43 22 50 22 50 C22 50 3 43 3 30 L3 17 C3 9 8 2 22 2Z"
-        fill={`url(#${bg})`}
-        stroke={`url(#${br})`}
-        strokeWidth="1.6"
-      />
-
-      {/* ── İç üst highlight (glossy) ── */}
-      <path
-        d="M22 5 C33 5 38 10 38 17 L38 24 C32 20 27 19 22 19 C17 19 12 20 6 24 L6 17 C6 10 11 5 22 5Z"
-        fill={`url(#${bgInner})`}
-      />
-
-      {/* ── Bar chart ── */}
-      {/* Bar 1 (sol, kısa) */}
-      <rect x="10" y="35" width="5" height="7" rx="1.2"
-        fill="#5eead4" opacity="0.65" />
-      {/* Bar 2 (orta) */}
-      <rect x="17" y="29" width="5" height="13" rx="1.2"
-        fill="#2dd4bf" opacity="0.80" />
-      {/* Bar 3 (sağ, uzun) */}
-      <rect x="24" y="23" width="5" height="19" rx="1.2"
-        fill="#0d9488" opacity="0.95" />
-
-      {/* ── Yukarı ok çizgisi ── */}
-      <line
-        x1="12" y1="37" x2="32" y2="16"
-        stroke={`url(#${gl})`}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        filter={`url(#${glowFilter})`}
-      />
-      {/* Ok başı */}
-      <polyline
-        points="25,14 33,14 33,22"
-        stroke={`url(#${gl})`}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        filter={`url(#${glowFilter})`}
-      />
-
-      {/* ── Yaprak ── */}
-      <path
-        d="M18 45 Q22 40 27 43 Q23 48 18 45Z"
-        fill="#0d9488"
-        opacity="0.90"
-        filter={`url(#${glowFilter})`}
-      />
-      {/* Yaprak sapı */}
-      <line
-        x1="22" y1="45" x2="22" y2="48"
-        stroke="#0d9488"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        opacity="0.70"
-      />
+      <path d="M45.8 17.5v7.4M45.8 45.1v7.4" stroke="#7C8793" strokeWidth="4.2" />
     </svg>
   )
 }

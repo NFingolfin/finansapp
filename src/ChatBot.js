@@ -15,12 +15,13 @@ function ChatBot({ session, onIslemEklendi }) {
   const [yukleniyor, setYukleniyor] = useState(false)
   const [onay, setOnay] = useState(null)
   const [hesaplar, setHesaplar] = useState([])
+  const [kategoriler, setKategoriler] = useState([])
   const mesajSonuRef = useRef(null)
   // Sohbet geçmişi — AI'a önceki konuşmayı da gönderiyoruz
   const gecmisRef = useRef([])
 
   useEffect(() => {
-    if (acik) hesaplariGetir()
+    if (acik) { hesaplariGetir(); kategorileriGetir() }
   }, [acik]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -34,6 +35,41 @@ function ChatBot({ session, onIslemEklendi }) {
       .eq('user_id', session.user.id)
     if (data) setHesaplar(data)
   }
+
+  const kategorileriGetir = async () => {
+    const { data } = await supabase.from('kategoriler').select('*')
+      .eq('user_id', session.user.id).eq('aktif', true).order('ana_kategori')
+    if (data) setKategoriler(data)
+  }
+
+  const kategoriBul = (kategoriAdi, islemTuru, baglam = '') => {
+    const beklenenTur = islemTuru === 'kk_alisveris' ? 'gider' : islemTuru === 'borc_odeme' ? 'borc' : islemTuru
+    const adaylar = kategoriler.filter(k => k.tur === beklenenTur)
+    const norm = value => (value || '').trim().toLocaleLowerCase('tr-TR')
+    const aranan = norm(kategoriAdi)
+    const baglamNorm = norm(baglam)
+
+    // Kullanıcının cümlesinde geçen en spesifik alt kategori her zaman önceliklidir.
+    const baglamAltEslesmesi = adaylar
+      .filter(k => k.alt_kategori && baglamNorm.includes(norm(k.alt_kategori)))
+      .sort((a, b) => b.alt_kategori.length - a.alt_kategori.length)[0]
+    if (baglamAltEslesmesi) return baglamAltEslesmesi
+
+    if (!aranan) return null
+    const tamYol = adaylar.find(k => norm(`${k.ana_kategori} / ${k.alt_kategori || ''}`).replace(/\s*\/\s*$/, '') === aranan)
+    if (tamYol) return tamYol
+    const altEslesmesi = adaylar.find(k => k.alt_kategori && norm(k.alt_kategori) === aranan)
+    if (altEslesmesi) return altEslesmesi
+
+    // Aynı ana kategori altında birden fazla kayıt varsa belirsiz seçim yapma.
+    const anaEslesmeleri = adaylar.filter(k => norm(k.ana_kategori) === aranan)
+    return anaEslesmeleri.length === 1 ? anaEslesmeleri[0] : (anaEslesmeleri.find(k => !k.alt_kategori) || null)
+  }
+
+  const kategoriAlanlari = kategori => kategori ? {
+    kategori_id: kategori.id, ana_kategori: kategori.ana_kategori,
+    alt_kategori: kategori.alt_kategori || null, butce_grubu: kategori.butce_grubu || null
+  } : { kategori_id: null, ana_kategori: null, alt_kategori: null, butce_grubu: null }
 
   // Hesap adından hesap objesini bul (kısmi eşleşme destekli)
   const hesapBul = (aranan) => {
@@ -94,6 +130,9 @@ function ChatBot({ session, onIslemEklendi }) {
 
     try {
       const hesapListesi = hesaplar.map(h => `${h.ad} (${h.tur})`).join(', ')
+      const kategoriListesi = kategoriler.length ? kategoriler.map(k =>
+        `${k.tur}: ${k.ana_kategori}${k.alt_kategori ? ` / ${k.alt_kategori}` : ''}${k.butce_grubu ? ` [${k.butce_grubu}]` : ''}`
+      ).join('\n') : 'Henüz aktif kategori yok. kategori alanını null döndür.'
       const bugun = new Date().toISOString().split('T')[0]
 
       // ── TEMİZ VE DOĞRU YAPILANDIRILMIŞ SYSTEM PROMPT ──
@@ -118,11 +157,12 @@ Bugünün tarihi: ${bugun}
 - "borc_ekle"    : Kredi, kişisel borç veya taksitli borç kaydı oluşturmak
 - "yatirim"   : Hisse, kripto, fon, döviz, altın alımı
 
-=== KATEGORİLER ===
-Zaruri, Keyfi, Market, Fatura, Ulaşım, Sağlık, Eğlence, Giyim, Maaş, Kira, Borç Ödemesi, Yatırım, Diğer
+=== KULLANICININ AKTİF KATEGORİLERİ ===
+${kategoriListesi}
+Yalnızca bu listedeki kategorilerden birini kullan. Alt kategori varsa kategori alanını mutlaka "Ana Kategori / Alt Kategori" tam yolu olarak döndür. Uygun eşleşme yoksa kategori alanını null döndür. Yeni kategori üretme.
 
 === JSON FORMAT 1 — Gelir / Gider ===
-{"anlasilan":"kısa açıklama","islem":{"hesap_adi":"hesap adı","tutar":500,"tur":"gider","kategori":"Market","aciklama":"market alışverişi","tarih":"${bugun}"}}
+{"anlasilan":"kısa açıklama","islem":{"hesap_adi":"hesap adı","tutar":500,"tur":"gider","kategori":"aktif listedeki uygun kategori adı veya null","aciklama":"market alışverişi","tarih":"${bugun}"}}
 
 === JSON FORMAT 2 — Transfer ===
 hesap_adi = paranın ÇIKTIĞI hesap, hedef_hesap_adi = paranın GİRDİĞİ hesap
@@ -130,7 +170,7 @@ hesap_adi = paranın ÇIKTIĞI hesap, hedef_hesap_adi = paranın GİRDİĞİ hes
 
 === JSON FORMAT 3 — KK Alışveriş ===
 Taksitli değilse taksitli=false, taksit_sayisi=1 yaz.
-{"anlasilan":"kısa açıklama","islem":{"hesap_adi":"kart adı","tutar":1200,"tur":"kk_alisveris","kategori":"Giyim","aciklama":"ayakkabı","taksitli":false,"taksit_sayisi":1,"tarih":"${bugun}"}}
+{"anlasilan":"kısa açıklama","islem":{"hesap_adi":"kart adı","tutar":1200,"tur":"kk_alisveris","kategori":"aktif listedeki uygun gider kategorisi veya null","aciklama":"ayakkabı","taksitli":false,"taksit_sayisi":1,"tarih":"${bugun}"}}
 
 === JSON FORMAT 4 — Borç Ödeme ===
 hesap_adi = parayı ödeyen banka hesabı, kart_adi = borcun ödendiği kredi kartı
@@ -183,6 +223,11 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
       if (yanit.islem) {
         const hesap = hesapBul(yanit.islem.hesap_adi)
+        const eslesenKategori = kategoriBul(
+          yanit.islem.kategori,
+          yanit.islem.tur,
+          `${kullaniciMesaj} ${yanit.islem.aciklama || ''} ${yanit.anlasilan || ''}`
+        )
         // Transfer için hedef hesabı da resolve et
         const hedefHesap = yanit.islem.hedef_hesap_adi
           ? hesapBul(yanit.islem.hedef_hesap_adi)
@@ -190,6 +235,11 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
 
         setOnay({
           ...yanit.islem,
+          ...kategoriAlanlari(eslesenKategori),
+          kategori: eslesenKategori?.ana_kategori || null,
+          kategori_gosterim: eslesenKategori
+            ? `${eslesenKategori.ana_kategori}${eslesenKategori.alt_kategori ? ` / ${eslesenKategori.alt_kategori}` : ''}`
+            : null,
           hesap_id: hesap?.id || null,
           hesap_adi_gosterim: hesap?.ad || yanit.islem.hesap_adi,
           // Transfer hedef hesabını resolve edilmiş haliyle sakla
@@ -227,6 +277,13 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       }])
       setOnay(null)
       return
+    }
+
+    const kategoriKaydi = {
+      kategori_id: onay.kategori_id || null,
+      ana_kategori: onay.ana_kategori || null,
+      alt_kategori: onay.alt_kategori || null,
+      butce_grubu: onay.butce_grubu || null
     }
 
     // ── Borç Ekle ──
@@ -292,6 +349,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tutar: parseFloat(onay.tutar),
         tur: 'gider',
         kategori: 'Hesaplar Arası Transfer',
+        ...kategoriKaydi,
+        butce_grubu: 'Transfer',
         aciklama: `Transfer → ${hedefHesap.ad}`
       })
       const { error: e2 } = await supabase.from('islemler').insert({
@@ -301,6 +360,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tutar: parseFloat(onay.tutar),
         tur: 'gelir',
         kategori: 'Hesaplar Arası Transfer',
+        ...kategoriKaydi,
+        butce_grubu: 'Transfer',
         aciklama: `Transfer ← ${onay.hesap_adi_gosterim}`
       })
 
@@ -323,7 +384,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tarih: onay.tarih,
         tutar: parseFloat(onay.tutar),
         tur: 'gider',
-        kategori: onay.kategori || 'Diğer',
+        kategori: onay.kategori || null,
+        ...kategoriKaydi,
         aciklama: onay.aciklama
       }).select('id').single()
 
@@ -456,6 +518,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tutar: odemeTutari,
         tur: 'gider',
         kategori: 'Borç Ödemesi',
+        ...kategoriKaydi,
         aciklama: `${kartHesap.ad} ödemesi`,
         is_borc_odeme: true,
         borc_id: null
@@ -469,6 +532,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tutar: odemeTutari,
         tur: 'gelir',
         kategori: 'Borç Ödemesi',
+        ...kategoriKaydi,
         aciklama: `Borç ödemesi ← ${onay.hesap_adi_gosterim}`,
         is_borc_odeme: false
       }).select('id').single()
@@ -561,6 +625,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
           tutar: toplamMaliyet,
           tur: 'gider',
           kategori: 'Yatırım',
+          ...kategoriKaydi,
           aciklama: `${onay.aciklama} alımı (${miktar} adet)`
         })
         if (yatirimHesap) {
@@ -586,7 +651,8 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         tarih: onay.tarih,
         tutar: parseFloat(onay.tutar),
         tur: onay.tur,
-        kategori: onay.kategori || 'Diğer',
+        kategori: onay.kategori || null,
+        ...kategoriKaydi,
         aciklama: onay.aciklama
       })
 
@@ -626,7 +692,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
       return [
         { label: 'Kart', deger: onay.hesap_adi_gosterim },
         { label: 'Tutar', deger: `-₺${parseFloat(onay.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, renk: '#ff6b6b' },
-        { label: 'Kategori', deger: onay.kategori || 'Diğer' },
+        { label: 'Kategori', deger: onay.kategori_gosterim || onay.kategori || 'Kategorisiz' },
         { label: 'Açıklama', deger: onay.aciklama },
         {
           label: 'Taksit',
@@ -679,7 +745,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
         renk: onay.tur === 'gelir' ? '#4ecca3' : '#ff6b6b'
       },
       { label: 'Tür', deger: onay.tur === 'gelir' ? 'Gelir' : 'Gider' },
-      { label: 'Kategori', deger: onay.kategori || '—' },
+      { label: 'Kategori', deger: onay.kategori_gosterim || onay.kategori || 'Kategorisiz' },
       { label: 'Açıklama', deger: onay.aciklama || '—' },
       { label: 'Tarih', deger: tarihGoster(onay.tarih) },
     ]
@@ -724,7 +790,7 @@ yatirim_turu değerleri: Hisse, Kripto, Fon, Döviz, Altın, BES, Diğer
                   {onayDetaylar().map((r, i) => (
                     <div key={i} style={styles.onayRow}>
                       <span style={styles.onayLabel}>{r.label}</span>
-                      <span style={{ ...styles.onayDeger, color: r.renk || '#f1f5f9', fontWeight: r.renk ? 'bold' : 'normal' }}>
+                      <span style={{ ...styles.onayDeger, color: r.renk || 'var(--text-primary)', fontWeight: r.renk ? '700' : '600' }}>
                         {r.deger}
                       </span>
                     </div>

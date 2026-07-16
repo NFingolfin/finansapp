@@ -1,344 +1,303 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, Legend
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart,
+  Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from 'recharts'
+import {
+  Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BriefcaseBusiness,
+  CalendarDays, CheckCircle2, ChevronLeft, CircleDollarSign, CreditCard,
+  Filter, Layers3, Lightbulb, PiggyBank, RotateCcw, TrendingUp,
+  WalletCards, X
+} from 'lucide-react'
+
+const COLORS = ['#173d5c', '#28657a', '#3e8290', '#61a3aa', '#86bec0', '#a9d4d3', '#6084bd', '#829ed0', '#a9b9dd']
+const GROUP_COLORS = {
+  Gelir: '#249b7b', Zaruri: '#173d5c', Keyfi: '#438695', Yatırım: '#6084bd',
+  'Borç Ödeme': '#8a789c', Transfer: '#8295a7', Diğer: '#aab4c0'
+}
+
+const n = value => Number(value || 0)
+const norm = value => String(value || '').toLocaleLowerCase('tr-TR')
+const monthKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+const unique = list => [...new Set(list.filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'tr'))
 
 function Raporlar({ session, mobil, gizliMod }) {
-  const [islemler, setIslemler] = useState([])
-  const [yatirimlar, setYatirimlar] = useState([])
-  const [yukleniyor, setYukleniyor] = useState(true)
-  const [seciliAy, setSeciliAy] = useState(() => {
-    const bugun = new Date()
-    return `${bugun.getFullYear()}-${String(bugun.getMonth() + 1).padStart(2, '0')}`
-  })
+  const [data, setData] = useState({ islemler: [], hesaplar: [], kategoriler: [], borclar: [], yatirimlar: [] })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [period, setPeriod] = useState('6')
+  const [account, setAccount] = useState('')
+  const [type, setType] = useState('')
+  const [budget, setBudget] = useState('')
+  const [mainCategory, setMainCategory] = useState('')
+  const [subCategory, setSubCategory] = useState('')
+  const [drill, setDrill] = useState(null)
 
   useEffect(() => {
-    verileriGetir()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const verileriGetir = async () => {
-    setYukleniyor(true)
-    const [{ data: islemData }, { data: yatirimData }] = await Promise.all([
-      supabase.from('islemler').select('*').eq('user_id', session.user.id).order('tarih', { ascending: false }),
-      supabase.from('yatirimlar').select('*').eq('user_id', session.user.id)
-    ])
-    if (islemData) setIslemler(islemData)
-    if (yatirimData) setYatirimlar(yatirimData)
-    setYukleniyor(false)
-  }
-
-  // Son 6 ayı üret (seçilen ay dahil)
-  const son6Ay = () => {
-    const aylar = []
-    const [yil, ay] = seciliAy.split('-').map(Number)
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(yil, ay - 1 - i, 1)
-      aylar.push({
-        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-        label: d.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })
+    let active = true
+    async function load() {
+      setLoading(true)
+      const uid = session.user.id
+      const results = await Promise.all([
+        supabase.from('islemler').select('*, hesaplar(ad, tur, para_birimi)').eq('user_id', uid).order('tarih', { ascending: true }),
+        supabase.from('hesaplar').select('*').eq('user_id', uid),
+        supabase.from('kategoriler').select('*').eq('user_id', uid).eq('aktif', true),
+        supabase.from('borclar').select('*').eq('user_id', uid).eq('aktif', true),
+        supabase.from('yatirimlar').select('*, hesaplar(ad)').eq('user_id', uid)
+      ])
+      if (!active) return
+      const firstError = results.find(result => result.error)?.error
+      if (firstError) setError('Bazı rapor verileri alınamadı. Sayfayı yenileyerek tekrar deneyin.')
+      setData({
+        islemler: results[0].data || [], hesaplar: results[1].data || [],
+        kategoriler: results[2].data || [], borclar: results[3].data || [], yatirimlar: results[4].data || []
       })
+      setLoading(false)
     }
-    return aylar
-  }
+    load()
+    return () => { active = false }
+  }, [session.user.id])
 
-  // Aylık gelir/gider grafiği verisi
-  const aylikGrafikVerisi = son6Ay().map(({ key, label }) => {
-    const ayIslemleri = islemler.filter(i => i.tarih?.startsWith(key))
-    const gelir = ayIslemleri.filter(i => i.tur === 'gelir').reduce((a, i) => a + parseFloat(i.tutar), 0)
-    const gider = ayIslemleri.filter(i => i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0)
-    return { ay: label, Gelir: gelir, Gider: gider, Net: gelir - gider }
-  })
-
-  // Seçilen aya ait işlemler
-  const seciliAyIslemleri = islemler.filter(i => i.tarih?.startsWith(seciliAy))
-  const ayGelir = seciliAyIslemleri.filter(i => i.tur === 'gelir').reduce((a, i) => a + parseFloat(i.tutar), 0)
-  const ayGider = seciliAyIslemleri.filter(i => i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0)
-  const ayNet = ayGelir - ayGider
-  const tasarrufOrani = ayGelir > 0 ? ((ayNet / ayGelir) * 100).toFixed(1) : 0
-
-  // Kategori dağılımı (sadece giderler)
-  const kategoriMap = {}
-  seciliAyIslemleri.filter(i => i.tur === 'gider' && i.kategori !== 'Hesaplar Arası Transfer').forEach(i => {
-    const kat = i.kategori || 'Diğer'
-    kategoriMap[kat] = (kategoriMap[kat] || 0) + parseFloat(i.tutar)
-  })
-  const kategoriVerisi = Object.entries(kategoriMap)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name, value }))
-
-  const KATEGORI_RENK = [
-    '#0d9488', '#0ea5e9', '#eab308', '#ef4444', '#a78bfa',
-    '#f59e0b', '#34d399', '#f87171', '#60a5fa', '#c084fc'
-  ]
-
-  // Yatırım performans özeti
-  const toplamMaliyet = yatirimlar.reduce((a, y) => {
-    if (y.para_birimi !== 'TRY') return a
-    return a + parseFloat(y.miktar) * parseFloat(y.birim_maliyet)
-  }, 0)
-  const toplamGuncelDeger = yatirimlar.filter(y => y.para_birimi === 'TRY').reduce((a, y) => a + parseFloat(y.guncel_deger), 0)
-  const toplamKarZarar = toplamGuncelDeger - toplamMaliyet
-  const yatirimGetirisi = toplamMaliyet > 0 ? ((toplamKarZarar / toplamMaliyet) * 100).toFixed(2) : 0
-
-  const yatirimTurGrubu = {}
-  yatirimlar.filter(y => y.para_birimi === 'TRY').forEach(y => {
-    const tur = y.tur || 'Diğer'
-    yatirimTurGrubu[tur] = (yatirimTurGrubu[tur] || 0) + parseFloat(y.guncel_deger)
-  })
-  const yatirimGrafikVerisi = Object.entries(yatirimTurGrubu)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => ({ name, value }))
-
-  // Ay seçici için seçenekler (son 24 ay)
-  const aySecenekleri = () => {
-    const secenekler = []
-    const bugun = new Date()
-    for (let i = 0; i < 24; i++) {
-      const d = new Date(bugun.getFullYear(), bugun.getMonth() - i, 1)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const label = d.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
-      secenekler.push({ key, label })
+  const categoryById = useMemo(() => Object.fromEntries(data.kategoriler.map(k => [k.id, k])), [data.kategoriler])
+  const enriched = useMemo(() => data.islemler.map(item => {
+    const category = categoryById[item.kategori_id] || {}
+    return {
+      ...item,
+      amount: Math.abs(n(item.tutar)),
+      ana: item.ana_kategori || category.ana_kategori || item.kategori || 'Diğer',
+      alt: item.alt_kategori || category.alt_kategori || '',
+      grup: item.butce_grubu || category.butce_grubu || (item.tur === 'gelir' ? 'Gelir' : item.tur === 'transfer' ? 'Transfer' : 'Diğer'),
+      isTransfer: item.butce_grubu === 'Transfer' || item.kategori === 'Hesaplar Arası Transfer' || item.tur === 'transfer',
+      hesapAdi: item.hesaplar?.ad || 'Hesap bulunamadı'
     }
-    return secenekler
-  }
+  }), [data.islemler, categoryById])
 
-  const formatTL = (v) => gizliMod ? '₺ ****' : `₺${Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const endMonth = useMemo(() => {
+    const today = new Date()
+    return new Date(today.getFullYear(), today.getMonth() + 1, 1)
+  }, [])
+  const startDate = useMemo(() => {
+    const count = Number(period)
+    return new Date(endMonth.getFullYear(), endMonth.getMonth() - count, 1)
+  }, [period, endMonth])
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null
-    return (
-      <div style={styles.tooltip}>
-        <div style={styles.tooltipBaslik}>{label}</div>
-        {payload.map((p, i) => (
-          <div key={i} style={{ color: p.color, fontSize: '13px' }}>
-            {p.name}: {formatTL(p.value)}
-          </div>
-        ))}
-      </div>
-    )
-  }
+  const filtered = useMemo(() => enriched.filter(item => {
+    const d = new Date(`${item.tarih}T12:00:00`)
+    return d >= startDate && d < endMonth &&
+      (!account || item.hesap_id === account) &&
+      (!type || (type === 'transfer' ? item.isTransfer : item.tur === type && !item.isTransfer)) &&
+      (!budget || item.grup === budget) && (!mainCategory || item.ana === mainCategory) &&
+      (!subCategory || item.alt === subCategory)
+  }), [enriched, startDate, endMonth, account, type, budget, mainCategory, subCategory])
 
-  if (yukleniyor) return <div style={styles.yukleniyor}>Yükleniyor...</div>
+  const drillFiltered = useMemo(() => {
+    if (!drill) return filtered
+    return filtered.filter(i => drill.level === 'budget' ? i.grup === drill.name : drill.level === 'main' ? i.ana === drill.name : i.alt === drill.name)
+  }, [filtered, drill])
+
+  const sumType = (items, target) => items.filter(i => i.tur === target && !i.isTransfer).reduce((sum, i) => sum + i.amount, 0)
+  const income = sumType(filtered, 'gelir')
+  const expense = sumType(filtered, 'gider')
+  const netFlow = income - expense
+  const savingsRate = income > 0 ? (netFlow / income) * 100 : 0
+  const totalDebt = data.borclar.reduce((sum, item) => sum + n(item.kalan_borc), 0)
+  const debtOriginal = data.borclar.reduce((sum, item) => sum + n(item.toplam_borc || item.kalan_borc), 0)
+  const monthlyDebt = data.borclar.reduce((sum, item) => sum + n(item.minimum_odeme || item.aylik_taksit), 0)
+  const investmentValue = data.yatirimlar.reduce((sum, item) => sum + n(item.guncel_deger), 0)
+  const investmentCost = data.yatirimlar.reduce((sum, item) => sum + n(item.miktar) * n(item.birim_maliyet), 0)
+  const investmentProfit = investmentValue - investmentCost
+  const investmentReturn = investmentCost > 0 ? investmentProfit / investmentCost * 100 : 0
+  const cash = data.hesaplar.filter(h => !norm(h.tur).includes('kredi') && norm(h.tur) !== 'borç').reduce((sum, h) => sum + n(h.bakiye), 0)
+  const netWorth = cash + investmentValue - totalDebt
+  const debtBurden = income > 0 ? monthlyDebt / (income / Number(period)) * 100 : 0
+
+  const months = useMemo(() => {
+    const result = []
+    for (let i = Number(period) - 1; i >= 0; i--) {
+      const d = new Date(endMonth.getFullYear(), endMonth.getMonth() - i - 1, 1)
+      const key = monthKey(d)
+      const items = enriched.filter(item => item.tarih?.startsWith(key) &&
+        (!account || item.hesap_id === account) &&
+        (!type || (type === 'transfer' ? item.isTransfer : item.tur === type && !item.isTransfer)) &&
+        (!budget || item.grup === budget) && (!mainCategory || item.ana === mainCategory) && (!subCategory || item.alt === subCategory))
+      const gelir = sumType(items, 'gelir')
+      const gider = sumType(items, 'gider')
+      result.push({ key, ay: d.toLocaleDateString('tr-TR', { month: 'short' }), Gelir: gelir, Gider: gider, Net: gelir - gider })
+    }
+    return result
+  }, [period, endMonth, enriched, account, type, budget, mainCategory, subCategory])
+
+  const expenses = filtered.filter(i => i.tur === 'gider' && !i.isTransfer)
+  const aggregate = (items, key) => Object.entries(items.reduce((map, item) => {
+    const name = item[key] || 'Diğer'
+    map[name] = (map[name] || 0) + item.amount
+    return map
+  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+  const budgetData = aggregate(expenses, 'grup')
+  const mainData = aggregate(expenses, 'ana')
+  const subData = aggregate(expenses.filter(i => i.alt), 'alt')
+  const selectedExpenses = drillFiltered.filter(i => i.tur === 'gider')
+  const selectedTrend = months.map(month => ({
+    ...month,
+    Deger: selectedExpenses.filter(i => i.tarih?.startsWith(month.key)).reduce((sum, i) => sum + i.amount, 0)
+  }))
+  const selectedMain = aggregate(selectedExpenses, 'ana').slice(0, 6)
+  const selectedSub = aggregate(selectedExpenses.filter(i => i.alt), 'alt').slice(0, 8)
+  const investmentTypes = Object.entries(data.yatirimlar.reduce((map, item) => {
+    const key = item.tur || 'Diğer'; map[key] = (map[key] || 0) + n(item.guncel_deger); return map
+  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+
+  const budgetOptions = unique(enriched.map(i => i.grup))
+  const mainOptions = unique(enriched.filter(i => !budget || i.grup === budget).map(i => i.ana))
+  const subOptions = unique(enriched.filter(i => (!budget || i.grup === budget) && (!mainCategory || i.ana === mainCategory)).map(i => i.alt))
+  const resetFilters = () => { setAccount(''); setType(''); setBudget(''); setMainCategory(''); setSubCategory(''); setDrill(null) }
+  const formatMoney = value => gizliMod ? '₺ ****' : `₺${n(value).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatCompact = value => gizliMod ? '****' : new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 }).format(n(value))
+  const fmtPct = value => gizliMod ? '***%' : `${value >= 0 ? '+' : ''}%${n(value).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`
+  const formatDate = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString('tr-TR') : '—'
+
+  const insightItems = [
+    expense > income && { tone: 'danger', text: `Giderleriniz seçilen dönemde gelirinizden ${formatMoney(expense - income)} daha yüksek.` },
+    savingsRate >= 20 && { tone: 'success', text: `Tasarruf oranınız %${savingsRate.toFixed(1)} ile güçlü seviyede.` },
+    budgetData[0] && { tone: 'info', text: `En yüksek harcama grubu ${budgetData[0].name}; toplam giderin %${expense ? (budgetData[0].value / expense * 100).toFixed(0) : 0}'ini oluşturuyor.` },
+    debtBurden > 35 && { tone: 'warning', text: `Aylık borç yükünüz gelirin %${debtBurden.toFixed(0)}'ine ulaşıyor.` },
+    investmentReturn !== 0 && { tone: investmentReturn >= 0 ? 'success' : 'danger', text: `Yatırım portföyünüzün toplam getirisi ${fmtPct(investmentReturn)}.` }
+  ].filter(Boolean).slice(0, 3)
+
+  if (loading) return <ReportSkeleton />
 
   return (
-    <div>
-      {/* Ay Seçici */}
-      <div style={{ ...styles.aySecici, flexWrap: mobil ? 'wrap' : 'nowrap' }}>
-        <span style={styles.aySeciciLabel}>Rapor dönemi:</span>
-        <select
-          style={styles.aySelect}
-          value={seciliAy}
-          onChange={e => setSeciliAy(e.target.value)}
-        >
-          {aySecenekleri().map(a => (
-            <option key={a.key} value={a.key}>{a.label}</option>
-          ))}
-        </select>
-        <span style={styles.aySeciciAlt}>(Grafik: seçilen aya dahil son 6 ay)</span>
-      </div>
+    <div className="reports-page">
+      <header className="reports-heading">
+        <div><h1>Raporlar</h1><p>Finansal hayatınızın tamamını tek ekranda analiz edin.</p></div>
+        <div className="reports-period"><CalendarDays size={16}/><select value={period} onChange={e => { setPeriod(e.target.value); setDrill(null) }}><option value="1">Son 1 Ay</option><option value="3">Son 3 Ay</option><option value="6">Son 6 Ay</option><option value="12">Son 12 Ay</option></select></div>
+      </header>
 
-      {/* Üst Özet Kartları */}
-      <div style={{ ...styles.ozetGrid, gridTemplateColumns: mobil ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
-        <OzetKart baslik="Aylık Gelir" deger={formatTL(ayGelir)} renk="#0d9488" icon="💰" />
-        <OzetKart baslik="Aylık Gider" deger={formatTL(ayGider)} renk="#ef4444" icon="💸" />
-        <OzetKart baslik="Net Akış" deger={formatTL(ayNet)} renk={ayNet >= 0 ? '#0d9488' : '#ef4444'} icon="⚖️" />
-        <OzetKart baslik="Tasarruf Oranı" deger={gizliMod ? '***%' : `%${tasarrufOrani}`} renk={tasarrufOrani >= 20 ? '#0d9488' : tasarrufOrani >= 0 ? '#eab308' : '#ef4444'} icon="🏦" />
-      </div>
+      {error && <div className="reports-error">{error}</div>}
 
-      {/* Aylık Gelir/Gider Grafiği */}
-      <div style={styles.grafPanel}>
-        <h3 style={styles.panelBaslik}>Son 6 Ay — Gelir & Gider Karşılaştırması</h3>
-        {aylikGrafikVerisi.every(d => d.Gelir === 0 && d.Gider === 0) ? (
-          <div style={styles.bosGraf}>Bu dönemde işlem bulunamadı.</div>
-        ) : (
-          <ResponsiveContainer width="100%" height={mobil ? 200 : 280}>
-            <BarChart data={aylikGrafikVerisi} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
-              <XAxis dataKey="ay" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ color: 'var(--text-secondary)', fontSize: '13px' }} />
-              <Bar dataKey="Gelir" fill="#0d9488" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Net" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-            </BarChart>
+      <section className="reports-filterbar">
+        <span className="reports-filter-title"><Filter size={15}/> Filtreler</span>
+        <FilterSelect label="Hesaplar" value={account} onChange={setAccount} options={data.hesaplar.map(h => ({ value: h.id, label: h.ad }))}/>
+        <FilterSelect label="İşlem Türü" value={type} onChange={setType} options={[{ value: 'gelir', label: 'Gelir' }, { value: 'gider', label: 'Gider' }, { value: 'transfer', label: 'Transfer' }]}/>
+        <FilterSelect label="Bütçe Grubu" value={budget} onChange={v => { setBudget(v); setMainCategory(''); setSubCategory(''); setDrill(null) }} options={budgetOptions}/>
+        <FilterSelect label="Ana Kategori" value={mainCategory} onChange={v => { setMainCategory(v); setSubCategory(''); setDrill(null) }} options={mainOptions}/>
+        <FilterSelect label="Alt Kategori" value={subCategory} onChange={v => { setSubCategory(v); setDrill(null) }} options={subOptions}/>
+        <button className="reports-reset" onClick={resetFilters}><RotateCcw size={14}/> Temizle</button>
+      </section>
+
+      <section className="reports-kpis">
+        <Kpi title="Net Varlık" value={formatMoney(netWorth)} subtitle="Nakit + yatırım − borç" icon={<WalletCards/>} featured/>
+        <Kpi title="Gelir" value={formatMoney(income)} subtitle={`${period} aylık toplam`} icon={<ArrowUpRight/>} tone="positive"/>
+        <Kpi title="Gider" value={formatMoney(expense)} subtitle={`${filtered.filter(i => i.tur === 'gider').length} işlem`} icon={<ArrowDownRight/>} tone="negative"/>
+        <Kpi title="Tasarruf Oranı" value={fmtPct(savingsRate)} subtitle={netFlow >= 0 ? 'Pozitif nakit akışı' : 'Negatif nakit akışı'} icon={<PiggyBank/>}/>
+        <Kpi title="Borç Yükü" value={`%${Math.max(0, debtBurden).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`} subtitle={`${formatMoney(monthlyDebt)} aylık`} icon={<CreditCard/>}/>
+        <Kpi title="Yatırım Getirisi" value={fmtPct(investmentReturn)} subtitle={formatMoney(investmentProfit)} icon={<TrendingUp/>} tone={investmentReturn >= 0 ? 'positive' : 'negative'}/>
+      </section>
+
+      <section className="reports-primary-grid">
+        <Panel title="Nakit Akışı ve Net Değişim" subtitle="Gelir, gider ve dönemsel net hareket" className="reports-cashflow">
+          <ResponsiveContainer width="100%" height={310}>
+            <ComposedChart data={months} margin={{ top: 12, right: 8, bottom: 0, left: -8 }}>
+              <defs><linearGradient id="netFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2e8793" stopOpacity=".24"/><stop offset="1" stopColor="#2e8793" stopOpacity="0"/></linearGradient></defs>
+              <CartesianGrid vertical={false} stroke="var(--border-light)" strokeDasharray="3 5"/>
+              <XAxis dataKey="ay" tickLine={false} axisLine={false} tick={{ fill: '#8792a6', fontSize: 11 }}/>
+              <YAxis tickLine={false} axisLine={false} tickFormatter={formatCompact} tick={{ fill: '#8792a6', fontSize: 10 }}/>
+              <Tooltip content={<ReportTooltip formatMoney={formatMoney}/>}/>
+              <Area type="monotone" dataKey="Net" stroke="#2e8793" fill="url(#netFill)" strokeWidth={2}/>
+              <Line type="monotone" dataKey="Gelir" stroke="#249b7b" strokeWidth={2.2} dot={false}/>
+              <Line type="monotone" dataKey="Gider" stroke="#d9535f" strokeWidth={2.2} dot={false}/>
+            </ComposedChart>
           </ResponsiveContainer>
-        )}
-      </div>
+          <div className="reports-chart-legend"><span className="income">Gelir</span><span className="expense">Gider</span><span className="net">Net akış</span></div>
+        </Panel>
 
-      {/* Alt Grid */}
-      <div style={{ ...styles.altGrid, gridTemplateColumns: mobil ? '1fr' : '1fr 1fr' }}>
-        {/* Kategori Dağılımı */}
-        <div style={styles.grafPanel}>
-          <h3 style={styles.panelBaslik}>
-            Harcama Kategorileri —{' '}
-            {new Date(seciliAy + '-01').toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
-          </h3>
-          {kategoriVerisi.length === 0 ? (
-            <div style={styles.bosGraf}>Bu ay gider işlemi yok.</div>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={kategoriVerisi}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {kategoriVerisi.map((_, i) => (
-                      <Cell key={i} fill={KATEGORI_RENK[i % KATEGORI_RENK.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)' }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={styles.kategoriListe}>
-                {kategoriVerisi.map((k, i) => (
-                  <div key={i} style={styles.kategoriSatir}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: KATEGORI_RENK[i % KATEGORI_RENK.length] }} />
-                      <span style={styles.kategoriAd}>{k.name}</span>
-                    </div>
-                    <div style={styles.kategoriSag}>
-                      <span style={styles.kategoriTutar}>{formatTL(k.value)}</span>
-                      <span style={styles.kategoriYuzde}>
-                        %{ayGider > 0 ? ((k.value / ayGider) * 100).toFixed(0) : 0}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <Panel title="Harcama Hiyerarşisi" subtitle="Bütçe grubu → ana kategori → alt kategori" className="reports-hierarchy" action={<span className="reports-click-hint">Dilimlere tıklayın</span>}>
+          {expenses.length ? <>
+            <ResponsiveContainer width="100%" height={310}>
+              <PieChart>
+                <Tooltip formatter={value => formatMoney(value)}/>
+                <Pie data={budgetData} dataKey="value" cx="50%" cy="50%" innerRadius={48} outerRadius={76} paddingAngle={1} onClick={entry => setDrill({ level: 'budget', name: entry.name })}>
+                  {budgetData.map((entry, i) => <Cell key={entry.name} fill={GROUP_COLORS[entry.name] || COLORS[i % COLORS.length]} className="reports-chart-cell"/>)}
+                </Pie>
+                <Pie data={mainData} dataKey="value" cx="50%" cy="50%" innerRadius={80} outerRadius={105} paddingAngle={1} onClick={entry => setDrill({ level: 'main', name: entry.name })}>
+                  {mainData.map((entry, i) => <Cell key={entry.name} fill={COLORS[(i + 1) % COLORS.length]} className="reports-chart-cell"/>)}
+                </Pie>
+                <Pie data={subData} dataKey="value" cx="50%" cy="50%" innerRadius={109} outerRadius={128} paddingAngle={1} onClick={entry => setDrill({ level: 'sub', name: entry.name })}>
+                  {subData.map((entry, i) => <Cell key={entry.name} fill={COLORS[(i + 3) % COLORS.length]} className="reports-chart-cell"/>)}
+                </Pie>
+                <text x="50%" y="48%" textAnchor="middle" fill="var(--text-muted)" fontSize="11">Toplam gider</text>
+                <text x="50%" y="56%" textAnchor="middle" fill="var(--text-primary)" fontSize="15" fontWeight="700">{formatMoney(expense)}</text>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="reports-hierarchy-legend">{budgetData.slice(0, 5).map((item, i) => <button key={item.name} onClick={() => setDrill({ level: 'budget', name: item.name })}><i style={{ background: GROUP_COLORS[item.name] || COLORS[i] }}/><span>{item.name}</span><strong>%{expense ? (item.value / expense * 100).toFixed(0) : 0}</strong></button>)}</div>
+          </> : <Empty text="Bu dönemde gider kaydı bulunmuyor."/>}
+        </Panel>
+      </section>
 
-        {/* Yatırım Performansı */}
-        <div style={styles.grafPanel}>
-          <h3 style={styles.panelBaslik}>Yatırım Performansı</h3>
-          {yatirimlar.length === 0 ? (
-            <div style={styles.bosGraf}>Henüz yatırım kaydı yok.</div>
-          ) : (
-            <>
-              <div style={styles.yatirimOzetGrid}>
-                <div style={styles.yatirimOzetKart}>
-                  <div style={styles.yatirimOzetLabel}>Toplam Maliyet</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: '#0ea5e9' }}>{formatTL(toplamMaliyet)}</div>
-                </div>
-                <div style={styles.yatirimOzetKart}>
-                  <div style={styles.yatirimOzetLabel}>Güncel Değer</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: '#0d9488' }}>{formatTL(toplamGuncelDeger)}</div>
-                </div>
-                <div style={styles.yatirimOzetKart}>
-                  <div style={styles.yatirimOzetLabel}>Kâr / Zarar</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: toplamKarZarar >= 0 ? '#0d9488' : '#ef4444' }}>
-                    {toplamKarZarar >= 0 ? '+' : ''}{formatTL(toplamKarZarar)}
-                  </div>
-                </div>
-                <div style={styles.yatirimOzetKart}>
-                  <div style={styles.yatirimOzetLabel}>Getiri %</div>
-                  <div style={{ ...styles.yatirimOzetDeger, color: yatirimGetirisi >= 0 ? '#0d9488' : '#ef4444' }}>
-                    {yatirimGetirisi >= 0 ? '+' : ''}{yatirimGetirisi}%
-                  </div>
-                </div>
-              </div>
+      {drill && (
+        <Drilldown drill={drill} setDrill={setDrill} items={drillFiltered} trend={selectedTrend}
+          mainData={selectedMain} subData={selectedSub} total={selectedExpenses.reduce((s, i) => s + i.amount, 0)}
+          expense={expense} formatMoney={formatMoney} formatDate={formatDate} mobil={mobil}/>
+      )}
 
-              {yatirimGrafikVerisi.length > 0 && (
-                <>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>Türe göre dağılım (TL varlıklar)</div>
-                  <ResponsiveContainer width="100%" height={160}>
-                    <BarChart data={yatirimGrafikVerisi} layout="vertical" barSize={18}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" horizontal={false} />
-                      <XAxis type="number" tickFormatter={v => `₺${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis type="category" dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} width={55} />
-                      <Tooltip formatter={(v) => formatTL(v)} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)' }} />
-                      <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                        {yatirimGrafikVerisi.map((_, i) => (
-                          <Cell key={i} fill={KATEGORI_RENK[i % KATEGORI_RENK.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </>
-              )}
+      <section className="reports-secondary-grid">
+        <Panel title="Bütçe Sağlığı" subtitle="Harcama gruplarının toplam içindeki payı" icon={<Layers3 size={17}/> }>
+          <div className="reports-budget-list">{budgetData.slice(0, 6).map((item, i) => { const pct = expense ? item.value / expense * 100 : 0; return <button key={item.name} onClick={() => setDrill({ level: 'budget', name: item.name })}><span className="budget-name"><i style={{ background: GROUP_COLORS[item.name] || COLORS[i] }}/>{item.name}</span><span className="budget-bar"><i style={{ width: `${Math.min(100, pct)}%`, background: GROUP_COLORS[item.name] || COLORS[i] }}/></span><strong>{formatMoney(item.value)}</strong><small>%{pct.toFixed(0)}</small><ArrowRight size={14}/></button> })}{!budgetData.length && <Empty text="Bütçe dağılımı için gider verisi gerekli."/>}</div>
+        </Panel>
 
-              {/* Yatırım Detay Listesi */}
-              <div style={{ marginTop: '16px' }}>
-                {yatirimlar.map(y => {
-                  if (y.para_birimi !== 'TRY') return null
-                  const maliyet = parseFloat(y.miktar) * parseFloat(y.birim_maliyet)
-                  const guncel = parseFloat(y.guncel_deger)
-                  const kz = guncel - maliyet
-                  const kzYuzde = maliyet > 0 ? ((kz / maliyet) * 100).toFixed(1) : 0
-                  return (
-                    <div key={y.id} style={styles.yatirimSatir}>
-                      <div style={styles.yatirimAd}>{y.ad}</div>
-                      <div style={styles.yatirimTur}>{y.tur}</div>
-                      <div style={{ color: kz >= 0 ? '#0d9488' : '#ef4444', fontSize: '13px', textAlign: 'right' }}>
-                        <div style={{ fontWeight: 'bold' }}>{formatTL(guncel)}</div>
-                        <div style={{ fontSize: '11px' }}>{kz >= 0 ? '+' : ''}{kzYuzde}%</div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+        <Panel title="Borç Durumu" subtitle={`${data.borclar.length} aktif borç`} icon={<CreditCard size={17}/> }>
+          <div className="reports-debt-summary"><div><span>Kalan borç</span><strong>{formatMoney(totalDebt)}</strong></div><div><span>Aylık ödeme</span><strong>{formatMoney(monthlyDebt)}</strong></div></div>
+          <div className="reports-debt-progress"><span><b>Ödenen</b><b>%{debtOriginal ? Math.max(0, (debtOriginal - totalDebt) / debtOriginal * 100).toFixed(0) : 0}</b></span><i><em style={{ width: `${debtOriginal ? Math.min(100, Math.max(0, (debtOriginal - totalDebt) / debtOriginal * 100)) : 0}%` }}/></i></div>
+          <div className="reports-mini-list">{data.borclar.slice(0, 3).map(item => <div key={item.id}><span><CreditCard size={14}/>{item.ad}</span><strong>{formatMoney(item.kalan_borc)}</strong><small>{formatDate(item.son_odeme_tarihi)}</small></div>)}{!data.borclar.length && <Empty text="Aktif borç bulunmuyor."/>}</div>
+        </Panel>
+
+        <Panel title="Yatırım Performansı" subtitle={`${data.yatirimlar.length} varlık`} icon={<BriefcaseBusiness size={17}/> }>
+          <div className="reports-invest-head"><div><span>Portföy değeri</span><strong>{formatMoney(investmentValue)}</strong><small className={investmentProfit >= 0 ? 'positive' : 'negative'}>{fmtPct(investmentReturn)} toplam getiri</small></div>{investmentTypes.length > 0 && <div className="reports-mini-donut"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={investmentTypes} dataKey="value" innerRadius={25} outerRadius={40} paddingAngle={2}>{investmentTypes.map((x, i) => <Cell key={x.name} fill={COLORS[i % COLORS.length]}/>)}</Pie></PieChart></ResponsiveContainer></div>}</div>
+          <div className="reports-mini-list">{investmentTypes.slice(0, 4).map((item, i) => <div key={item.name}><span><i style={{ background: COLORS[i % COLORS.length] }}/>{item.name}</span><strong>{formatMoney(item.value)}</strong><small>%{investmentValue ? (item.value / investmentValue * 100).toFixed(0) : 0}</small></div>)}{!investmentTypes.length && <Empty text="Yatırım kaydı bulunmuyor."/>}</div>
+        </Panel>
+
+        <Panel title="Finansal İçgörüler" subtitle="Verilerinize göre öne çıkanlar" icon={<Lightbulb size={17}/> }>
+          <div className="reports-insights">{insightItems.map((item, i) => <div key={i} className={item.tone}><span>{item.tone === 'success' ? <CheckCircle2/> : item.tone === 'danger' ? <ArrowDownRight/> : <Activity/>}</span><p>{item.text}</p></div>)}{!insightItems.length && <Empty text="İçgörü oluşturmak için daha fazla işlem ekleyin."/>}</div>
+        </Panel>
+      </section>
     </div>
   )
 }
 
-function OzetKart({ baslik, deger, renk, icon }) {
-  return (
-    <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: '22px', border: '1px solid var(--border)', textAlign: 'left', boxShadow: 'none', minHeight: '122px' }}>
-      <div style={{ fontSize: '20px', marginBottom: '14px' }}>{icon}</div>
-      <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '7px', fontWeight: '550' }}>{baslik}</div>
-      <div style={{ color: renk, fontSize: '21px', fontWeight: '750', letterSpacing: '-.025em' }}>{deger}</div>
-    </div>
-  )
+function FilterSelect({ label, value, onChange, options }) {
+  const normalized = (options || []).map(item => typeof item === 'string' ? { value: item, label: item } : item)
+  return <label className="reports-filter"><span>{label}</span><select value={value} onChange={e => onChange(e.target.value)}><option value="">Tümü</option>{normalized.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
 }
 
-const styles = {
-  yukleniyor: { color: 'var(--text-muted)', textAlign: 'center', padding: '80px' },
-  aySecici: {
-    display: 'flex', alignItems: 'center', gap: '12px',
-    background: 'var(--bg-card)', border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '24px',
-    boxShadow: 'none'
-  },
-  aySeciciLabel: { color: 'var(--text-secondary)', fontSize: '14px', whiteSpace: 'nowrap' },
-  aySelect: {
-    background: 'var(--bg-input)', border: '1px solid var(--border)',
-    borderRadius: '8px', color: 'var(--text-primary)', padding: '8px 12px', fontSize: '14px', cursor: 'pointer'
-  },
-  aySeciciAlt: { color: 'var(--text-muted)', fontSize: '12px' },
-  ozetGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '16px', marginBottom: '22px' },
-  grafPanel: { background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: '20px', boxShadow: 'none', border: '1px solid var(--border)' },
-  panelBaslik: { color: 'var(--text-primary)', fontSize: '15px', margin: '0 0 20px 0', fontWeight: '600' },
-  bosGraf: { color: 'var(--text-muted)', textAlign: 'center', padding: '40px', fontSize: '14px' },
-  altGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
-  tooltip: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', boxShadow: 'none' },
-  tooltipBaslik: { color: 'var(--text-muted)', fontSize: '12px', marginBottom: '6px' },
-  kategoriListe: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' },
-  kategoriSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border-light)' },
-  kategoriAd: { color: '#475569', fontSize: '13px' },
-  kategoriSag: { display: 'flex', gap: '12px', alignItems: 'center' },
-  kategoriTutar: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500' },
-  kategoriYuzde: { color: 'var(--text-muted)', fontSize: '12px', minWidth: '32px', textAlign: 'right' },
-  yatirimOzetGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' },
-  yatirimOzetKart: { background: 'var(--bg-subtle)', borderRadius: '10px', padding: '14px', textAlign: 'center', border: '1px solid var(--border)' },
-  yatirimOzetLabel: { color: 'var(--text-muted)', fontSize: '11px', marginBottom: '6px' },
-  yatirimOzetDeger: { fontSize: '15px', fontWeight: 'bold' },
-  yatirimSatir: { display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: '1px solid var(--border-light)' },
-  yatirimAd: { color: 'var(--text-primary)', fontSize: '13px', fontWeight: '500', flex: 1 },
-  yatirimTur: { color: 'var(--text-muted)', fontSize: '11px', minWidth: '50px' },
+function Kpi({ title, value, subtitle, icon, featured, tone }) {
+  return <article className={`reports-kpi${featured ? ' featured' : ''}${tone ? ` ${tone}` : ''}`}><span className="reports-kpi-icon">{icon}</span><div><small>{title}</small><strong>{value}</strong><p>{subtitle}</p></div></article>
 }
+
+function Panel({ title, subtitle, icon, action, className = '', children }) {
+  return <article className={`reports-panel ${className}`}><header><div><h2>{icon}{title}</h2><p>{subtitle}</p></div>{action}</header>{children}</article>
+}
+
+function Drilldown({ drill, setDrill, items, trend, mainData, subData, total, expense, formatMoney, formatDate, mobil }) {
+  const typeLabel = { budget: 'Bütçe Grubu', main: 'Ana Kategori', sub: 'Alt Kategori' }[drill.level]
+  return <section className="reports-drilldown">
+    <header><div className="reports-drill-title"><button onClick={() => setDrill(null)}><ChevronLeft size={18}/></button><div><span>Raporlar / {typeLabel}</span><h2>{drill.name} Analizi</h2><p>Grafik seçiminize bağlı tüm detaylar</p></div></div><button className="reports-drill-close" onClick={() => setDrill(null)}><X size={17}/> Kapat</button></header>
+    <div className="reports-drill-kpis"><div><span>Toplam harcama</span><strong>{formatMoney(total)}</strong></div><div><span>Toplam gider içindeki pay</span><strong>%{expense ? (total / expense * 100).toFixed(1) : 0}</strong></div><div><span>İşlem sayısı</span><strong>{items.filter(i => i.tur === 'gider').length}</strong></div><div><span>İşlem ortalaması</span><strong>{formatMoney(items.length ? total / items.length : 0)}</strong></div></div>
+    <div className="reports-drill-charts">
+      <div><h3>Aylık trend</h3><ResponsiveContainer width="100%" height={220}><AreaChart data={trend}><defs><linearGradient id="drillFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#28657a" stopOpacity=".28"/><stop offset="1" stopColor="#28657a" stopOpacity="0"/></linearGradient></defs><CartesianGrid vertical={false} stroke="var(--border-light)"/><XAxis dataKey="ay" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#8792a6' }}/><YAxis hide/><Tooltip formatter={formatMoney}/><Area type="monotone" dataKey="Deger" stroke="#28657a" fill="url(#drillFill)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div>
+      <div><h3>Ana kategori dağılımı</h3><ResponsiveContainer width="100%" height={220}><BarChart data={mainData} layout="vertical" margin={{ left: 5, right: 12 }}><XAxis type="number" hide/><YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={mobil ? 80 : 105} tick={{ fontSize: 10, fill: '#53617a' }}/><Tooltip formatter={formatMoney}/><Bar dataKey="value" fill="#438695" radius={[0, 6, 6, 0]} barSize={13}/></BarChart></ResponsiveContainer></div>
+      <div><h3>Alt kategori kırılımı</h3>{subData.length ? <ResponsiveContainer width="100%" height={220}><PieChart><Pie data={subData} dataKey="value" innerRadius={45} outerRadius={76} paddingAngle={2}>{subData.map((x, i) => <Cell key={x.name} fill={COLORS[i % COLORS.length]}/>)}</Pie><Tooltip formatter={formatMoney}/></PieChart></ResponsiveContainer> : <Empty text="Alt kategori verisi yok."/>}</div>
+    </div>
+    <div className="reports-table-wrap"><h3>İşlem listesi</h3><div className="reports-table-scroll"><table><thead><tr><th>Ana Kategori</th><th>Alt Kategori</th><th>Açıklama</th><th>Hesap</th><th>Tutar</th><th>Tarih</th></tr></thead><tbody>{items.filter(i => i.tur === 'gider').slice().reverse().slice(0, 12).map(i => <tr key={i.id}><td><b>{i.ana}</b></td><td>{i.alt || '—'}</td><td>{i.aciklama || '—'}</td><td>{i.hesapAdi}</td><td className="amount">-{formatMoney(i.amount)}</td><td>{formatDate(i.tarih)}</td></tr>)}</tbody></table></div>{!items.length && <Empty text="Bu kırılımda işlem bulunamadı."/>}</div>
+  </section>
+}
+
+function ReportTooltip({ active, payload, label, formatMoney }) {
+  if (!active || !payload?.length) return null
+  return <div className="reports-tooltip"><strong>{label}</strong>{payload.map(item => <span key={item.dataKey} style={{ color: item.color }}>{item.name}: {formatMoney(item.value)}</span>)}</div>
+}
+
+function Empty({ text }) { return <div className="reports-empty"><CircleDollarSign size={20}/><span>{text}</span></div> }
+function ReportSkeleton() { return <div className="reports-skeleton"><div/><section>{Array.from({ length: 6 }).map((_, i) => <i key={i}/>)}</section><main><i/><i/></main></div> }
 
 export default Raporlar

@@ -4,6 +4,12 @@ import Dashboard from './Dashboard'
 import FinkodLogo from './Logo'
 import GizlilikPolitikasi from './GizlilikPolitikasi'
 import KullanimSartlari from './KullanimSartlari'
+import { Mail, LockKeyhole, ShieldCheck, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+
+const LOGIN_SLIDES = [1, 2, 3, 4, 5].map(number => ({
+  src: `/images/login/slide-${number}.png`,
+  alt: `Finkod Cüzdan tanıtım görseli ${number}`,
+}))
 
 /* ---------- Animasyon için CSS (inline style injection) ---------- */
 const GLOBAL_CSS = `
@@ -119,7 +125,10 @@ function App() {
   const [sartlarOnay, setSartlarOnay] = useState(false)
   const [gizlilikAcik, setGizlilikAcik] = useState(false)
   const [sartlarAcik, setSartlarAcik] = useState(false)
+  const [slideIndex, setSlideIndex] = useState(0)
+  const [sliderDuraklatildi, setSliderDuraklatildi] = useState(false)
   const emailRef = useRef(null)
+  const dokunmaBaslangici = useRef(null)
 
   useEffect(() => {
     injectCSS()
@@ -128,6 +137,18 @@ function App() {
   }, [])
 
   useEffect(() => { emailRef.current?.focus() }, [mod])
+
+  useEffect(() => {
+    if (sliderDuraklatildi) return undefined
+    const zamanlayici = window.setInterval(() => {
+      setSlideIndex(index => (index + 1) % LOGIN_SLIDES.length)
+    }, 3000)
+    return () => window.clearInterval(zamanlayici)
+  }, [sliderDuraklatildi])
+
+  const slideDegistir = (yon) => {
+    setSlideIndex(index => (index + yon + LOGIN_SLIDES.length) % LOGIN_SLIDES.length)
+  }
 
   const handleGiris = async () => {
     if (!email || !sifre) { setMesajTur('hata'); setMesaj('E-posta ve şifre gerekli.'); return }
@@ -180,66 +201,57 @@ function App() {
   )
 
   return (
-    <div style={styles.page}>
+    <div style={styles.page} className="auth-page">
       {modals}
       <Background />
 
       {/* ── İki sütunlu layout ── */}
-      <div style={styles.layout}>
+      <div style={styles.layout} className="auth-layout">
 
         {/* SOL: Tanıtım */}
-        <div style={styles.left} className="finkod-left">
-          {/* Logo */}
-          <div style={styles.logoWrap}>
-            <FinkodLogo size={48} uid="l" />
-            <div>
-              <div style={styles.logoText}>Finkod</div>
-              <div style={styles.logoSub}>CÜZDAN</div>
+        <div style={styles.left} className="finkod-left auth-left">
+          {/* Büyük başlık */}
+          <div
+            style={styles.previewArea}
+            className="auth-preview login-slider"
+            onMouseEnter={() => setSliderDuraklatildi(true)}
+            onMouseLeave={() => setSliderDuraklatildi(false)}
+            onTouchStart={event => { dokunmaBaslangici.current = event.touches[0].clientX }}
+            onTouchEnd={event => {
+              if (dokunmaBaslangici.current === null) return
+              const fark = event.changedTouches[0].clientX - dokunmaBaslangici.current
+              if (Math.abs(fark) > 45) slideDegistir(fark > 0 ? -1 : 1)
+              dokunmaBaslangici.current = null
+            }}
+          >
+            {LOGIN_SLIDES.map((slide, index) => (
+              <img
+                key={slide.src}
+                src={slide.src}
+                alt={slide.alt}
+                className={`login-slide login-slide-${index + 1}${index === slideIndex ? ' is-active' : ''}`}
+                draggable="false"
+              />
+            ))}
+            <button type="button" className="slider-arrow slider-arrow-left" aria-label="Önceki görsel" onClick={() => slideDegistir(-1)}><ChevronLeft size={18}/></button>
+            <button type="button" className="slider-arrow slider-arrow-right" aria-label="Sonraki görsel" onClick={() => slideDegistir(1)}><ChevronRight size={18}/></button>
+            <div className="slider-dots" aria-label="Tanıtım görselleri">
+              {LOGIN_SLIDES.map((slide, index) => (
+                <button key={slide.src} type="button" className={index === slideIndex ? 'is-active' : ''} aria-label={`${index + 1}. görsele git`} onClick={() => setSlideIndex(index)}/>
+              ))}
             </div>
           </div>
 
-          {/* Ayraç çizgi */}
-          <div style={styles.accentLine} />
-
-          {/* Büyük başlık */}
-          <h1 style={styles.buyukBaslik}>
-            FİNANSAL<br />
-            <span style={styles.buyukBaslikVurgu}>CÜZDANINIZ</span>
-          </h1>
-
-          <p style={styles.altYazi}>
-            Harcamalar ve Portföy<br />
-            <strong style={{ color: '#0f172a' }}>Tek Noktada</strong>
-          </p>
-
-          {/* Özellik fişleri */}
-          <div style={styles.fisler}>
-            {[
-              { ikon: '📊', yazi: 'Gelir & Gider Takibi' },
-              { ikon: '📈', yazi: 'Yatırım Portföyü' },
-              { ikon: '🎯', yazi: 'Hedef & Borç Planlama' },
-            ].map(f => (
-              <div key={f.yazi} style={styles.fis}>
-                <span style={styles.fisIkon}>{f.ikon}</span>
-                <span style={styles.fisYazi}>{f.yazi}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* NKode branding */}
-          <div style={styles.nkode}>
-            <div style={styles.nkodeDot} />
-            <span>NKode Solutions</span>
-          </div>
         </div>
 
         {/* SAĞ: Form kartı */}
-        <div style={styles.right}>
-          <div style={styles.card} className="finkod-card">
+        <div style={styles.right} className="auth-right">
+          <div style={styles.card} className="finkod-card auth-card">
+            <div style={styles.secureBadge}><ShieldCheck size={13}/> Güvenli Bağlantı <i/></div>
             {/* Kart logo */}
             <div style={styles.cardLogo}>
-              <FinkodLogo size={22} uid="c" />
-              <span style={styles.cardLogoText}>Finkod <span style={{ color: '#94a3b8', fontWeight: 400 }}>Cüzdan</span></span>
+              <FinkodLogo size={34} uid="c" />
+              <span style={styles.cardLogoText}>Finkod <span>Cüzdan</span></span>
             </div>
 
             <h2 style={styles.cardBaslik}>
@@ -292,8 +304,9 @@ function App() {
             )}
 
             {/* E-posta */}
+            <label style={styles.fieldLabel}>E-posta adresi</label>
             <div style={styles.inputWrap}>
-              <span style={styles.inputIkon}>✉</span>
+              <span style={styles.inputIkon}><Mail size={16}/></span>
               <input
                 ref={emailRef}
                 style={styles.input}
@@ -306,8 +319,9 @@ function App() {
               />
             </div>
 
+            <label style={styles.fieldLabel}>Şifre</label>
             <div style={styles.inputWrap}>
-              <span style={styles.inputIkon}>🔒</span>
+              <span style={styles.inputIkon}><LockKeyhole size={16}/></span>
               <input
                 style={styles.input}
                 type="password"
@@ -368,7 +382,7 @@ function App() {
             >
               {yukleniyor
                 ? <span style={styles.btnSpinner}>⏳ Bekle...</span>
-                : mod === 'giris' ? '→  Giriş Yap' : '→  Kayıt Ol'}
+                : <span style={styles.btnContent}>{mod === 'giris' ? 'Giriş Yap' : 'Kayıt Ol'}<ArrowRight size={16}/></span>}
             </button>
 
             <p style={styles.gecisMetni}>
@@ -396,7 +410,7 @@ function App() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 50%, #f0f9ff 100%)',
+    background: '#f5f9fb',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -410,22 +424,22 @@ const styles = {
     position: 'relative',
     zIndex: 1,
     display: 'flex',
-    alignItems: 'center',
-    gap: '64px',
-    maxWidth: '960px',
+    alignItems: 'stretch',
+    gap: '28px',
+    maxWidth: '1480px',
     width: '100%',
   },
 
   /* SOL */
-  left: { flex: 1, minWidth: 0 },
-  logoWrap: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' },
+  left: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' },
+  logoWrap: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' },
   logoIcon: {
     width: 48, height: 48, borderRadius: '14px',
     background: 'rgba(13,148,136,0.08)',
     border: '1px solid rgba(13,148,136,0.2)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  logoText: { color: '#0d9488', fontSize: '22px', fontWeight: 700, lineHeight: 1.1 },
+  logoText: { color: '#10233d', fontSize: '20px', fontWeight: 750, lineHeight: 1.1 },
   logoSub: { color: 'rgba(13,148,136,0.6)', fontSize: '10px', letterSpacing: '3px', fontWeight: 600 },
   accentLine: {
     width: 48, height: 3, borderRadius: 2,
@@ -435,26 +449,33 @@ const styles = {
   },
   buyukBaslik: {
     color: '#0f172a',
-    fontSize: '42px',
-    fontWeight: 800,
-    lineHeight: 1.15,
+    fontSize: '42px', fontWeight: 780, lineHeight: 1.16,
     margin: '0 0 16px 0',
     letterSpacing: '-0.5px',
   },
   buyukBaslikVurgu: {
-    background: 'linear-gradient(90deg, #0d9488, #0ea5e9)',
+    background: 'linear-gradient(90deg, #179ba0, #087ca1)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
     backgroundClip: 'text',
   },
-  altYazi: { color: '#64748b', fontSize: '17px', lineHeight: 1.6, margin: '0 0 32px 0' },
-  fisler: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' },
+  altYazi: { color: '#718096', fontSize: '15px', lineHeight: 1.6, margin: '0 0 20px 0' },
+  previewArea: { position: 'relative', width: '100%', height: 'calc(100vh - 48px)', minHeight: '620px', maxHeight: '900px', margin: 0 },
+  dashboardMockup: { position: 'absolute', left: '18%', right: '2%', top: '18px', height: '250px', padding: '18px', background: 'rgba(255,255,255,.94)', border: '1px solid #e5ebf0', borderRadius: '18px', boxShadow: '0 18px 46px rgba(36,70,90,.10)' },
+  phoneMockup: { position: 'absolute', left: 0, bottom: 4, width: '125px', height: '210px', zIndex: 2, padding: '18px 12px', background: '#fff', border: '5px solid #f0f3f6', borderRadius: '25px', boxShadow: '0 16px 35px rgba(36,70,90,.13)' },
+  mockTop: { color: '#172b45', fontSize: '11px', fontWeight: '700', marginBottom: '16px' },
+  mockBalance: { padding: '13px 9px', background: 'linear-gradient(135deg,#123552,#071c35)', borderRadius: '9px', color: '#fff', fontSize: '11px', fontWeight: '700' },
+  mockLine: { width: '70%', height: 4, borderRadius: 4, background: '#d9e5eb', margin: '17px 0 12px' },
+  mockRows: { display: 'flex', flexDirection: 'column', gap: '9px' },
+  mockHeader: { display: 'flex', justifyContent: 'space-between', color: '#53657a', fontSize: '9px', marginBottom: '18px' },
+  mockGrid: { display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '12px' },
+  mockDarkCard: { padding: '17px', borderRadius: '10px', background: 'linear-gradient(135deg,#143852,#071d36)', color: '#fff', display: 'flex', flexDirection: 'column', gap: '7px' },
+  mockQuick: { display: 'flex', alignItems: 'center', justifyContent: 'space-around', border: '1px solid #edf0f4', borderRadius: '10px' },
+  mockChart: { height: '110px', border: '1px solid #edf0f4', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  mockTransactions: { height: '110px', border: '1px solid #edf0f4', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '13px' },
+  fisler: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0, marginTop: 'auto', background: 'rgba(255,255,255,.8)', border: '1px solid #e8edf1', borderRadius: '15px', padding: '16px' },
   fis: {
-    display: 'flex', alignItems: 'center', gap: '12px',
-    background: 'rgba(255,255,255,0.8)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '10px', padding: '12px 16px',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 14px', color: '#168d96', borderRight: '1px solid #e8edf1',
   },
   fisIkon: { fontSize: '18px' },
   fisYazi: { color: '#475569', fontSize: '14px' },
@@ -465,13 +486,12 @@ const styles = {
   nkodeDot: { width: 6, height: 6, borderRadius: '50%', background: '#0d9488', opacity: 0.6 },
 
   /* SAĞ */
-  right: { width: '380px', flexShrink: 0 },
+  right: { width: '470px', flexShrink: 0, display: 'flex', alignItems: 'center' },
   card: {
     background: '#ffffff',
     border: '1px solid #e2e8f0',
-    borderRadius: '24px',
-    padding: '36px 32px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
+    borderRadius: '24px', padding: '34px 38px', width: '100%', position: 'relative',
+    boxShadow: '0 22px 65px rgba(35,70,92,.11)',
     maxHeight: '92vh',
     overflowY: 'auto',
   },
@@ -482,15 +502,15 @@ const styles = {
   },
   cardLogo: {
     display: 'flex', alignItems: 'center', gap: '8px',
-    marginBottom: '24px',
+    marginBottom: '30px',
   },
-  cardLogoText: { color: '#0d9488', fontSize: '16px', fontWeight: 700 },
+  cardLogoText: { color: '#10233d', fontSize: '22px', fontWeight: 750 },
   cardBaslik: { color: '#0f172a', fontSize: '20px', fontWeight: 700, margin: '0 0 6px 0' },
   cardAlt: { color: '#94a3b8', fontSize: '13px', margin: '0 0 20px 0' },
   tabBar: {
     display: 'flex',
-    background: '#f1f5f9',
-    borderRadius: '10px', padding: '4px',
+    background: '#f8fafc', border: '1px solid #e4e9ef',
+    borderRadius: '10px', padding: '3px',
     marginBottom: '20px',
   },
   tab: {
@@ -500,19 +520,19 @@ const styles = {
   },
   tabAktif: {
     flex: 1, padding: '9px', border: 'none',
-    background: 'rgba(13,148,136,0.1)',
-    color: '#0d9488', cursor: 'pointer',
+    background: '#fff', color: '#087f8d', cursor: 'pointer', boxShadow: '0 2px 8px rgba(20,50,70,.06)',
     borderRadius: '7px', fontSize: '13px', fontWeight: '700',
   },
   inputWrap: {
     display: 'flex', alignItems: 'center',
-    background: '#f8fafc',
+    background: '#fff',
     border: '1px solid #e2e8f0',
-    borderRadius: '11px', marginBottom: '12px',
+    borderRadius: '10px', marginBottom: '16px',
     padding: '0 14px',
     transition: 'border-color 0.2s',
   },
-  inputIkon: { fontSize: '14px', marginRight: '8px', opacity: 0.4, color: '#64748b' },
+  inputIkon: { display: 'flex', marginRight: '9px', color: '#94a3b8' },
+  fieldLabel: { display: 'block', color: '#53657a', fontSize: '11px', fontWeight: '600', margin: '0 0 7px' },
   input: {
     flex: 1, padding: '13px 0', background: 'transparent',
     border: 'none', color: '#0f172a', fontSize: '14px',
@@ -534,7 +554,7 @@ const styles = {
   },
   btn: {
     width: '100%', padding: '14px',
-    background: 'linear-gradient(135deg, #0d9488 0%, #0ea5e9 100%)',
+    background: 'linear-gradient(90deg, #22aaa8 0%, #0786a8 100%)',
     border: 'none', borderRadius: '11px',
     color: '#ffffff', fontSize: '15px', fontWeight: '700',
     cursor: 'pointer', letterSpacing: '0.3px',
@@ -543,6 +563,8 @@ const styles = {
     marginTop: '4px',
   },
   btnSpinner: { display: 'inline-block' },
+  btnContent: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' },
+  secureBadge: { position: 'absolute', top: '24px', right: '26px', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 9px', border: '1px solid #e5eaef', borderRadius: '20px', color: '#526479', fontSize: '10px', background: '#fafcfd' },
   gecisMetni: {
     textAlign: 'center', color: '#94a3b8',
     fontSize: '13px', margin: '16px 0 0 0',

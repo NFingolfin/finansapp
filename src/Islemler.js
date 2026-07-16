@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
+import KategoriYonetimi from './KategoriYonetimi'
 import { kesimTarihiHesapla, sonOdemeHesapla, tarihStr, borcAdiOlustur } from './kkutils'
 import {
   ArrowUp, ArrowDown, Activity, CreditCard, Search, CalendarDays,
   SlidersHorizontal, Plus, ShoppingCart, Wallet, ArrowLeftRight,
-  Trash2, ReceiptText
+  Trash2, ReceiptText, Pencil, Tags
 } from 'lucide-react'
 
 function Islemler({ session, mobil, gizliMod }) {
@@ -12,8 +13,11 @@ function Islemler({ session, mobil, gizliMod }) {
     gizliMod ? '****' : parseFloat(val || 0).toLocaleString('tr-TR', opts)
   const [islemler, setIslemler] = useState([])
   const [hesaplar, setHesaplar] = useState([])
+  const [kategorilerDB, setKategorilerDB] = useState([])
+  const [kategoriYonetimiAcik, setKategoriYonetimiAcik] = useState(false)
   const [yukleniyor, setYukleniyor] = useState(true)
   const [formAcik, setFormAcik] = useState(false)
+  const [duzenlenenId, setDuzenlenenId] = useState(null)
   const [kaydediliyor, setKaydediliyor] = useState(false)
   const [filtre, setFiltre] = useState('hepsi')
   const [aramaMetni, setAramaMetni] = useState('')
@@ -22,7 +26,9 @@ function Islemler({ session, mobil, gizliMod }) {
   const [baslangicTarih, setBaslangicTarih] = useState('')
   const [bitisTarih, setBitisTarih] = useState('')
   const [seciliHesap, setSeciliHesap] = useState('')
-  const [seciliKategori, setSeciliKategori] = useState('')
+  const [seciliAnaKategori, setSeciliAnaKategori] = useState('')
+  const [seciliAltKategori, setSeciliAltKategori] = useState('')
+  const [seciliDonem, setSeciliDonem] = useState(new Date().toISOString().slice(0, 7))
   const [filtreAcik, setFiltreAcik] = useState(false)
   const [yeni, setYeni] = useState({
     tarih: new Date().toISOString().split('T')[0],
@@ -32,20 +38,17 @@ function Islemler({ session, mobil, gizliMod }) {
     kategori: 'Zaruri',
     aciklama: '',
     taksitli: false,
-    taksit_sayisi: ''
+    taksit_sayisi: '',
+    kategori_id: '',
+    ana_kategori_secim: ''
   })
-
-  const kategoriler = {
-    gider: ['Zaruri', 'Keyfi', 'Fatura', 'Market', 'Ulaşım', 'Sağlık', 'Eğlence', 'Giyim', 'Borç Ödemesi', 'Diğer'],
-    gelir: ['Maaş', 'Freelance', 'Kira Geliri', 'Yatırım Getirisi', 'Diğer'],
-    transfer: ['Hesaplar Arası Transfer'],
-  }
 
   const turLabel = { gelir: 'Gelir', gider: 'Gider', transfer: 'Transfer', odeme: 'Ödeme' }
 
   useEffect(() => {
     islemleriGetir()
     hesaplariGetir()
+    kategorileriGetir()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const islemleriGetir = async () => {
@@ -79,6 +82,43 @@ const islemEkle = async () => {
 
   try {
     const tutar = parseFloat(yeni.tutar)
+    const seciliKategoriObj = kategorilerDB.find(k => k.id === yeni.kategori_id) || null
+    const kategoriAlanlari = seciliKategoriObj ? {
+      kategori_id: seciliKategoriObj.id,
+      ana_kategori: seciliKategoriObj.ana_kategori,
+      alt_kategori: seciliKategoriObj.alt_kategori || null,
+      butce_grubu: seciliKategoriObj.butce_grubu || null
+    } : { kategori_id: null, ana_kategori: null, alt_kategori: null, butce_grubu: null }
+
+    if (duzenlenenId) {
+      const mevcutIslem = islemler.find(i => i.id === duzenlenenId)
+      const yetki = duzenlemeYetkisi(mevcutIslem)
+      const guncelleme = {}
+      const kategoriDegisti = (mevcutIslem?.kategori_id || '') !== (yeni.kategori_id || '')
+      if (yetki.kategori && kategoriDegisti) Object.assign(guncelleme, kategoriAlanlari, {
+        kategori: seciliKategoriObj?.tur === 'borc' ? 'Borç Ödemesi' : (seciliKategoriObj?.ana_kategori || null),
+        is_borc_odeme: seciliKategoriObj?.tur === 'borc'
+      })
+      if (yetki.aciklama) guncelleme.aciklama = yeni.aciklama
+
+      if (Object.keys(guncelleme).length === 0) {
+        setFormAcik(false)
+        setDuzenlenenId(null)
+        return
+      }
+
+      const { error } = await supabase
+        .from('islemler')
+        .update(guncelleme)
+        .eq('id', duzenlenenId)
+        .eq('user_id', session.user.id)
+
+      if (error) throw error
+      setFormAcik(false)
+      setDuzenlenenId(null)
+      islemleriGetir()
+      return
+    }
 
     if (yeni.tur === 'transfer') {
       await supabase.from('islemler').insert({
@@ -88,6 +128,8 @@ const islemEkle = async () => {
         tutar,
         tur: 'gider',
         kategori: 'Hesaplar Arası Transfer',
+        ...kategoriAlanlari,
+        butce_grubu: 'Transfer',
         aciklama: yeni.aciklama || `Transfer → ${hesaplar.find(h => h.id === yeni.hedef_hesap_id)?.ad}`
       })
 
@@ -98,6 +140,8 @@ const islemEkle = async () => {
         tutar,
         tur: 'gelir',
         kategori: 'Hesaplar Arası Transfer',
+        ...kategoriAlanlari,
+        butce_grubu: 'Transfer',
         aciklama: yeni.aciklama || `Transfer ← ${hesaplar.find(h => h.id === yeni.hesap_id)?.ad}`
       })
     } else {
@@ -109,9 +153,10 @@ const islemEkle = async () => {
           tarih: yeni.tarih,
           tutar,
           tur: yeni.tur,
-          kategori: yeni.kategori,
+          kategori: seciliKategoriObj?.tur === 'borc' ? 'Borç Ödemesi' : (seciliKategoriObj?.ana_kategori || null),
+          ...kategoriAlanlari,
           aciklama: yeni.aciklama,
-          is_borc_odeme: yeni.kategori === 'Borç Ödemesi'
+          is_borc_odeme: seciliKategoriObj?.tur === 'borc'
         })
         .select('id')
         .single()
@@ -138,7 +183,7 @@ const islemEkle = async () => {
               .from('borclar')
               .insert({
                 user_id: session.user.id,
-                ad: `${yeni.aciklama || yeni.kategori} (${taksitSayisi} taksit)`,
+                ad: `${yeni.aciklama || seciliKategoriObj?.ana_kategori || 'Harcama'} (${taksitSayisi} taksit)`,
                 tur: 'Kredi Kartı',
                 banka: seciliHesapObj.ad,
                 toplam_borc: tutar,
@@ -237,7 +282,9 @@ const islemEkle = async () => {
       kategori: 'Zaruri',
       aciklama: '',
       taksitli: false,
-      taksit_sayisi: ''
+      taksit_sayisi: '',
+      kategori_id: '',
+      ana_kategori_secim: ''
     })
 
     islemleriGetir()
@@ -248,6 +295,74 @@ const islemEkle = async () => {
     setKaydediliyor(false)
   }
 }
+
+  const duzenlemeYetkisi = (islem) => {
+    if (!islem) return { kategori: false, aciklama: false }
+    const kategori = (islem.kategori || '').toLocaleLowerCase('tr-TR')
+    const borcOdeme = islem.is_borc_odeme || kategori.includes('borç ödeme')
+    if (borcOdeme) return { kategori: false, aciklama: false }
+    const yalnizAciklama = kategori.includes('transfer') || kategori.includes('yatırım')
+    return { kategori: !yalnizAciklama, aciklama: true }
+  }
+
+  const kategorileriGetir = async () => {
+    const { data, error } = await supabase.from('kategoriler').select('*')
+      .eq('user_id', session.user.id).order('ana_kategori')
+    if (!error) setKategorilerDB(data || [])
+  }
+
+  const kategoriSecimListesi = (tur) => kategorilerDB.filter(k => {
+    if (!k.aktif) return false
+    if (tur === 'gider') return k.tur === 'gider' || (!duzenlenenId && k.tur === 'borc')
+    return k.tur === tur
+  })
+
+  const anaKategoriSecenekleri = (tur) => [...new Set(kategoriSecimListesi(tur)
+    .map(k => k.ana_kategori).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'tr'))
+
+  const altKategoriSecenekleri = (tur, anaKategori) => kategoriSecimListesi(tur)
+    .filter(k => k.ana_kategori === anaKategori)
+
+  const anaKategoriSec = (anaKategori) => {
+    const kayitlar = altKategoriSecenekleri(yeni.tur, anaKategori)
+    const varsayilanKayit = kayitlar.find(k => !k.alt_kategori) || kayitlar[0]
+    setYeni({ ...yeni, ana_kategori_secim: anaKategori, kategori_id: varsayilanKayit?.id || '' })
+  }
+
+  const islemDuzenleAc = (islem) => {
+    setDuzenlenenId(islem.id)
+    setYeni({
+      tarih: islem.tarih,
+      hesap_id: islem.hesap_id,
+      hedef_hesap_id: '',
+      tutar: String(islem.tutar),
+      tur: islem.tur,
+      kategori: islem.kategori || '',
+      aciklama: islem.aciklama || '',
+      taksitli: false,
+      taksit_sayisi: '',
+      kategori_id: islem.kategori_id || '',
+      ana_kategori_secim: islem.ana_kategori || ''
+    })
+    setFormAcik(true)
+  }
+
+  const formuKapat = () => {
+    setFormAcik(false)
+    setDuzenlenenId(null)
+  }
+
+  const yeniIslemFormuAc = () => {
+    setDuzenlenenId(null)
+    setYeni({
+      tarih: new Date().toISOString().split('T')[0],
+      hesap_id: hesaplar[0]?.id || '',
+      hedef_hesap_id: '',
+      tutar: '', tur: 'gider', kategori: 'Zaruri', aciklama: '',
+      taksitli: false, taksit_sayisi: '', kategori_id: '', ana_kategori_secim: ''
+    })
+    setFormAcik(true)
+  }
 
   const islemSil = async (id) => {
     if (!window.confirm('Bu işlemi silmek istediğine emin misin?')) return
@@ -406,17 +521,28 @@ if (islem?.tur === 'gider') {
   }
 
   // Filtreleme ve sıralama
+  const transferIslemiMi = i =>
+    i.butce_grubu === 'Transfer' || i.kategori === 'Hesaplar Arası Transfer'
+
   const filtreliIslemler = islemler
-    .filter(i => filtre === 'hepsi' || i.tur === filtre)
+    .filter(i => !seciliDonem || i.tarih?.startsWith(seciliDonem))
+    .filter(i => {
+      if (filtre === 'hepsi') return true
+      if (filtre === 'transfer') return transferIslemiMi(i)
+      return i.tur === filtre && !transferIslemiMi(i)
+    })
     .filter(i => !aramaMetni || 
       i.aciklama?.toLowerCase().includes(aramaMetni.toLowerCase()) ||
       i.kategori?.toLowerCase().includes(aramaMetni.toLowerCase()) ||
+      i.ana_kategori?.toLowerCase().includes(aramaMetni.toLowerCase()) ||
+      i.alt_kategori?.toLowerCase().includes(aramaMetni.toLowerCase()) ||
       i.hesaplar?.ad?.toLowerCase().includes(aramaMetni.toLowerCase())
     )
     .filter(i => !baslangicTarih || i.tarih >= baslangicTarih)
     .filter(i => !bitisTarih || i.tarih <= bitisTarih)
     .filter(i => !seciliHesap || i.hesap_id === seciliHesap)
-    .filter(i => !seciliKategori || i.kategori === seciliKategori)
+    .filter(i => !seciliAnaKategori || (i.ana_kategori || i.kategori || 'Kategorisiz') === seciliAnaKategori)
+    .filter(i => !seciliAltKategori || (i.alt_kategori || '') === seciliAltKategori)
     .sort((a, b) => {
       let aVal, bVal
       if (siralamaAlani === 'tarih') { aVal = a.tarih; bVal = b.tarih }
@@ -429,15 +555,24 @@ if (islem?.tur === 'gider') {
 
   // Ara toplamlar — "Borç Ödemesi" gider/gelir sayılmaz, ayrı gösterilir
   const araToplam = {
-    gelir: filtreliIslemler.filter(i => i.tur === 'gelir' && i.kategori !== 'Borç Ödemesi').reduce((a, i) => a + parseFloat(i.tutar), 0),
-    gider: filtreliIslemler.filter(i => i.tur === 'gider' && i.kategori !== 'Borç Ödemesi').reduce((a, i) => a + parseFloat(i.tutar), 0),
-    transfer: filtreliIslemler.filter(i => i.tur === 'transfer').reduce((a, i) => a + parseFloat(i.tutar), 0),
+    gelir: filtreliIslemler.filter(i => i.tur === 'gelir' && i.kategori !== 'Borç Ödemesi' && !transferIslemiMi(i)).reduce((a, i) => a + parseFloat(i.tutar), 0),
+    gider: filtreliIslemler.filter(i => i.tur === 'gider' && i.kategori !== 'Borç Ödemesi' && !transferIslemiMi(i)).reduce((a, i) => a + parseFloat(i.tutar), 0),
+    transfer: filtreliIslemler.filter(i => transferIslemiMi(i) && i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0),
     odeme: filtreliIslemler.filter(i => i.kategori === 'Borç Ödemesi' && i.tur === 'gider').reduce((a, i) => a + parseFloat(i.tutar), 0),
   }
   const net = araToplam.gelir - araToplam.gider
 
   // Tüm kategoriler
-  const tumKategoriler = [...new Set(islemler.map(i => i.kategori).filter(Boolean))]
+  const mevcutDonem = new Date().toISOString().slice(0, 7)
+  const donemler = [...new Set([mevcutDonem, ...islemler.map(i => i.tarih?.slice(0, 7)).filter(Boolean)])].sort().reverse()
+  const donemLabel = donem => {
+    const [yil, ay] = donem.split('-').map(Number)
+    return new Date(yil, ay - 1, 1).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+  }
+  const tumAnaKategoriler = [...new Set(islemler.map(i => i.ana_kategori || i.kategori || 'Kategorisiz').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'))
+  const tumAltKategoriler = [...new Set(islemler
+    .filter(i => !seciliAnaKategori || (i.ana_kategori || i.kategori || 'Kategorisiz') === seciliAnaKategori)
+    .map(i => i.alt_kategori).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'))
 
   const siralamaToggle = (alan) => {
     if (siralamaAlani === alan) setSiralamaYon(prev => prev === 'asc' ? 'desc' : 'asc')
@@ -455,10 +590,14 @@ if (islem?.tur === 'gider') {
     setBaslangicTarih('')
     setBitisTarih('')
     setSeciliHesap('')
-    setSeciliKategori('')
+    setSeciliAnaKategori('')
+    setSeciliAltKategori('')
+    setSeciliDonem(mevcutDonem)
   }
 
-  const filtreAktif = filtre !== 'hepsi' || aramaMetni || baslangicTarih || bitisTarih || seciliHesap || seciliKategori
+  const filtreAktif = filtre !== 'hepsi' || aramaMetni || baslangicTarih || bitisTarih || seciliHesap || seciliAnaKategori || seciliAltKategori || seciliDonem !== mevcutDonem
+  const aktifDuzenleme = duzenlenenId ? islemler.find(i => i.id === duzenlenenId) : null
+  const aktifDuzenlemeYetkisi = duzenlemeYetkisi(aktifDuzenleme)
 
   return (
     <div>
@@ -498,37 +637,45 @@ if (islem?.tur === 'gider') {
                 {f === 'hepsi' ? 'Tümü' : turLabel[f]}
               </button>
             ))}
+            <div style={styles.donemSeciciWrap}>
+              <CalendarDays size={14} />
+              <span>Dönem</span>
+              <select style={styles.donemSecici} value={seciliDonem} onChange={e => setSeciliDonem(e.target.value)}>
+                <option value="">Tüm dönemler</option>
+                {donemler.map(d => <option key={d} value={d}>{donemLabel(d)}</option>)}
+              </select>
+            </div>
+            {mobil && <button style={{ ...styles.ekleBtn, minHeight: '40px', alignSelf: 'center' }} onClick={yeniIslemFormuAc}><Plus size={16} /> Yeni İşlem</button>}
           </div>
           <div style={styles.toolbarActions}>
             <div style={styles.searchWrap}><Search size={17} />
               <input style={styles.searchInput} placeholder="İşlem ara..." value={aramaMetni} onChange={e => setAramaMetni(e.target.value)} />
             </div>
-              <button
-                style={{ ...styles.filtreToggleBtn, ...(filtreAcik || baslangicTarih || bitisTarih ? styles.filtreToggleBtnAktif : {}) }}
-                onClick={() => setFiltreAcik(prev => !prev)}
-              >
-                <CalendarDays size={16} /> Tarih Aralığı
-              </button>
-            <button style={styles.filtreToggleBtn} onClick={() => setFiltreAcik(prev => !prev)}><SlidersHorizontal size={16} /> Filtreler</button>
-            <button style={styles.ekleBtn} onClick={() => setFormAcik(true)}><Plus size={17} /> Yeni İşlem</button>
+            <button style={{ ...styles.filtreToggleBtn, ...(filtreAcik || baslangicTarih || bitisTarih || seciliHesap || seciliAnaKategori || seciliAltKategori ? styles.filtreToggleBtnAktif : {}) }} onClick={() => setFiltreAcik(prev => !prev)}><SlidersHorizontal size={16} /> Filtreler</button>
+            <button style={styles.filtreToggleBtn} onClick={() => setKategoriYonetimiAcik(true)}><Tags size={16} /> Kategori Yönetimi</button>
+            {!mobil && <button style={styles.ekleBtn} onClick={yeniIslemFormuAc}><Plus size={17} /> Yeni İşlem</button>}
           </div>
         </div>
 
         {/* Arama + Tarih + Hesap + Kategori — masaüstünde her zaman, mobilde toggle ile */}
         {filtreAcik && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: mobil ? '1fr' : 'repeat(4,1fr)', gap: '8px', marginTop: '12px' }}>
-              <input style={styles.filterInput} type="date" value={baslangicTarih}
-                onChange={e => setBaslangicTarih(e.target.value)} placeholder="Başlangıç" />
-              <input style={styles.filterInput} type="date" value={bitisTarih}
-                onChange={e => setBitisTarih(e.target.value)} placeholder="Bitiş" />
+            <div style={{ display: 'grid', gridTemplateColumns: mobil ? '1fr' : 'repeat(5,1fr)', gap: '8px', marginTop: '12px' }}>
+              <label style={styles.filterField}><span>Başlangıç Tarihi</span><input style={styles.filterInput} type="date" value={baslangicTarih}
+                onChange={e => setBaslangicTarih(e.target.value)} /></label>
+              <label style={styles.filterField}><span>Bitiş Tarihi</span><input style={styles.filterInput} type="date" value={bitisTarih}
+                onChange={e => setBitisTarih(e.target.value)} /></label>
               <select style={styles.filterInput} value={seciliHesap} onChange={e => setSeciliHesap(e.target.value)}>
                 <option value="">Tüm Hesaplar</option>
                 {hesaplar.map(h => <option key={h.id} value={h.id}>{h.ad}</option>)}
               </select>
-              <select style={styles.filterInput} value={seciliKategori} onChange={e => setSeciliKategori(e.target.value)}>
-                <option value="">Tüm Kategoriler</option>
-                {tumKategoriler.map(k => <option key={k} value={k}>{k}</option>)}
+              <select style={styles.filterInput} value={seciliAnaKategori} onChange={e => { setSeciliAnaKategori(e.target.value); setSeciliAltKategori('') }}>
+                <option value="">Tüm Ana Kategoriler</option>
+                {tumAnaKategoriler.map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+              <select style={styles.filterInput} value={seciliAltKategori} onChange={e => setSeciliAltKategori(e.target.value)}>
+                <option value="">Tüm Alt Kategoriler</option>
+                {tumAltKategoriler.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
             </div>
 
@@ -572,16 +719,24 @@ if (islem?.tur === 'gider') {
       {formAcik && (
         <div style={styles.modalOverlay}>
           <div style={styles.modal}>
-            <h3 style={styles.modalBaslik}>Yeni İşlem Ekle</h3>
+            <h3 style={styles.modalBaslik}>{duzenlenenId ? 'İşlemi Düzenle' : 'Yeni İşlem Ekle'}</h3>
+
+            {duzenlenenId && (
+              <div style={styles.bilgiMesaj}>
+                Tutar, tarih, hesap ve işlem türü finansal kayıtların tutarlılığı için kilitlidir.
+                {!aktifDuzenlemeYetkisi.aciklama && !aktifDuzenlemeYetkisi.kategori && ' Bu borç ödemesi bağlı kayıtları etkilediği için salt okunur gösteriliyor.'}
+              </div>
+            )}
 
             <label style={styles.label}>İşlem Türü</label>
             <div style={styles.turSecici}>
-              {['gelir', 'gider', 'transfer'].map(t => (
+              {(duzenlenenId ? ['gelir', 'gider'] : ['gelir', 'gider', 'transfer']).map(t => (
                 <button key={t}
                   style={yeni.tur === t
                     ? { ...styles.turBtn, background: '#234f68', borderColor: '#234f68', color: '#fff' }
                     : styles.turBtn}
-                  onClick={() => setYeni({ ...yeni, tur: t, kategori: kategoriler[t]?.[0] || '' })}>
+                  disabled={Boolean(duzenlenenId)}
+                  onClick={() => setYeni({ ...yeni, tur: t, kategori: '', kategori_id: '', ana_kategori_secim: '' })}>
                   {turLabel[t]}
                 </button>
               ))}
@@ -589,12 +744,14 @@ if (islem?.tur === 'gider') {
 
             <label style={styles.label}>Tarih</label>
             <input style={styles.input} type="date" value={yeni.tarih}
+              disabled={Boolean(duzenlenenId)}
               onChange={e => setYeni({ ...yeni, tarih: e.target.value })} />
 
             <label style={styles.label}>{yeni.tur === 'transfer' ? 'Kaynak Hesap' : 'Hesap'}</label>
             <select style={styles.input} value={yeni.hesap_id}
+              disabled={Boolean(duzenlenenId)}
               onChange={e => setYeni({ ...yeni, hesap_id: e.target.value })}>
-              {hesaplar.map(h => <option key={h.id} value={h.id}>{h.ad}</option>)}
+              {hesaplar.filter(h => !duzenlenenId || h.tur?.toLocaleLowerCase('tr-TR') !== 'kredi kartı').map(h => <option key={h.id} value={h.id}>{h.ad}</option>)}
             </select>
 
             {yeni.tur === 'transfer' && (
@@ -610,7 +767,7 @@ if (islem?.tur === 'gider') {
 
             {(() => {
               const sh = hesaplar.find(h => h.id === yeni.hesap_id)
-              if (sh?.tur?.toLowerCase() === 'kredi kartı' && yeni.tur === 'gider') {
+              if (!duzenlenenId && sh?.tur?.toLowerCase() === 'kredi kartı' && yeni.tur === 'gider') {
                 return (
                   <>
                     <div style={styles.bilgiMesaj}>
@@ -644,31 +801,55 @@ if (islem?.tur === 'gider') {
 
             <label style={styles.label}>Tutar (₺)</label>
             <input style={styles.input} type="number" placeholder="0.00" value={yeni.tutar}
+              disabled={Boolean(duzenlenenId)}
               onChange={e => setYeni({ ...yeni, tutar: e.target.value })} />
 
-            {yeni.tur !== 'transfer' && (
+            <label style={styles.label}>Ana Kategori</label>
+            {kategoriSecimListesi(yeni.tur).length === 0 && !duzenlenenId && (
+              <div style={styles.kategoriUyari}>
+                <span>Henüz bu işlem türüne ait kategori eklenmemiş. Kategorisiz devam edebilir veya kategori oluşturabilirsiniz.</span>
+                <button onClick={() => setKategoriYonetimiAcik(true)}>+ Kategori Ekle</button>
+              </div>
+            )}
+            <select style={styles.input} value={yeni.ana_kategori_secim || ''}
+              disabled={Boolean(duzenlenenId) && !aktifDuzenlemeYetkisi.kategori}
+              onChange={e => anaKategoriSec(e.target.value)}>
+              <option value="">Kategorisiz</option>
+              {anaKategoriSecenekleri(yeni.tur).map(ana => <option key={ana} value={ana}>{ana}</option>)}
+            </select>
+
+            {yeni.ana_kategori_secim && (
               <>
-                <label style={styles.label}>Kategori</label>
-                <select style={styles.input} value={yeni.kategori}
-                  onChange={e => setYeni({ ...yeni, kategori: e.target.value })}>
-                  {(kategoriler[yeni.tur] || []).map(k => <option key={k} value={k}>{k}</option>)}
+                <label style={styles.label}>Alt Kategori</label>
+                <select style={styles.input} value={yeni.kategori_id || ''}
+                  disabled={Boolean(duzenlenenId) && !aktifDuzenlemeYetkisi.kategori}
+                  onChange={e => setYeni({ ...yeni, kategori_id: e.target.value })}>
+                  {altKategoriSecenekleri(yeni.tur, yeni.ana_kategori_secim).some(k => !k.alt_kategori)
+                    ? <option value={altKategoriSecenekleri(yeni.tur, yeni.ana_kategori_secim).find(k => !k.alt_kategori)?.id}>Alt kategorisiz</option>
+                    : <option value="">Alt kategori seçin</option>}
+                  {altKategoriSecenekleri(yeni.tur, yeni.ana_kategori_secim).filter(k => k.alt_kategori)
+                    .map(k => <option key={k.id} value={k.id}>{k.alt_kategori}</option>)}
                 </select>
               </>
             )}
 
             <label style={styles.label}>Açıklama (isteğe bağlı)</label>
             <input style={styles.input} placeholder="örn. Migros alışverişi" value={yeni.aciklama}
+              disabled={Boolean(duzenlenenId) && !aktifDuzenlemeYetkisi.aciklama}
               onChange={e => setYeni({ ...yeni, aciklama: e.target.value })} />
 
             <div style={styles.modalBtnler}>
-              <button style={styles.iptalBtn} onClick={() => setFormAcik(false)}>İptal</button>
+              <button style={styles.iptalBtn} onClick={formuKapat}>İptal</button>
               <button style={styles.kaydetBtn} onClick={islemEkle} disabled={kaydediliyor}>
-                {kaydediliyor ? 'Kaydediliyor...' : 'Kaydet'}
+                {kaydediliyor ? 'Kaydediliyor...' : duzenlenenId && !aktifDuzenlemeYetkisi.aciklama && !aktifDuzenlemeYetkisi.kategori ? 'Kapat' : duzenlenenId ? 'Değişiklikleri Kaydet' : 'Kaydet'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {kategoriYonetimiAcik && <KategoriYonetimi session={session} kategoriler={kategorilerDB}
+        onKapat={() => setKategoriYonetimiAcik(false)} onDegisti={kategorileriGetir} />}
 
       {/* İşlem Listesi */}
       {yukleniyor ? (
@@ -685,28 +866,34 @@ if (islem?.tur === 'gider') {
           <div style={styles.listeBaslik}>Son İşlemler</div>
           {!mobil && (
             <div style={styles.tabloBaslik}>
-              <span>Açıklama</span><span>Kategori</span><span>Hesap</span><span>Tarih</span><span style={{ textAlign: 'right' }}>Tutar</span><span />
+              <span>Ana Kategori</span><span>Alt Kategori</span><span>Açıklama</span><span>Hesap</span><span style={{ textAlign: 'right' }}>Tutar</span><span>Tarih</span><span />
             </div>
           )}
           {filtreliIslemler.map(islem => {
-            const isBorcOdeme = islem.kategori === 'Borç Ödemesi'
+            const isBorcOdeme = islem.is_borc_odeme || islem.kategori === 'Borç Ödemesi'
             const IslemIcon = isBorcOdeme ? CreditCard : islem.tur === 'gelir' ? Wallet : islem.tur === 'transfer' ? ArrowLeftRight : islem.kategori === 'Market' ? ShoppingCart : ReceiptText
+            const anaKategori = islem.ana_kategori || islem.kategori || 'Kategorisiz'
+            const altKategori = islem.alt_kategori || '—'
             return (
-              <div key={islem.id} className="transaction-row" style={{ ...styles.islemSatir, gridTemplateColumns: mobil ? '1fr auto' : '2.2fr 1.1fr 1fr .9fr 1fr 32px' }}>
+              <div key={islem.id} className="transaction-row" style={{ ...styles.islemSatir, gridTemplateColumns: mobil ? '1fr auto' : '1.1fr 1.1fr 1.8fr 1fr 1fr .9fr 68px' }}>
                 <div style={styles.islemBilgi}>
                   <div style={styles.islemIkon}><IslemIcon size={17} /></div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={styles.islemAciklama}>{islem.aciklama || islem.kategori}</div>
-                    {mobil && <div style={styles.islemDetay}>{islem.kategori} · {islem.hesaplar?.ad} · {islem.tarih}</div>}
+                    <div style={styles.islemAciklama}>{mobil ? (islem.aciklama || anaKategori) : anaKategori}</div>
+                    {mobil && <div style={styles.islemDetay}>{anaKategori}{islem.alt_kategori ? ` / ${islem.alt_kategori}` : ''} · {islem.hesaplar?.ad} · {islem.tarih}</div>}
                   </div>
                 </div>
-                {!mobil && <div style={styles.hucreMetin}>{islem.kategori}</div>}
+                {!mobil && <div style={styles.hucreMetin}>{altKategori}</div>}
+                {!mobil && <div style={styles.hucreMetin}>{islem.aciklama || '—'}</div>}
                 {!mobil && <div style={styles.hucreMetin}>{islem.hesaplar?.ad || '—'}</div>}
-                {!mobil && <div style={styles.hucreMetin}>{new Date(islem.tarih).toLocaleDateString('tr-TR')}</div>}
                 <div style={{ ...styles.islemTutar, color: islem.tur === 'gelir' ? 'var(--success)' : 'var(--text-primary)' }}>
                   {gizliMod ? '₺ ****' : `${islem.tur === 'gelir' ? '+' : islem.tur === 'gider' ? '-' : ''}₺${parseFloat(islem.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </div>
-                <button className="transaction-delete" aria-label="İşlemi sil" style={styles.silBtn} onClick={() => islemSil(islem.id)}><Trash2 size={15} /></button>
+                {!mobil && <div style={styles.hucreMetin}>{new Date(islem.tarih).toLocaleDateString('tr-TR')}</div>}
+                <div style={styles.satirAksiyonlar}>
+                  <button className="transaction-edit" aria-label="İşlemi düzenle" title="Düzenle" style={styles.duzenleBtn} onClick={() => islemDuzenleAc(islem)}><Pencil size={14} /></button>
+                  <button className="transaction-delete" aria-label="İşlemi sil" title="Sil" style={styles.silBtn} onClick={() => islemSil(islem.id)}><Trash2 size={15} /></button>
+                </div>
               </div>
             )
           })}
@@ -729,6 +916,8 @@ const styles = {
   filtreSatir: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' },
   filtreler: { display: 'flex', gap: '4px', flexWrap: 'wrap', alignSelf: 'stretch' },
   filtreBtn: { minHeight: '50px', padding: '0 14px', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', borderRadius: 0, color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
+  donemSeciciWrap: { minHeight: '50px', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px', padding: '0 9px', borderLeft: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px' },
+  donemSecici: { maxWidth: '145px', border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: '12px', fontWeight: '600', outline: 'none', cursor: 'pointer' },
   toolbarActions: { display: 'flex', gap: '8px', alignItems: 'center', flex: '1 1 560px', justifyContent: 'flex-end' },
   searchWrap: { width: 'min(270px, 100%)', height: '40px', padding: '0 12px', display: 'flex', alignItems: 'center', gap: '9px', border: '1px solid var(--border)', borderRadius: '9px', color: 'var(--text-muted)', background: 'var(--surface)' },
   searchInput: { width: '100%', border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: '13px' },
@@ -737,7 +926,8 @@ const styles = {
   filtreOzet: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', padding: '8px 12px', background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '8px', color: '#0d9488', fontSize: '13px' },
   filtreBtnAktif: { background: 'transparent', borderBottom: '2px solid #2f667a', color: '#244f69', fontWeight: '650' },
   ekleBtn: { height: '40px', padding: '0 16px', background: '#234f68', border: 'none', borderRadius: '9px', color: '#fff', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', whiteSpace: 'nowrap' },
-  filterInput: { padding: '8px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' },
+  filterInput: { width: '100%', boxSizing: 'border-box', padding: '8px 12px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none' },
+  filterField: { display: 'flex', flexDirection: 'column', gap: '5px', color: 'var(--text-muted)', fontSize: '10px' },
   siralamaBtn: { padding: '5px 10px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' },
   siralamaBtnAktif: { background: 'rgba(78,204,163,0.1)', border: '1px solid #4ecca3', color: '#2a9d8f', fontWeight: 'bold' },
   temizleBtn: { padding: '5px 10px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '6px', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '12px' },
@@ -747,6 +937,7 @@ const styles = {
   turSecici: { display: 'flex', gap: '8px', marginBottom: '16px' },
   turBtn: { flex: 1, padding: '10px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px' },
   bilgiMesaj: { background: 'var(--surface-soft)', border: '1px solid var(--border)', borderRadius: '9px', padding: '12px', color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '14px' },
+  kategoriUyari: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: '#f6fafb', border: '1px solid var(--border)', borderRadius: '9px', padding: '10px 12px', color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '9px' },
   toggleSatir: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', padding: '12px', background: 'var(--bg-subtle)', borderRadius: '10px', border: '1px solid var(--border)' },
   toggleLabel: { color: 'var(--text-secondary)', fontSize: '14px' },
   toggle: { width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer', position: 'relative', transition: 'background 0.3s' },
@@ -761,7 +952,7 @@ const styles = {
   bos: { textAlign: 'center', padding: '64px' },
   liste: { display: 'flex', flexDirection: 'column', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '18px', minHeight: '310px' },
   listeBaslik: { color: 'var(--text-primary)', fontSize: '16px', fontWeight: '700', margin: '2px 8px 16px' },
-  tabloBaslik: { display: 'grid', gridTemplateColumns: '2.2fr 1.1fr 1fr .9fr 1fr 32px', gap: '12px', padding: '0 10px 9px', color: 'var(--text-muted)', fontSize: '11px' },
+  tabloBaslik: { display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1.8fr 1fr 1fr .9fr 68px', gap: '12px', padding: '0 10px 9px', color: 'var(--text-muted)', fontSize: '11px' },
   islemSatir: { display: 'grid', alignItems: 'center', gap: '12px', minHeight: '56px', padding: '7px 10px', borderRadius: '9px', transition: 'background .16s ease' },
   turBadge: { padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' },
   islemBilgi: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 },
@@ -770,6 +961,8 @@ const styles = {
   islemDetay: { color: 'var(--text-muted)', fontSize: '12px', marginTop: '2px' },
   hucreMetin: { color: 'var(--text-secondary)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   islemTutar: { fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap', textAlign: 'right' },
+  satirAksiyonlar: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' },
+  duzenleBtn: { width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', borderRadius: '7px', color: 'var(--primary)', cursor: 'pointer', opacity: .72, transition: 'opacity .16s ease, background .16s ease' },
   silBtn: { width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0, transition: 'opacity .16s ease' },
   listeAlt: { marginTop: 'auto', padding: '14px 10px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '11px' },
   sayfaNo: { width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', background: '#234f68', color: '#fff', fontWeight: '650' },
